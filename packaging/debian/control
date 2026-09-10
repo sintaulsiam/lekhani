@@ -1,0 +1,35 @@
+Source: lekhani
+Section: utils
+Priority: optional
+Maintainer: Lekhani Contributors <openbanglateam@gmail.com>
+Build-Depends: debhelper-compat (= 13), cargo, rustc
+Standards-Version: 4.6.2
+Homepage: https://openbangla.github.io/
+Vcs-Git: https://github.com/sintaulsiam/lekhani.git
+Vcs-Browser: https://github.com/OpenBangla/lekhani
+
+Package: lekhani-common
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, hicolor-icon-theme
+Recommends: fonts-noto-core | fonts-beng-extra
+Description: Modern pure Rust Bengali input method (data and GUI)
+ Shared layouts, Trie dictionaries, desktop Slint GUI, and CLI for Lekhani.
+
+Package: ibus-lekhani
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, lekhani-common (= ${binary:Version}), ibus
+Description: Lekhani engine for IBus (GNOME / Ubuntu)
+ Pure Rust Bengali input method engine integrating with the IBus framework.
+
+Package: fcitx5-lekhani
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, lekhani-common (= ${binary:Version}), fcitx5
+Description: Lekhani engine for Fcitx5 (KDE Plasma 6 / Wayland)
+ Pure Rust Bengali input method engine integrating with the Fcitx5 framework.
+
+Package: lekhani
+Architecture: all
+Depends: ${misc:Depends}, lekhani-common (>= ${source:Version})
+Recommends: ibus-lekhani | fcitx5-lekhani
+Description: Modern Bengali input method suite (metapackage)
+ This metapackage installs the Lekhani suite and recommends the appropriate engine.

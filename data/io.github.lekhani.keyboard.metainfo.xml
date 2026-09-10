@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.lekhani.keyboard</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Lekhani</name>
+  <summary>Modern Pure Rust Bengali Input Method &amp; Desktop Suite</summary>
+  <description>
+    <p>
+      Lekhani is a modern, ultra-fast, Unicode-compliant Bengali input method for Linux.
+      It features Avro Phonetic transliteration, popular fixed keyboard layouts (Probhat, National Jatiya, Munir Optima, Borno),
+      a native Slint UI, Bijoy-to-Unicode conversion, emoji shortcodes, and an IBus DBus service.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.lekhani.keyboard.desktop</launchable>
+  <url type="homepage">https://openbangla.github.io/</url>
+  <url type="bugtracker">https://github.com/OpenBangla/lekhani/issues</url>
+  <provides>
+    <binary>lekhani-gui</binary>
+    <binary>ibus-lekhani</binary>
+    <binary>lekhani</binary>
+  </provides>
+</component>

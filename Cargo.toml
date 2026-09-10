@@ -1,0 +1,45 @@
+[workspace]
+members = [
+    "crates/lekhani-core",
+    "crates/lekhani-settings",
+    "crates/lekhani-ibus",
+    "crates/lekhani-fcitx5",
+    "crates/lekhani-gui",
+    "crates/lekhani-cli",
+]
+resolver = "2"
+
+[workspace.package]
+version = "1.0.0"
+authors = ["Lekhani Contributors <openbanglateam@gmail.com>"]
+edition = "2021"
+license = "GPL-3.0-or-later"
+repository = "https://github.com/OpenBangla/lekhani"
+homepage = "https://openbangla.github.io/"
+description = "Modern, ultra-fast pure Rust Bengali input method framework and desktop suite for IBus, Fcitx5, and KDE"
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+directories = "5.0"
+zbus = { version = "4.0", default-features = false, features = ["async-io"] }
+tokio = { version = "1.36", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+edit-distance = "2.1"
+rayon = "1.8"
+hashbrown = { version = "0.14", features = ["serde", "rayon"] }
+thiserror = "1.0"
+anyhow = "1.0"
+clap = { version = "4.4", features = ["derive"] }
+slint = "1.4"
+quick-xml = "0.31"
+futures-util = "0.3"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

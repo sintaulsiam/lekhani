@@ -1,0 +1,91 @@
+# Maintainer: Lekhani Team <openbanglateam@gmail.com>
+pkgbase=lekhani
+pkgname=('lekhani-common' 'ibus-lekhani' 'fcitx5-lekhani' 'lekhani')
+pkgver=3.0.0
+pkgrel=1
+pkgdesc="Modern pure Rust Bengali input method framework and desktop suite"
+arch=('x86_64' 'aarch64')
+url="https://github.com/OpenBangla/lekhani"
+license=('GPL-3.0-or-later')
+makedepends=('cargo' 'rust')
+source=("$pkgbase-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+prepare() {
+    cd "$pkgbase-$pkgver"
+    export RUSTUP_TOOLCHAIN=stable
+    cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+build() {
+    cd "$pkgbase-$pkgver"
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_TARGET_DIR=target
+    cargo build --frozen --release --workspace
+}
+
+check() {
+    cd "$pkgbase-$pkgver"
+    export RUSTUP_TOOLCHAIN=stable
+    cargo test --frozen --workspace
+}
+
+package_lekhani-common() {
+    pkgdesc="Shared data, layouts, GUI, and CLI for Lekhani"
+    depends=('hicolor-icon-theme')
+    optdepends=('font-noto: for Bengali font rendering'
+                'noto-fonts-extra: additional Bengali glyphs')
+
+    cd "$pkgbase-$pkgver"
+
+    # Binaries
+    install -Dm755 target/release/lekhani-gui "$pkgdir/usr/bin/lekhani-gui"
+    install -Dm755 target/release/lekhani "$pkgdir/usr/bin/lekhani"
+
+    # Layouts & Dictionaries
+    install -d "$pkgdir/usr/share/lekhani/layouts"
+    install -Dm644 data/layouts/*.json "$pkgdir/usr/share/lekhani/layouts/"
+    
+    install -d "$pkgdir/usr/share/lekhani/data"
+    install -Dm644 data/dictionaries/*.json "$pkgdir/usr/share/lekhani/data/"
+
+    # Icons
+    install -Dm644 data/icons/16.png "$pkgdir/usr/share/icons/hicolor/16x16/apps/lekhani.png"
+    install -Dm644 data/icons/32.png "$pkgdir/usr/share/icons/hicolor/32x32/apps/lekhani.png"
+    install -Dm644 data/icons/48.png "$pkgdir/usr/share/icons/hicolor/48x48/apps/lekhani.png"
+    install -Dm644 data/icons/128.png "$pkgdir/usr/share/icons/hicolor/128x128/apps/lekhani.png"
+    install -Dm644 data/icons/512.png "$pkgdir/usr/share/icons/hicolor/512x512/apps/lekhani.png"
+    install -Dm644 data/icons/1024.png "$pkgdir/usr/share/icons/hicolor/1024x1024/apps/lekhani.png"
+    install -Dm644 data/icons/32.png "$pkgdir/usr/share/lekhani/icons/lekhani.png"
+
+    # Desktop Entry and AppStream Metadata
+    install -Dm644 data/io.github.lekhani.keyboard.desktop "$pkgdir/usr/share/applications/io.github.lekhani.keyboard.desktop"
+    install -Dm644 data/io.github.lekhani.keyboard.metainfo.xml "$pkgdir/usr/share/metainfo/io.github.lekhani.keyboard.metainfo.xml"
+}
+
+package_ibus-lekhani() {
+    pkgdesc="IBus engine for Lekhani (Bengali input method for GNOME / IBus)"
+    depends=("lekhani-common=$pkgver" 'ibus')
+
+    cd "$pkgbase-$pkgver"
+    install -Dm755 target/release/ibus-lekhani "$pkgdir/usr/bin/ibus-lekhani"
+    install -Dm644 data/ibus/lekhani.xml "$pkgdir/usr/share/ibus/component/lekhani.xml"
+}
+
+package_fcitx5-lekhani() {
+    pkgdesc="Fcitx5 engine for Lekhani (Bengali input method for KDE Plasma 6 / Wayland)"
+    depends=("lekhani-common=$pkgver" 'fcitx5')
+
+    cd "$pkgbase-$pkgver"
+    install -Dm755 target/release/fcitx5-lekhani "$pkgdir/usr/bin/fcitx5-lekhani"
+    install -d "$pkgdir/usr/share/fcitx5/addon" "$pkgdir/usr/share/fcitx5/inputmethod"
+    install -Dm644 data/fcitx5/addon/lekhani.conf "$pkgdir/usr/share/fcitx5/addon/lekhani.conf"
+    install -Dm644 data/fcitx5/inputmethod/lekhani.conf "$pkgdir/usr/share/fcitx5/inputmethod/lekhani.conf"
+}
+
+package_lekhani() {
+    pkgdesc="Meta-package installing Lekhani with both IBus and Fcitx5 engines"
+    depends=("lekhani-common=$pkgver")
+    optdepends=('ibus-lekhani: IBus engine for GNOME'
+                'fcitx5-lekhani: Fcitx5 engine for KDE Plasma 6 and Wayland')
+}

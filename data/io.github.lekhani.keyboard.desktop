@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Lekhani
+GenericName=Bengali Input Method
+Comment=Modern Pure Rust Bengali Input Method & Productivity Suite
+Exec=lekhani-gui
+Icon=lekhani
+Terminal=false
+Type=Application
+Categories=Utility;TextTools;Settings;
+Keywords=bangla;bengali;keyboard;input;avro;bijoy;
+StartupNotify=true

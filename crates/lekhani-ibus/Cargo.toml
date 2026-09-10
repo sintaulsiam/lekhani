@@ -1,0 +1,23 @@
+[package]
+name = "lekhani-ibus"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Pure Rust IBus Input Method Engine for Lekhani"
+
+[[bin]]
+name = "ibus-lekhani"
+path = "src/main.rs"
+
+[dependencies]
+lekhani-core = { path = "../lekhani-core" }
+lekhani-settings = { path = "../lekhani-settings" }
+serde.workspace = true
+serde_json.workspace = true
+zbus.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+thiserror.workspace = true
+hashbrown.workspace = true

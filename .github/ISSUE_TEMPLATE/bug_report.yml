@@ -1,0 +1,84 @@
+---
+name: Bug Report
+description: File a bug report to help us improve Lekhani
+labels: ["Bug"]
+title: "[Bug]: "
+type: bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug in Lekhani. Please provide as much detail as possible to help us diagnose and fix the issue.
+  - type: input
+    id: obk-version
+    attributes:
+      label: Lekhani Version
+      description: What version of Lekhani are you using?
+      placeholder: e.g., 2.0.0
+    validations:
+      required: true
+  - type: input
+    id: os-details
+    attributes:
+      label: Operating System and Version
+      description: Which OS or Distro and which version are you using?
+      placeholder: e.g., Windows 11 25H2, macOS 26.4, Linux Mint 22.3
+    validations:
+      required: true
+  - type: input
+    id: environment-details
+    attributes:
+      label: Environment Details (for GNU/Linux Users)
+      description: Which desktop environment and display type are you using?
+      placeholder: e.g., KDE Plasma Wayland, Cinnamon X11
+    validations:
+      required: false
+  - type: dropdown
+    id: input-method
+    attributes:
+      label: Input Method Framework
+      description: Which input method framework are you using?
+      multiple: true
+      options:
+        - IBus
+        - Fcitx
+        - Other (Specify in Additional Context)
+    validations:
+      required: false
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Describe the Bug
+      description: A clear and concise description of what the bug is.
+      placeholder: Let us know what issues you are experiencing.
+    validations:
+      required: true
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Provide detailed steps to reproduce the bug.
+      placeholder: |
+        1. Open OBK
+        2. Select a specific layout
+        3. Type specific characters
+        4. Observe the issue
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or Screenshots
+      description: If applicable, please include relevant logs, screenshots, or other files to help explain the problem.
+      placeholder: Paste logs here or describe how to access screenshots.
+    validations:
+      required: false
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other context about the problem, such as specific keyboard layouts or system configurations.
+      placeholder: Add any relevant details here.
+    validations:
+      required: false
+---
