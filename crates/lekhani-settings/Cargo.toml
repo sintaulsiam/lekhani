@@ -1,0 +1,17 @@
+[package]
+name = "lekhani-settings"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Configuration and Layout management for Lekhani"
+
+[dependencies]
+lekhani-core = { path = "../lekhani-core" }
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+directories.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+hashbrown.workspace = true

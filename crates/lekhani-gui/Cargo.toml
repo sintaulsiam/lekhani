@@ -1,0 +1,27 @@
+[package]
+name = "lekhani-gui"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Native Slint Desktop UI for Lekhani (TopBar, Settings, AutoCorrect, Bijoy Converter)"
+
+[[bin]]
+name = "lekhani-gui"
+path = "src/main.rs"
+
+[build-dependencies]
+slint-build = "1.4"
+
+[dependencies]
+lekhani-core = { path = "../lekhani-core" }
+lekhani-settings = { path = "../lekhani-settings" }
+slint = "1.4"
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+thiserror.workspace = true
+zbus.workspace = true
+tokio.workspace = true
+futures-util.workspace = true
