@@ -7,14 +7,15 @@ License:        GPL-3.0-or-later
 URL:            https://github.com/OpenBangla/lekhani
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 
-BuildRequires:  rust-packaging >= 21
 BuildRequires:  cargo
 BuildRequires:  rust
 BuildRequires:  cmake
 BuildRequires:  gcc-c++
 BuildRequires:  extra-cmake-modules
 BuildRequires:  fcitx5-devel
-BuildRequires:  systemd-rpm-macros
+BuildRequires:  ibus-devel
+BuildRequires:  fontconfig-devel
+BuildRequires:  libxkbcommon-devel
 
 Requires:       lekhani-common = %{version}-%{release}
 Recommends:     ibus-lekhani = %{version}-%{release}
@@ -52,14 +53,10 @@ Requires:       fcitx5
 Lekhani Bengali typing engine for Fcitx5 (recommended for KDE Plasma 6, Wayland, and Fedora KDE spin).
 
 %prep
-%autosetup -p1
-%cargo_prep
-
-%generate_buildrequires
-%cargo_generate_buildrequires
+%autosetup -n %{name}-%{version}
 
 %build
-%cargo_build
+cargo build --release --workspace
 cmake -B crates/lekhani-fcitx5/build -S crates/lekhani-fcitx5 -DCMAKE_BUILD_TYPE=Release
 cmake --build crates/lekhani-fcitx5/build --config Release
 
@@ -92,16 +89,21 @@ install -d %{buildroot}%{_datadir}/lekhani/icons
 install -Dpm 0644 data/icons/128.png %{buildroot}%{_datadir}/lekhani/icons/lekhani.png
 
 # Install IBus & Fcitx5 configurations
+install -d %{buildroot}%{_datadir}/ibus/component
 install -Dpm 0644 data/ibus/lekhani.xml %{buildroot}%{_datadir}/ibus/component/lekhani.xml
+install -d %{buildroot}%{_datadir}/fcitx5/addon
 install -Dpm 0644 data/fcitx5/addon/lekhani.conf %{buildroot}%{_datadir}/fcitx5/addon/lekhani.conf
+install -d %{buildroot}%{_datadir}/fcitx5/inputmethod
 install -Dpm 0644 data/fcitx5/inputmethod/lekhani.conf %{buildroot}%{_datadir}/fcitx5/inputmethod/lekhani.conf
 
 # Install Desktop Entry & Metainfo
+install -d %{buildroot}%{_datadir}/applications
 install -Dpm 0644 data/io.github.lekhani.keyboard.desktop %{buildroot}%{_datadir}/applications/io.github.lekhani.keyboard.desktop
+install -d %{buildroot}%{_metainfodir}
 install -Dpm 0644 data/io.github.lekhani.keyboard.metainfo.xml %{buildroot}%{_metainfodir}/io.github.lekhani.keyboard.metainfo.xml
 
 %check
-%cargo_test
+cargo test --workspace
 
 %files
 # Meta-package
@@ -115,6 +117,7 @@ install -Dpm 0644 data/io.github.lekhani.keyboard.metainfo.xml %{buildroot}%{_me
 %{_datadir}/applications/io.github.lekhani.keyboard.desktop
 %{_metainfodir}/io.github.lekhani.keyboard.metainfo.xml
 %{_datadir}/icons/hicolor/*/apps/lekhani.png
+%{_datadir}/icons/hicolor/scalable/apps/lekhani.svg
 
 %files -n ibus-lekhani
 %{_bindir}/ibus-lekhani
