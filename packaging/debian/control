@@ -2,9 +2,9 @@ Source: lekhani
 Section: utils
 Priority: optional
 Maintainer: Lekhani Contributors <openbanglateam@gmail.com>
-Build-Depends: debhelper-compat (= 13), cargo, rustc
+Build-Depends: debhelper-compat (= 13), cargo, rustc, cmake, extra-cmake-modules, libfcitx5core-dev
 Standards-Version: 4.6.2
-Homepage: https://openbangla.github.io/
+Homepage: https://github.com/OpenBangla/lekhani
 Vcs-Git: https://github.com/sintaulsiam/lekhani.git
 Vcs-Browser: https://github.com/OpenBangla/lekhani
 
@@ -13,7 +13,7 @@ Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, hicolor-icon-theme
 Recommends: fonts-noto-core | fonts-beng-extra
 Description: Modern pure Rust Bengali input method (data and GUI)
- Shared layouts, Trie dictionaries, desktop Slint GUI, and CLI for Lekhani.
+ Shared layouts, Trie dictionaries, desktop Slint GUI, and CLI utility for Lekhani.
 
 Package: ibus-lekhani
 Architecture: any

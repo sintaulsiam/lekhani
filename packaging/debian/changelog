@@ -1,0 +1,8 @@
+lekhani (3.0.0-1) unstable; urgency=medium
+
+  * Release version 3.0.0.
+  * Native pure Rust Bengali input method architecture.
+  * Added dedicated ibus-lekhani and fcitx5-lekhani packages.
+  * Added statistical N-gram Bengali language model & dynamic corpus trainer.
+
+ -- Lekhani Contributors <openbanglateam@gmail.com>  Fri, 11 Sep 2026 21:00:00 +0600

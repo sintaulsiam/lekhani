@@ -1,0 +1,48 @@
+#!/usr/bin/make -f
+export DH_VERBOSE = 1
+export RUSTUP_TOOLCHAIN = stable
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	cargo build --release --workspace
+	cmake -B crates/lekhani-fcitx5/build -S crates/lekhani-fcitx5 -DCMAKE_BUILD_TYPE=Release
+	cmake --build crates/lekhani-fcitx5/build --config Release
+
+override_dh_auto_test:
+	cargo test --workspace
+
+override_dh_auto_install:
+	# lekhani-common binaries
+	install -Dm755 target/release/lekhani-gui debian/lekhani-common/usr/bin/lekhani-gui
+	install -Dm755 target/release/lekhani debian/lekhani-common/usr/bin/lekhani
+	# layouts & dictionaries
+	install -d debian/lekhani-common/usr/share/lekhani/layouts
+	install -Dm644 data/layouts/*.json debian/lekhani-common/usr/share/lekhani/layouts/
+	install -d debian/lekhani-common/usr/share/lekhani/data
+	install -Dm644 data/dictionaries/*.json debian/lekhani-common/usr/share/lekhani/data/
+	# icons
+	install -d debian/lekhani-common/usr/share/icons/hicolor/scalable/apps
+	install -Dm644 data/icons/lekhani.svg debian/lekhani-common/usr/share/icons/hicolor/scalable/apps/lekhani.svg
+	for size in 16 22 24 32 48 64 128 256 512 1024; do \
+		if [ -f "data/icons/$$size.png" ]; then \
+			install -Dm644 "data/icons/$$size.png" "debian/lekhani-common/usr/share/icons/hicolor/$${size}x$${size}/apps/lekhani.png"; \
+		fi; \
+	done
+	install -d debian/lekhani-common/usr/share/lekhani/icons
+	install -Dm644 data/icons/128.png debian/lekhani-common/usr/share/lekhani/icons/lekhani.png
+	# desktop & metainfo
+	install -Dm644 data/io.github.lekhani.keyboard.desktop debian/lekhani-common/usr/share/applications/io.github.lekhani.keyboard.desktop
+	install -Dm644 data/io.github.lekhani.keyboard.metainfo.xml debian/lekhani-common/usr/share/metainfo/io.github.lekhani.keyboard.metainfo.xml
+
+	# ibus-lekhani
+	install -Dm755 target/release/ibus-lekhani debian/ibus-lekhani/usr/bin/ibus-lekhani
+	install -Dm644 data/ibus/lekhani.xml debian/ibus-lekhani/usr/share/ibus/component/lekhani.xml
+
+	# fcitx5-lekhani
+	install -d debian/fcitx5-lekhani/usr/lib/x86_64-linux-gnu/fcitx5
+	install -Dm755 crates/lekhani-fcitx5/build/fcitx5-lekhani.so debian/fcitx5-lekhani/usr/lib/x86_64-linux-gnu/fcitx5/fcitx5-lekhani.so
+	install -d debian/fcitx5-lekhani/usr/share/fcitx5/addon debian/fcitx5-lekhani/usr/share/fcitx5/inputmethod
+	install -Dm644 data/fcitx5/addon/lekhani.conf debian/fcitx5-lekhani/usr/share/fcitx5/addon/lekhani.conf
+	install -Dm644 data/fcitx5/inputmethod/lekhani.conf debian/fcitx5-lekhani/usr/share/fcitx5/inputmethod/lekhani.conf
