@@ -103,6 +103,15 @@ enum AiCommands {
         /// JSON array of candidate vectors (e.g. '[["আমি"],["শার্ট"],["পড়া","পরা"]]')
         sequence_json: String,
     },
+    /// Train the statistical N-gram language model on a raw Bengali text corpus
+    Train {
+        /// Input text file containing Bengali corpus
+        #[arg(short, long)]
+        input: PathBuf,
+        /// Optional output path to save compiled model JSON
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -413,6 +422,30 @@ fn main() -> anyhow::Result<()> {
                     let path = decoder.decode(&seq);
                     println!("Optimal Decoded Sequence: {:?}", path);
                     println!("Sentence: \"{}\"", path.join(" "));
+                }
+                AiCommands::Train { input, output } => {
+                    let text = std::fs::read_to_string(&input)?;
+                    let mut trainer = lekhani_ai::CorpusTrainer::new();
+                    trainer.train_text(&text);
+                    let compiled = trainer.compile();
+
+                    println!("╔══════════════════════════════════════════════════════╗");
+                    println!("║        🎓 Lekhani AI Corpus Training Complete        ║");
+                    println!("╠══════════════════════════════════════════════════════╣");
+                    println!("║ Corpus Source:      {:<32} ║", input.display());
+                    println!("║ Total Words:        {:>32} ║", compiled.total_words);
+                    println!("║ Unique Unigrams:    {:>32} ║", compiled.unigrams.len());
+                    println!("║ Unique Bigrams:     {:>32} ║", compiled.bigrams.len());
+                    println!("║ Unique Trigrams:    {:>32} ║", compiled.trigrams.len());
+                    if let Some(out_path) = output {
+                        let json = serde_json::to_string_pretty(&compiled)?;
+                        if let Some(p) = out_path.parent() {
+                            let _ = std::fs::create_dir_all(p);
+                        }
+                        std::fs::write(&out_path, json)?;
+                        println!("║ Exported Model To:  {:<32} ║", out_path.display());
+                    }
+                    println!("╚══════════════════════════════════════════════════════╝");
                 }
             }
         }
