@@ -84,6 +84,12 @@ pub struct ConfigManager {
     last_autocorrect_mtime: Option<std::time::SystemTime>,
 }
 
+impl Default for ConfigManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ConfigManager {
     pub fn new() -> Self {
         let proj = ProjectDirs::from("io.github", "openbangla", "lekhani")
@@ -146,7 +152,7 @@ impl ConfigManager {
 
         if let Ok(meta) = self.config_path.metadata() {
             if let Ok(mtime) = meta.modified() {
-                if self.last_config_mtime.map_or(true, |last| mtime > last) {
+                if self.last_config_mtime.is_none_or(|last| mtime > last) {
                     changed = true;
                 }
             }
@@ -155,7 +161,7 @@ impl ConfigManager {
         let ac_path = self.get_user_autocorrect_path();
         if let Ok(meta) = ac_path.metadata() {
             if let Ok(mtime) = meta.modified() {
-                if self.last_autocorrect_mtime.map_or(true, |last| mtime > last) {
+                if self.last_autocorrect_mtime.is_none_or(|last| mtime > last) {
                     changed = true;
                 }
             }
