@@ -54,6 +54,52 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize Desktop System Tray (ksni)
     let _tray_handle = tray::spawn_tray(current_layout);
 
+    // Set Native Window Icon on Winit Window
+    use i_slint_backend_winit::WinitWindowAccessor;
+    let icon_bytes = include_bytes!("../../../data/icons/128.png");
+    if let Ok(img) = image::load_from_memory(icon_bytes) {
+        let rgba = img.into_rgba8();
+        let (w, h) = rgba.dimensions();
+        let raw = rgba.into_raw();
+        let _ = app.window().with_winit_window(move |winit_window| {
+            if let Ok(icon) = i_slint_backend_winit::winit::window::Icon::from_rgba(raw, w, h) {
+                winit_window.set_window_icon(Some(icon));
+            }
+        });
+    }
+
+    // Callbacks: Window Dragging & Movement (Wayland & X11 Native Compositor Drag)
+    let app_weak_drag = app_weak.clone();
+    app.on_start_drag_window(move || {
+        if let Some(app) = app_weak_drag.upgrade() {
+            let _ = app.window().with_winit_window(|winit_window| {
+                let _ = winit_window.drag_window();
+            });
+            // Reset Slint's internal pointer grab state asynchronously so buttons remain responsive
+            let app_weak_reset = app_weak_drag.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(app) = app_weak_reset.upgrade() {
+                    let _ = app.window().try_dispatch_event(slint::platform::WindowEvent::PointerReleased {
+                        position: slint::LogicalPosition::new(0.0, 0.0),
+                        button: slint::platform::PointerEventButton::Left,
+                    });
+                    let _ = app.window().try_dispatch_event(slint::platform::WindowEvent::PointerExited);
+                }
+            });
+        }
+    });
+
+    let app_weak_end = app_weak.clone();
+    app.on_end_drag_window(move || {
+        if let Some(app) = app_weak_end.upgrade() {
+            let _ = app.window().try_dispatch_event(slint::platform::WindowEvent::PointerReleased {
+                position: slint::LogicalPosition::new(0.0, 0.0),
+                button: slint::platform::PointerEventButton::Left,
+            });
+            let _ = app.window().try_dispatch_event(slint::platform::WindowEvent::PointerExited);
+        }
+    });
+
     // Callbacks: Layout Switching
     let config_mgr_rc = Rc::new(std::cell::RefCell::new(config_mgr));
     let cm_clone = config_mgr_rc.clone();

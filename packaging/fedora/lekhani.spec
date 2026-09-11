@@ -72,13 +72,15 @@ install -d %{buildroot}%{_datadir}/lekhani/data
 install -Dpm 0644 data/dictionaries/*.json %{buildroot}%{_datadir}/lekhani/data/
 
 # Install icons
-install -Dpm 0644 data/icons/16.png %{buildroot}%{_datadir}/icons/hicolor/16x16/apps/lekhani.png
-install -Dpm 0644 data/icons/32.png %{buildroot}%{_datadir}/icons/hicolor/32x32/apps/lekhani.png
-install -Dpm 0644 data/icons/48.png %{buildroot}%{_datadir}/icons/hicolor/48x48/apps/lekhani.png
-install -Dpm 0644 data/icons/128.png %{buildroot}%{_datadir}/icons/hicolor/128x128/apps/lekhani.png
-install -Dpm 0644 data/icons/512.png %{buildroot}%{_datadir}/icons/hicolor/512x512/apps/lekhani.png
-install -Dpm 0644 data/icons/1024.png %{buildroot}%{_datadir}/icons/hicolor/1024x1024/apps/lekhani.png
-install -Dpm 0644 data/icons/32.png %{buildroot}%{_datadir}/lekhani/icons/lekhani.png
+install -d %{buildroot}%{_datadir}/icons/hicolor/scalable/apps
+install -Dpm 0644 data/icons/lekhani.svg %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/lekhani.svg
+for size in 16 22 24 32 48 64 128 256 512 1024; do
+    if [ -f "data/icons/${size}.png" ]; then
+        install -Dpm 0644 "data/icons/${size}.png" "%{buildroot}%{_datadir}/icons/hicolor/${size}x${size}/apps/lekhani.png"
+    fi
+done
+install -d %{buildroot}%{_datadir}/lekhani/icons
+install -Dpm 0644 data/icons/128.png %{buildroot}%{_datadir}/lekhani/icons/lekhani.png
 
 # Install IBus & Fcitx5 configurations
 install -Dpm 0644 data/ibus/lekhani.xml %{buildroot}%{_datadir}/ibus/component/lekhani.xml

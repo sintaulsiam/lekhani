@@ -2841,6 +2841,8 @@ name = "lekhani-gui"
 version = "3.0.0"
 dependencies = [
  "futures-util",
+ "i-slint-backend-winit",
+ "image",
  "lekhani-core",
  "lekhani-settings",
  "serde",

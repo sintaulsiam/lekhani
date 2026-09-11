@@ -13,13 +13,9 @@ public:
         : CandidateWord(std::move(text)), index_(index), state_(state) {}
 
     void select(InputContext *ic) const override {
+        FCITX_UNUSED(ic);
         if (state_ && state_->engine()) {
-            if (lekhani_engine_select_candidate(state_->engine(), index_)) {
-                const char *commit = lekhani_engine_get_commit_text(state_->engine());
-                if (commit && commit[0] != '\0') {
-                    ic->commitString(commit);
-                }
-            }
+            lekhani_engine_select_candidate(state_->engine(), index_);
             state_->updateUI();
         }
     }
@@ -63,6 +59,7 @@ void LekhaniState::updateUI() {
     const char *commit = lekhani_engine_get_commit_text(engine_);
     if (commit && commit[0] != '\0') {
         ic_->commitString(commit);
+        lekhani_engine_clear_commit_text(engine_);
     }
 
     // 2. Client Preedit & Aux Preedit
@@ -89,6 +86,8 @@ void LekhaniState::updateUI() {
     if (candidateCount > 0) {
         auto candidateList = std::make_unique<LekhaniCandidateList>();
         size_t selectedIdx = lekhani_engine_get_selected_candidate_index(engine_);
+        bool isPrediction = lekhani_engine_is_prediction_mode(engine_);
+        bool isNavigated = lekhani_engine_is_prediction_navigated(engine_);
 
         for (size_t i = 0; i < candidateCount; ++i) {
             const char *cand = lekhani_engine_get_candidate_at(engine_, i);
@@ -98,7 +97,11 @@ void LekhaniState::updateUI() {
                 ));
             }
         }
-        candidateList->setGlobalCursorIndex(static_cast<int>(selectedIdx));
+        if (isPrediction && !isNavigated) {
+            candidateList->setGlobalCursorIndex(-1);
+        } else {
+            candidateList->setGlobalCursorIndex(static_cast<int>(selectedIdx));
+        }
         ic_->inputPanel().setCandidateList(std::move(candidateList));
     } else {
         ic_->inputPanel().setCandidateList(nullptr);

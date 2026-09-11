@@ -16,7 +16,9 @@ slint-build = "1.4"
 [dependencies]
 lekhani-core = { path = "../lekhani-core" }
 lekhani-settings = { path = "../lekhani-settings" }
-slint = "1.4"
+slint = "1.17"
+i-slint-backend-winit = "1.17"
+image = { version = "0.25", default-features = false, features = ["png"] }
 serde.workspace = true
 serde_json.workspace = true
 tracing.workspace = true

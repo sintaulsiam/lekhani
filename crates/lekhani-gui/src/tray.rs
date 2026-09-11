@@ -46,7 +46,7 @@ impl LekhaniTray {
 
     #[zbus(property)]
     fn icon_theme_path(&self) -> &str {
-        ""
+        "/usr/share/icons/hicolor"
     }
 
     #[zbus(property)]
