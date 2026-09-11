@@ -1,0 +1,19 @@
+[package]
+name = "lekhani-ffi"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "C-ABI FFI library for Lekhani Core, enabling native C/C++ plugins for Fcitx5 and other frameworks"
+
+[lib]
+name = "lekhani_ffi"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+lekhani-core = { path = "../lekhani-core" }
+lekhani-settings = { path = "../lekhani-settings" }
+serde.workspace = true
+serde_json.workspace = true
+hashbrown.workspace = true
+tracing.workspace = true

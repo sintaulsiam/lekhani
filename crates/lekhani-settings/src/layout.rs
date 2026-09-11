@@ -59,14 +59,50 @@ impl LayoutManager {
     }
 
     pub fn get_layout(&self, name: &str) -> Option<&LayoutInfo> {
-        self.layouts.get(name)
+        if let Some(info) = self.layouts.get(name) {
+            return Some(info);
+        }
+
+        let clean_target = normalize_layout_str(name);
+        // 1. Try normalized name match
+        for info in self.layouts.values() {
+            if normalize_layout_str(&info.name) == clean_target {
+                return Some(info);
+            }
+        }
+
+        // 2. Try file stem match (e.g. avrophonetic, Probhat, National_Jatiya)
+        for info in self.layouts.values() {
+            if let Some(stem) = info.path.file_stem().and_then(|s| s.to_str()) {
+                if normalize_layout_str(stem) == clean_target {
+                    return Some(info);
+                }
+            }
+        }
+
+        // 3. Substring match fallback (e.g. "avro" -> "Avro Phonetic", "jatiya" -> "National (Jatiya)")
+        for info in self.layouts.values() {
+            let clean_info = normalize_layout_str(&info.name);
+            if clean_info.contains(&clean_target) || clean_target.contains(&clean_info) {
+                return Some(info);
+            }
+        }
+
+        None
     }
 
     pub fn load_layout_json(&self, name: &str) -> Option<Value> {
-        let info = self.layouts.get(name)?;
+        let info = self.get_layout(name)?;
         let content = std::fs::read_to_string(&info.path).ok()?;
         serde_json::from_str(&content).ok()
     }
+}
+
+fn normalize_layout_str(s: &str) -> String {
+    s.chars()
+        .filter(|c| c.is_alphanumeric())
+        .flat_map(|c| c.to_lowercase())
+        .collect()
 }
 
 fn parse_layout_info(path: &Path, val: &Value) -> Option<LayoutInfo> {

@@ -26,7 +26,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let system_data = ConfigManager::get_system_data_dir();
     let _ = db.load_from_dir(system_data);
-    db.load_user_autocorrect(config_mgr.get_user_autocorrect_path());
+    let user_ac_path = config_mgr.get_user_autocorrect_path();
+    db.load_user_autocorrect(&user_ac_path);
 
     // Initialize UI state
     let current_layout = config_mgr.config.general.active_layout.clone();
@@ -35,6 +36,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let slint_layouts: Vec<slint::SharedString> = layouts.into_iter().map(|s| s.into()).collect();
     let model = std::rc::Rc::new(slint::VecModel::from(slint_layouts));
     app.set_available_layouts(model.into());
+
+    let total_entries = db.get_user_autocorrect().len() + db.get_system_autocorrect().len();
+    app.set_ac_status_text(format!("Total active entries: {} (User: {})", total_entries, db.get_user_autocorrect().len()).into());
 
     // Settings state
     app.set_set_use_dict(config_mgr.config.phonetic.use_dictionary);
@@ -81,6 +85,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     // Callbacks: AutoCorrect live input preview
+    let db_rc = Rc::new(std::cell::RefCell::new(db));
     let phonetic_sugg = PhoneticSuggestion::new();
     let ps_rc = Rc::new(std::cell::RefCell::new(phonetic_sugg));
     let ps_clone = ps_rc.clone();
@@ -92,6 +97,55 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(app) = app_weak_ac.upgrade() {
             app.set_ac_preview_replace(prev_r.into());
             app.set_ac_preview_with(prev_w.into());
+        }
+    });
+
+    // Callbacks: AutoCorrect Add / Update / Delete
+    let db_add_clone = db_rc.clone();
+    let cm_ac_clone = config_mgr_rc.clone();
+    let app_weak_add = app_weak.clone();
+    app.on_ac_add_or_update(move |trigger, replacement| {
+        if trigger.is_empty() || replacement.is_empty() {
+            return;
+        }
+        let mut db = db_add_clone.borrow_mut();
+        db.insert_user_autocorrect(trigger.to_string(), replacement.to_string());
+        let cm = cm_ac_clone.borrow();
+        let user_ac_path = cm.get_user_autocorrect_path();
+        if let Ok(json) = serde_json::to_string_pretty(db.get_user_autocorrect()) {
+            let _ = std::fs::write(&user_ac_path, json);
+        }
+        if let Some(app) = app_weak_add.upgrade() {
+            let total = db.get_user_autocorrect().len() + db.get_system_autocorrect().len();
+            app.set_ac_status_text(format!("Saved! Total entries: {} (User: {})", total, db.get_user_autocorrect().len()).into());
+        }
+    });
+
+    let db_del_clone = db_rc.clone();
+    let cm_del_clone = config_mgr_rc.clone();
+    let app_weak_del = app_weak.clone();
+    app.on_ac_delete_entry(move |trigger| {
+        let mut db = db_del_clone.borrow_mut();
+        db.remove_user_autocorrect(&trigger);
+        let cm = cm_del_clone.borrow();
+        let user_ac_path = cm.get_user_autocorrect_path();
+        if let Ok(json) = serde_json::to_string_pretty(db.get_user_autocorrect()) {
+            let _ = std::fs::write(&user_ac_path, json);
+        }
+        if let Some(app) = app_weak_del.upgrade() {
+            let total = db.get_user_autocorrect().len() + db.get_system_autocorrect().len();
+            app.set_ac_status_text(format!("Removed. Total entries: {} (User: {})", total, db.get_user_autocorrect().len()).into());
+        }
+    });
+
+    let db_search_clone = db_rc.clone();
+    let app_weak_search = app_weak.clone();
+    app.on_ac_search_changed(move |query| {
+        let db = db_search_clone.borrow();
+        let user_matches = db.get_user_autocorrect().iter().filter(|(k, v)| k.contains(query.as_str()) || v.contains(query.as_str())).count();
+        let sys_matches = db.get_system_autocorrect().iter().filter(|(k, v)| k.contains(query.as_str()) || v.contains(query.as_str())).count();
+        if let Some(app) = app_weak_search.upgrade() {
+            app.set_ac_status_text(format!("Found {} matching entries (User: {}, System: {})", user_matches + sys_matches, user_matches, sys_matches).into());
         }
     });
 

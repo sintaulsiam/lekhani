@@ -45,6 +45,10 @@ impl LekhaniIBusEngine {
         layout_mgr.discover_layouts(system_dir, user_dir);
 
         let mut session = InputSession::new();
+        let system_data = ConfigManager::get_system_data_dir();
+        let user_ac = config_mgr.get_user_autocorrect_path();
+        session.load_database(&system_data);
+        session.load_user_autocorrect(&user_ac);
         
         // Load active layout
         let active_name = &config_mgr.config.general.active_layout;
@@ -87,6 +91,12 @@ impl LekhaniIBusEngine {
                 st.alt_gr = false;
             }
             return Ok(false);
+        }
+
+        // Auto-sync configuration and autocorrect if modified externally
+        if st.config_mgr.check_and_reload() {
+            let user_ac = st.config_mgr.get_user_autocorrect_path();
+            st.session.load_user_autocorrect(&user_ac);
         }
 
         // Special handling for navigation and triggers
