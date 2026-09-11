@@ -47,8 +47,12 @@ impl LekhaniIBusEngine {
         let mut session = InputSession::new();
         let system_data = ConfigManager::get_system_data_dir();
         let user_ac = config_mgr.get_user_autocorrect_path();
+        let user_learned = config_mgr.get_user_learned_path();
+        let stats_path = config_mgr.get_data_dir().join("stats.json");
         session.load_database(&system_data);
         session.load_user_autocorrect(&user_ac);
+        session.load_user_learned(&user_learned);
+        session.load_stats(&stats_path);
         
         // Load active layout
         let active_name = &config_mgr.config.general.active_layout;
@@ -201,6 +205,10 @@ impl LekhaniIBusEngine {
     async fn disable(&mut self) -> zbus::fdo::Result<()> {
         info!("IBus Engine Disabled");
         let mut st = self.state.lock().unwrap();
+        let user_learned = st.config_mgr.get_user_learned_path();
+        let stats_path = st.config_mgr.get_data_dir().join("stats.json");
+        let _ = st.session.save_user_learned(&user_learned);
+        let _ = st.session.save_stats(&stats_path);
         st.session.reset();
         Ok(())
     }

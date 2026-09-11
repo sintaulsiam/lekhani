@@ -3,6 +3,8 @@
 //! Provides a C-compatible interface for Lekhani Core, used by the native
 //! Fcitx5 shared library plugin and external integrations.
 
+#![allow(clippy::not_unsafe_ptr_arg_deref)]
+
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::ptr;
@@ -47,9 +49,11 @@ fn get_global_resources() -> &'static RwLock<GlobalSharedResources> {
         let system_data = ConfigManager::get_system_data_dir();
         let user_ac = config_mgr.get_user_autocorrect_path();
         let user_learned = config_mgr.get_user_learned_path();
+        let stats_path = config_mgr.get_data_dir().join("stats.json");
         session_template.load_database(&system_data);
         session_template.load_user_autocorrect(&user_ac);
         session_template.load_user_learned(&user_learned);
+        session_template.load_stats(&stats_path);
 
         let active_name = &config_mgr.config.general.active_layout;
         if let Some(json) = layout_mgr.load_layout_json(active_name) {
@@ -84,6 +88,12 @@ pub struct LekhaniEngineContext {
     last_preedit: Option<CString>,
     last_aux: Option<CString>,
     last_candidates: Vec<CString>,
+}
+
+impl Default for LekhaniEngineContext {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl LekhaniEngineContext {
@@ -167,6 +177,11 @@ pub extern "C" fn lekhani_engine_new() -> *mut LekhaniEngineContext {
 pub extern "C" fn lekhani_engine_free(ctx: *mut LekhaniEngineContext) {
     if !ctx.is_null() {
         unsafe {
+            let engine = &mut *ctx;
+            let user_learned = engine.config_mgr.get_user_learned_path();
+            let stats_path = engine.config_mgr.get_data_dir().join("stats.json");
+            let _ = engine.session.save_user_learned(&user_learned);
+            let _ = engine.session.save_stats(&stats_path);
             drop(Box::from_raw(ctx));
         }
     }
