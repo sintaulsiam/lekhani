@@ -212,7 +212,9 @@ impl ConfigManager {
             PathBuf::from("/usr/share/openbangla-keyboard/layouts"),
         ];
         for c in &candidates {
-            if c.exists() && (c.join("avrophonetic.json").exists() || c.join("Probhat.json").exists()) {
+            if c.exists()
+                && (c.join("avrophonetic.json").exists() || c.join("Probhat.json").exists())
+            {
                 return c.clone();
             }
         }
@@ -240,7 +242,11 @@ impl ConfigManager {
             PathBuf::from("/usr/share/openbangla-keyboard"),
         ];
         for c in &candidates {
-            if c.exists() && (c.join("dictionary.json").exists() || c.join("dictionary.bin").exists() || c.join("autocorrect.json").exists()) {
+            if c.exists()
+                && (c.join("dictionary.json").exists()
+                    || c.join("dictionary.bin").exists()
+                    || c.join("autocorrect.json").exists())
+            {
                 return c.clone();
             }
         }
@@ -248,12 +254,17 @@ impl ConfigManager {
     }
 
     /// Export a complete backup bundle (config, autocorrect, learned words, custom layouts, user stats)
-    pub fn export_backup<P: AsRef<std::path::Path>>(&self, dest: P) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub fn export_backup<P: AsRef<std::path::Path>>(
+        &self,
+        dest: P,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut user_autocorrect = std::collections::HashMap::new();
         let ac_path = self.get_user_autocorrect_path();
         if ac_path.exists() {
             if let Ok(content) = std::fs::read_to_string(&ac_path) {
-                if let Ok(map) = serde_json::from_str::<std::collections::HashMap<String, String>>(&content) {
+                if let Ok(map) =
+                    serde_json::from_str::<std::collections::HashMap<String, String>>(&content)
+                {
                     user_autocorrect = map;
                 }
             }
@@ -315,7 +326,10 @@ impl ConfigManager {
     }
 
     /// Import and restore a complete backup bundle
-    pub fn import_backup<P: AsRef<std::path::Path>>(&mut self, src: P) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub fn import_backup<P: AsRef<std::path::Path>>(
+        &mut self,
+        src: P,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let content = std::fs::read_to_string(src)?;
         let bundle: BackupBundle = serde_json::from_str(&content)?;
 

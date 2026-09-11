@@ -5,14 +5,14 @@
 
 #![allow(clippy::not_unsafe_ptr_arg_deref)]
 
-use std::ffi::{CStr, CString};
-use std::os::raw::c_char;
-use std::ptr;
-use std::sync::{OnceLock, RwLock};
 use lekhani_core::{
     ActiveLayoutType, InputSession, KeycodeMapper, MODIFIER_ALT_GR, MODIFIER_SHIFT, VC_UNKNOWN,
 };
 use lekhani_settings::{ConfigManager, LayoutManager};
+use std::ffi::{CStr, CString};
+use std::os::raw::c_char;
+use std::ptr;
+use std::sync::{OnceLock, RwLock};
 
 // Special X11 Keysyms
 const KEY_BACKSPACE: u32 = 0xff08;
@@ -281,7 +281,12 @@ pub extern "C" fn lekhani_engine_process_key(
             if idx < engine.session.get_candidates().len() {
                 if let Some(committed) = engine.session.commit(idx) {
                     engine.last_commit = CString::new(committed).ok();
-                    if engine.config_mgr.config.phonetic.enable_predictive_next_words {
+                    if engine
+                        .config_mgr
+                        .config
+                        .phonetic
+                        .enable_predictive_next_words
+                    {
                         engine.session.populate_predictions();
                     }
                     engine.update_cached_strings();
@@ -308,7 +313,12 @@ pub extern "C" fn lekhani_engine_process_key(
                 let idx = engine.session.get_selected_index();
                 if let Some(committed) = engine.session.commit(idx) {
                     engine.last_commit = CString::new(committed).ok();
-                    if engine.config_mgr.config.phonetic.enable_predictive_next_words {
+                    if engine
+                        .config_mgr
+                        .config
+                        .phonetic
+                        .enable_predictive_next_words
+                    {
                         engine.session.populate_predictions();
                     }
                 }
@@ -324,7 +334,12 @@ pub extern "C" fn lekhani_engine_process_key(
             let idx = engine.session.get_selected_index();
             if let Some(committed) = engine.session.commit(idx) {
                 engine.last_commit = CString::new(committed).ok();
-                if engine.config_mgr.config.phonetic.enable_predictive_next_words {
+                if engine
+                    .config_mgr
+                    .config
+                    .phonetic
+                    .enable_predictive_next_words
+                {
                     engine.session.populate_predictions();
                 }
             }
@@ -345,7 +360,12 @@ pub extern "C" fn lekhani_engine_process_key(
                 let idx = engine.session.get_selected_index();
                 if let Some(committed) = engine.session.commit(idx) {
                     engine.last_commit = CString::new(committed).ok();
-                    if engine.config_mgr.config.phonetic.enable_predictive_next_words {
+                    if engine
+                        .config_mgr
+                        .config
+                        .phonetic
+                        .enable_predictive_next_words
+                    {
                         engine.session.populate_predictions();
                     }
                 }
@@ -361,7 +381,12 @@ pub extern "C" fn lekhani_engine_process_key(
             let idx = engine.session.get_selected_index();
             if let Some(committed) = engine.session.commit(idx) {
                 engine.last_commit = CString::new(committed).ok();
-                if engine.config_mgr.config.phonetic.enable_predictive_next_words {
+                if engine
+                    .config_mgr
+                    .config
+                    .phonetic
+                    .enable_predictive_next_words
+                {
                     engine.session.populate_predictions();
                 }
             }
@@ -538,7 +563,12 @@ pub extern "C" fn lekhani_engine_select_candidate(
     let engine = unsafe { &mut *ctx };
     if let Some(committed) = engine.session.commit(index) {
         engine.last_commit = CString::new(committed).ok();
-        if engine.config_mgr.config.phonetic.enable_predictive_next_words {
+        if engine
+            .config_mgr
+            .config
+            .phonetic
+            .enable_predictive_next_words
+        {
             engine.session.populate_predictions();
         }
         engine.update_cached_strings();
@@ -584,7 +614,11 @@ mod tests {
         let engine_ptr = lekhani_engine_new();
         assert!(!engine_ptr.is_null());
         unsafe {
-            (*engine_ptr).config_mgr.config.phonetic.enable_predictive_next_words = true;
+            (*engine_ptr)
+                .config_mgr
+                .config
+                .phonetic
+                .enable_predictive_next_words = true;
         }
 
         // Type 'a' (0x61), 'm' (0x6d), 'i' (0x69)
@@ -613,7 +647,10 @@ mod tests {
 
         // Verify Enter key in unnavigated prediction mode does NOT eat Enter, but passes through (false) and clears predictions for newline
         let enter_handled = lekhani_engine_process_key(engine_ptr, KEY_RETURN, 0, 0, false);
-        assert!(!enter_handled, "Enter key should pass through to application to insert newline");
+        assert!(
+            !enter_handled,
+            "Enter key should pass through to application to insert newline"
+        );
         assert_eq!(lekhani_engine_get_candidate_count(engine_ptr), 0);
 
         // Repopulate predictions and test Direct Selection with '2' (KEY_2 = 0x32 -> candidate index 1: "তোমাকে")
@@ -623,20 +660,31 @@ mod tests {
         }
         let handled_2 = lekhani_engine_process_key(engine_ptr, KEY_1 + 1, 0, 0, false);
         assert!(handled_2, "Pressing '2' should directly select candidate 2");
-        let pred_commit_str = unsafe { CStr::from_ptr(lekhani_engine_get_commit_text(engine_ptr)).to_str().unwrap() };
+        let pred_commit_str = unsafe {
+            CStr::from_ptr(lekhani_engine_get_commit_text(engine_ptr))
+                .to_str()
+                .unwrap()
+        };
         assert_eq!(pred_commit_str, "তোমাকে");
 
         // Test Tab navigation followed by Enter committing navigated candidate
         let tab_handled = lekhani_engine_process_key(engine_ptr, KEY_TAB, 0, 0, false);
         assert!(tab_handled, "Tab should navigate prediction candidates");
         let enter_nav_handled = lekhani_engine_process_key(engine_ptr, KEY_RETURN, 0, 0, false);
-        assert!(enter_nav_handled, "Enter after Tab navigation should commit selected prediction");
+        assert!(
+            enter_nav_handled,
+            "Enter after Tab navigation should commit selected prediction"
+        );
 
         // Type 's', 'h', 'i', 'r', 't'
         for ch in "shirt".chars() {
             lekhani_engine_process_key(engine_ptr, ch as u32, 0, 0, false);
         }
-        let shirt_cand = unsafe { CStr::from_ptr(lekhani_engine_get_candidate_at(engine_ptr, 0)).to_str().unwrap() };
+        let shirt_cand = unsafe {
+            CStr::from_ptr(lekhani_engine_get_candidate_at(engine_ptr, 0))
+                .to_str()
+                .unwrap()
+        };
         assert_eq!(shirt_cand, "শার্ট");
         lekhani_engine_process_key(engine_ptr, KEY_SPACE, 0, 0, false);
 
@@ -644,7 +692,11 @@ mod tests {
         for ch in "pora".chars() {
             lekhani_engine_process_key(engine_ptr, ch as u32, 0, 0, false);
         }
-        let pora_cand = unsafe { CStr::from_ptr(lekhani_engine_get_candidate_at(engine_ptr, 0)).to_str().unwrap() };
+        let pora_cand = unsafe {
+            CStr::from_ptr(lekhani_engine_get_candidate_at(engine_ptr, 0))
+                .to_str()
+                .unwrap()
+        };
         assert_eq!(pora_cand, "পরা");
         lekhani_engine_process_key(engine_ptr, KEY_SPACE, 0, 0, false);
 

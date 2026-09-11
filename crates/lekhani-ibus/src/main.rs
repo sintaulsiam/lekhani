@@ -1,7 +1,6 @@
 //! Lekhani IBus Daemon Main Entrypoint
 
 mod engine;
-mod keycode;
 
 use engine::LekhaniIBusEngine;
 use tracing::info;
