@@ -174,13 +174,13 @@ This document outlines the planned architectural improvements, intelligence feat
 | **Statistical & Neural Context Disambiguation** | `lekhani-ai` | ✅ Implemented |
 | **Zero-Preedit Next-Word Prediction** | `lekhani-ai` | ✅ Implemented |
 | **Global Beam Search Sequence Decoder** | `lekhani-ai` | ✅ Implemented |
+| **Unijoy Keyboard Layout** | `lekhani-core` / `data` | ✅ Implemented |
+| **Batch Document Converter CLI** | `lekhani-cli` | ✅ Implemented |
 | **Memory-Mapped Binary FST Dictionary** | `lekhani-core` | 🗓️ Planned |
 | **SIMD-Vectorized Context Evaluation** | `lekhani-ai` | 🗓️ Planned |
 | **OSD / Floating Mode Switch Indicator** | `lekhani-gui` / `fcitx5` | 🗓️ Planned |
 | **Configurable Global Hotkeys** | `lekhani-settings` / `lekhani-gui` | 🗓️ Planned |
 | **Interactive GUI Analytics Dashboard** | `lekhani-gui` | 🗓️ Planned |
-| **Unijoy Keyboard Layout** | `lekhani-core` / `data` | 🗓️ Planned |
-| **Batch Document Converter CLI** | `lekhani-cli` | 🗓️ Planned |
 | **Colloquial & Regional Dialect Adaptation** | `lekhani-core` | 🗓️ Planned |
 | **Offline Voice Typing Bridge** | `lekhani-voice` | 🗓️ Planned |
 
