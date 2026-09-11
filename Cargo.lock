@@ -2781,12 +2781,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a79a3332a6609480d7d0c9eab957bca6b455b91bb84e66d19f5ff66294b85b8"
 
 [[package]]
+name = "lekhani-ai"
+version = "3.0.0"
+dependencies = [
+ "anyhow",
+ "hashbrown 0.14.5",
+ "rayon",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "lekhani-cli"
 version = "3.0.0"
 dependencies = [
  "anyhow",
  "clap",
  "hashbrown 0.14.5",
+ "lekhani-ai",
  "lekhani-core",
  "lekhani-settings",
  "quick-xml 0.31.0",
@@ -2802,6 +2815,7 @@ dependencies = [
  "chrono",
  "edit-distance",
  "hashbrown 0.14.5",
+ "lekhani-ai",
  "rayon",
  "rupantor",
  "serde",

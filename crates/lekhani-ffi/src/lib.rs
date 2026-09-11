@@ -46,8 +46,10 @@ fn get_global_resources() -> &'static RwLock<GlobalSharedResources> {
         let mut session_template = InputSession::new();
         let system_data = ConfigManager::get_system_data_dir();
         let user_ac = config_mgr.get_user_autocorrect_path();
+        let user_learned = config_mgr.get_user_learned_path();
         session_template.load_database(&system_data);
         session_template.load_user_autocorrect(&user_ac);
+        session_template.load_user_learned(&user_learned);
 
         let active_name = &config_mgr.config.general.active_layout;
         if let Some(json) = layout_mgr.load_layout_json(active_name) {
@@ -480,6 +482,22 @@ mod tests {
         assert!(!commit_ptr.is_null());
         let commit_str = unsafe { CStr::from_ptr(commit_ptr).to_str().unwrap() };
         assert_eq!(commit_str, "আমি");
+
+        // Type 's', 'h', 'i', 'r', 't'
+        for ch in "shirt".chars() {
+            lekhani_engine_process_key(engine_ptr, ch as u32, 0, 0, false);
+        }
+        let shirt_cand = unsafe { CStr::from_ptr(lekhani_engine_get_candidate_at(engine_ptr, 0)).to_str().unwrap() };
+        assert_eq!(shirt_cand, "শার্ট");
+        lekhani_engine_process_key(engine_ptr, KEY_SPACE, 0, 0, false);
+
+        // Type 'p', 'o', 'r', 'a' after "শার্ট" -> should rank "পরা" first
+        for ch in "pora".chars() {
+            lekhani_engine_process_key(engine_ptr, ch as u32, 0, 0, false);
+        }
+        let pora_cand = unsafe { CStr::from_ptr(lekhani_engine_get_candidate_at(engine_ptr, 0)).to_str().unwrap() };
+        assert_eq!(pora_cand, "পরা");
+        lekhani_engine_process_key(engine_ptr, KEY_SPACE, 0, 0, false);
 
         // Type emoji shortcode :smile: -> ':' (0x3a), 's', 'm', 'i', 'l', 'e', ':'
         lekhani_engine_process_key(engine_ptr, 0x003a, 0, 0, false);

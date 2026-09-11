@@ -119,8 +119,9 @@ This document outlines the planned architectural improvements, intelligence feat
 | **Adaptive Frequency Engine & User Stats** | `lekhani-core` | ✅ Implemented |
 | **Sync & Backup CLI (`sync --export/import`)** | `lekhani-cli` / `lekhani-settings` | ✅ Implemented |
 | **Personal Typing Dashboard (`lekhani stats`)** | `lekhani-cli` | ✅ Implemented |
-| **Neural Context Disambiguation** | `lekhani-ai` (Candle/Tract) | 🗓️ Planned |
-| **Autonomous Dictionary Expansion** | `lekhani-core` / `lekhani-ai` | 🗓️ Planned |
-| **Neural Next-Word Prediction** | `lekhani-ai` | 🗓️ Planned |
-| **Offline Voice Typing** | `lekhani-voice` | 🗓️ Planned |
+| **Autonomous Dictionary Expansion & Morphological Learner** | `lekhani-core` | ✅ Implemented |
+| **Statistical & Neural Context Disambiguation** | `lekhani-ai` | ✅ Implemented |
+| **Zero-Preedit Next-Word Prediction** | `lekhani-ai` | ✅ Implemented |
+| **Global Beam Search Sequence Decoder** | `lekhani-ai` | ✅ Implemented |
+| **Offline Voice Typing Bridge** | `lekhani-voice` | 🗓️ Planned |
 

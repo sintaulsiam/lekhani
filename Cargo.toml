@@ -2,6 +2,7 @@
 members = [
     "crates/lekhani-core",
     "crates/lekhani-settings",
+    "crates/lekhani-ai",
     "crates/lekhani-ffi",
     "crates/lekhani-ibus",
     "crates/lekhani-gui",
