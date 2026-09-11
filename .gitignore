@@ -2,6 +2,7 @@
 /target/
 crates/lekhani-fcitx5/build/
 build/
+dist/
 *.bin
 
 # Backup files

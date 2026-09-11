@@ -1,0 +1,39 @@
+pkgbase = lekhani
+	pkgdesc = Modern pure Rust Bengali input method framework and desktop suite
+	pkgver = 3.0.0
+	pkgrel = 1
+	url = https://github.com/OpenBangla/lekhani
+	arch = x86_64
+	arch = aarch64
+	license = GPL-3.0-or-later
+	makedepends = cargo
+	makedepends = rust
+	makedepends = cmake
+	makedepends = extra-cmake-modules
+	makedepends = fcitx5
+	source = lekhani-3.0.0.tar.gz::https://github.com/OpenBangla/lekhani/archive/v3.0.0.tar.gz
+	sha256sums = SKIP
+
+pkgname = lekhani-common
+	pkgdesc = Shared data, layouts, GUI, and CLI for Lekhani
+	depends = hicolor-icon-theme
+	optdepends = font-noto: for Bengali font rendering
+	optdepends = noto-fonts-extra: additional Bengali glyphs
+
+pkgname = ibus-lekhani
+	pkgdesc = IBus engine for Lekhani (Bengali input method for GNOME / IBus)
+	depends = lekhani-common=3.0.0
+	depends = ibus
+	provides = openbangla-keyboard
+	replaces = openbangla-keyboard
+
+pkgname = fcitx5-lekhani
+	pkgdesc = Fcitx5 engine for Lekhani (Bengali input method for KDE Plasma 6 / Wayland)
+	depends = lekhani-common=3.0.0
+	depends = fcitx5
+
+pkgname = lekhani
+	pkgdesc = Meta-package installing Lekhani with both IBus and Fcitx5 engines
+	depends = lekhani-common=3.0.0
+	optdepends = ibus-lekhani: IBus engine for GNOME
+	optdepends = fcitx5-lekhani: Fcitx5 engine for KDE Plasma 6 and Wayland
