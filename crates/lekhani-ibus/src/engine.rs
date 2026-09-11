@@ -13,6 +13,7 @@ const IBUS_KEY_BACKSPACE: u32 = 0xff08;
 const IBUS_KEY_RETURN: u32 = 0xff0d;
 const IBUS_KEY_KP_ENTER: u32 = 0xff8d;
 const IBUS_KEY_SPACE: u32 = 0x0020;
+const IBUS_KEY_ESCAPE: u32 = 0xff1b;
 const IBUS_KEY_LEFT: u32 = 0xff51;
 const IBUS_KEY_UP: u32 = 0xff52;
 const IBUS_KEY_RIGHT: u32 = 0xff53;
@@ -20,6 +21,10 @@ const IBUS_KEY_DOWN: u32 = 0xff54;
 const IBUS_KEY_TAB: u32 = 0xff09;
 const IBUS_KEY_ALT_R: u32 = 0xffea;
 const IBUS_KEY_ISO_LEVEL3_SHIFT: u32 = 0xfe03;
+const IBUS_KEY_1: u32 = 0x0031;
+const IBUS_KEY_5: u32 = 0x0035;
+const IBUS_KEY_KP_1: u32 = 0xffb1;
+const IBUS_KEY_KP_5: u32 = 0xffb5;
 const IBUS_RELEASE_MASK: u32 = 1 << 30;
 
 pub struct IBusEngineState {
@@ -103,6 +108,28 @@ impl LekhaniIBusEngine {
             st.session.load_user_autocorrect(&user_ac);
         }
 
+        // Direct Selection via 1..5 in Prediction Mode
+        if st.session.is_prediction_mode() {
+            let cand_idx = if (IBUS_KEY_1..=IBUS_KEY_5).contains(&keyval) {
+                Some((keyval - IBUS_KEY_1) as usize)
+            } else if (IBUS_KEY_KP_1..=IBUS_KEY_KP_5).contains(&keyval) {
+                Some((keyval - IBUS_KEY_KP_1) as usize)
+            } else {
+                None
+            };
+
+            if let Some(idx) = cand_idx {
+                if idx < st.session.get_candidates().len() {
+                    if let Some(_committed) = st.session.commit(idx) {
+                        if st.config_mgr.config.phonetic.enable_predictive_next_words {
+                            st.session.populate_predictions();
+                        }
+                        return Ok(true);
+                    }
+                }
+            }
+        }
+
         // Special handling for navigation and triggers
         match keyval {
             IBUS_KEY_BACKSPACE => {
@@ -112,18 +139,46 @@ impl LekhaniIBusEngine {
                 }
                 return Ok(false);
             }
+            IBUS_KEY_ESCAPE => {
+                if st.session.is_active() {
+                    st.session.reset();
+                    return Ok(true);
+                }
+                return Ok(false);
+            }
             IBUS_KEY_RETURN => {
+                if st.session.is_prediction_mode() {
+                    let idx = st.session.get_selected_index();
+                    if let Some(_committed) = st.session.commit(idx) {
+                        if st.config_mgr.config.phonetic.enable_predictive_next_words {
+                            st.session.populate_predictions();
+                        }
+                    }
+                    return Ok(true);
+                }
                 if st.session.is_active() {
                     let idx = st.session.get_selected_index();
-                    let _ = st.session.commit(idx);
+                    if let Some(_committed) = st.session.commit(idx) {
+                        if st.config_mgr.config.phonetic.enable_predictive_next_words {
+                            st.session.populate_predictions();
+                        }
+                    }
                     return Ok(st.config_mgr.config.phonetic.enter_key_closes_candidate_window);
                 }
                 return Ok(false);
             }
             IBUS_KEY_SPACE | IBUS_KEY_KP_ENTER => {
+                if st.session.is_prediction_mode() {
+                    st.session.reset();
+                    return Ok(false);
+                }
                 if st.session.is_active() {
                     let idx = st.session.get_selected_index();
-                    let _ = st.session.commit(idx);
+                    if let Some(_committed) = st.session.commit(idx) {
+                        if st.config_mgr.config.phonetic.enable_predictive_next_words {
+                            st.session.populate_predictions();
+                        }
+                    }
                 }
                 return Ok(false);
             }
@@ -168,6 +223,9 @@ impl LekhaniIBusEngine {
             if st.session.is_active() {
                 let idx = st.session.get_selected_index();
                 let _ = st.session.commit(idx);
+                if st.config_mgr.config.phonetic.enable_predictive_next_words {
+                    st.session.populate_predictions();
+                }
             }
             return Ok(false);
         }
