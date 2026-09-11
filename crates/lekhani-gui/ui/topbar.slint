@@ -18,7 +18,6 @@ component IconButton inherits Rectangle {
     in property <color> active-color: #89b4fa;
     in property <color> active-bg: #89b4fa22;
     callback clicked;
-    callback hover-changed(bool, string);
 
     width: 36px;
     height: 36px;
@@ -31,9 +30,6 @@ component IconButton inherits Rectangle {
     ta := TouchArea {
         mouse-cursor: pointer;
         clicked => { root.clicked(); }
-        pointer-event(event) => {
-            root.hover-changed(self.has-hover, root.tooltip);
-        }
     }
 
     Text {
@@ -42,6 +38,32 @@ component IconButton inherits Rectangle {
         color: root.active ? root.active-color : root.icon-color;
         horizontal-alignment: center;
         vertical-alignment: center;
+    }
+
+    // Modern floating tooltip badge (appears ONLY on hover)
+    if (ta.has-hover && root.tooltip != "") : Rectangle {
+        y: parent.height + 8px;
+        x: (parent.width - self.width) / 2;
+        background: #181825f8;
+        border-radius: 6px;
+        border-width: 1px;
+        border-color: #45475a;
+        drop-shadow-blur: 8px;
+        drop-shadow-color: #000000aa;
+        z: 200;
+
+        HorizontalLayout {
+            padding-left: 8px;
+            padding-right: 8px;
+            padding-top: 4px;
+            padding-bottom: 4px;
+            Text {
+                text: root.tooltip;
+                color: #cdd6f4;
+                font-size: 11px;
+                font-weight: 600;
+            }
+        }
     }
 }
 
@@ -139,10 +161,6 @@ export component TopBarWindow inherits Window {
     in-out property <[string]> available-layouts: ["Avro Phonetic", "Probhat", "National (Jatiya)", "Munir Optima", "Borno", "Avro Easy"];
     in-out property <bool> show-layout-menu: false;
     
-    // Active tooltip text displayed on hover
-    in-out property <string> current-tooltip: "";
-    in-out property <bool> has-tooltip: false;
-    
     // Dialog visibility
     in-out property <bool> show-viewer-dialog: false;
     in-out property <bool> show-autocorrect-dialog: false;
@@ -238,10 +256,6 @@ export component TopBarWindow inherits Window {
                             root.show-about-dialog = !root.show-about-dialog;
                             root.show-layout-menu = false;
                         }
-                        pointer-event(event) => {
-                            root.current-tooltip = "About Lekhani (লেখনী)";
-                            root.has-tooltip = self.has-hover;
-                        }
                     }
 
                     Text {
@@ -251,6 +265,31 @@ export component TopBarWindow inherits Window {
                         color: #11111b;
                         horizontal-alignment: center;
                         vertical-alignment: center;
+                    }
+
+                    if (brand_ta.has-hover) : Rectangle {
+                        y: parent.height + 8px;
+                        x: (parent.width - self.width) / 2;
+                        background: #181825f8;
+                        border-radius: 6px;
+                        border-width: 1px;
+                        border-color: #45475a;
+                        drop-shadow-blur: 8px;
+                        drop-shadow-color: #000000aa;
+                        z: 200;
+
+                        HorizontalLayout {
+                            padding-left: 8px;
+                            padding-right: 8px;
+                            padding-top: 4px;
+                            padding-bottom: 4px;
+                            Text {
+                                text: "About Lekhani (লেখনী)";
+                                color: #cdd6f4;
+                                font-size: 11px;
+                                font-weight: 600;
+                            }
+                        }
                     }
                 }
 
@@ -268,10 +307,6 @@ export component TopBarWindow inherits Window {
                         clicked => {
                             root.show-layout-menu = !root.show-layout-menu;
                             root.show-about-dialog = false;
-                        }
-                        pointer-event(event) => {
-                            root.current-tooltip = "Switch Keyboard Layout (Avro, Probhat, Jatiya...)";
-                            root.has-tooltip = self.has-hover;
                         }
                     }
 
@@ -310,10 +345,6 @@ export component TopBarWindow inherits Window {
                         root.show-settings-dialog = false;
                         root.show-layout-menu = false;
                     }
-                    hover-changed(hover, tip) => {
-                        root.current-tooltip = tip;
-                        root.has-tooltip = hover;
-                    }
                 }
 
                 // 4. AutoCorrect Manager Button (Pen Icon)
@@ -329,10 +360,6 @@ export component TopBarWindow inherits Window {
                         root.show-converter-dialog = false;
                         root.show-settings-dialog = false;
                         root.show-layout-menu = false;
-                    }
-                    hover-changed(hover, tip) => {
-                        root.current-tooltip = tip;
-                        root.has-tooltip = hover;
                     }
                 }
 
@@ -350,10 +377,6 @@ export component TopBarWindow inherits Window {
                         root.show-settings-dialog = false;
                         root.show-layout-menu = false;
                     }
-                    hover-changed(hover, tip) => {
-                        root.current-tooltip = tip;
-                        root.has-tooltip = hover;
-                    }
                 }
 
                 // 6. Settings Button (Gear Icon)
@@ -370,10 +393,6 @@ export component TopBarWindow inherits Window {
                         root.show-converter-dialog = false;
                         root.show-layout-menu = false;
                     }
-                    hover-changed(hover, tip) => {
-                        root.current-tooltip = tip;
-                        root.has-tooltip = hover;
-                    }
                 }
 
                 // 7. Exit TopBar Button
@@ -383,37 +402,6 @@ export component TopBarWindow inherits Window {
                     icon-color: #f38ba8;
                     active: false;
                     clicked => { root.trigger-quit(); }
-                    hover-changed(hover, tip) => {
-                        root.current-tooltip = tip;
-                        root.has-tooltip = hover;
-                    }
-                }
-            }
-        }
-
-        // ---------------------------------------------------------------------
-        // Interactive Dynamic Tooltip Banner
-        // ---------------------------------------------------------------------
-        if (root.has-tooltip && root.current-tooltip != "") : Rectangle {
-            width: 440px;
-            height: 28px;
-            background: #11111bee;
-            border-radius: 14px;
-            border-width: 1px;
-            border-color: #45475a;
-            drop-shadow-blur: 8px;
-            drop-shadow-color: #00000066;
-
-            HorizontalLayout {
-                padding-left: 14px;
-                padding-right: 14px;
-                alignment: center;
-                Text {
-                    text: "💡 " + root.current-tooltip;
-                    color: #89b4fa;
-                    font-size: 12px;
-                    font-weight: 600;
-                    vertical-alignment: center;
                 }
             }
         }
