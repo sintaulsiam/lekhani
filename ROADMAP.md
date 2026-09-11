@@ -106,11 +106,62 @@ This document outlines the planned architectural improvements, intelligence feat
 
 ---
 
+## ⚡ Phase 5: High-Performance Architecture & Binary Serialization
+
+### 5.1 🚀 Memory-Mapped Finite State Transducer (FST / Binary Trie)
+- **Objective:** Eliminate JSON deserialization on startup, achieving instant cold-boot under 0.5ms and a minimal RAM footprint.
+- **Approach:**
+  - Compile the 160,000+ word dictionary into an immutable, memory-mapped binary FST format (`dictionary.fst`).
+  - Zero-copy runtime lookups with deterministic sub-millisecond prefix searches.
+- **Target:** `crates/lekhani-core/src/trie.rs`
+
+### 5.2 🏎️ SIMD-Vectorized Preceding Context Evaluation
+- **Objective:** Hardware-accelerated n-gram scoring for large sentence sequence decoding.
+- **Capabilities:** Vectorized bigram and trigram transition lookups for multi-token beam search in `lekhani-ai`.
+- **Target:** `crates/lekhani-ai/src/lm.rs`
+
+---
+
+## 🖥️ Phase 6: Desktop Ergonomics & Advanced User Experience
+
+### 6.1 🔔 On-Screen Display (OSD) / Mode Switch Indicator
+- **Objective:** Lightweight, non-intrusive floating toast/HUD near the cursor indicating the active language state (`বাংলা` / `ENG`) upon pressing <kbd>F12</kbd>.
+- **Compositor Support:** Native Wayland (Layer Shell) and X11 transient window support.
+- **Target:** `crates/lekhani-gui/` & `crates/lekhani-fcitx5/`
+
+### 6.2 ⌨️ Configurable Global Hotkeys
+- **Objective:** Customizable global mode-switch hotkeys configured via `~/.config/lekhani/config.toml` or the settings GUI.
+- **Options:** Support for <kbd>F12</kbd>, <kbd>Ctrl+Space</kbd>, <kbd>Shift+Space</kbd>, and <kbd>Super+Space</kbd>.
+- **Target:** `crates/lekhani-settings/` & `crates/lekhani-gui/`
+
+### 6.3 📊 Interactive GUI Typing Analytics & WPM Heatmap
+- **Objective:** Visual analytics dashboard in `lekhani-gui` presenting real-time typing speed (WPM), historical volume, and keystroke savings graphs.
+- **Target:** `crates/lekhani-gui/ui/stats.slint`
+
+---
+
+## 🔤 Phase 7: Layout Expansion & Document Processing
+
+### 7.1 ⌨️ Unijoy Fixed Keyboard Layout
+- **Objective:** Built-in standard Unijoy layout support alongside Probhat, Jatiya (National), Munir Optima, Borno, and Avro Easy.
+- **Target:** `data/layouts/unijoy.json` & `crates/lekhani-core/src/fixed/`
+
+### 7.2 🔄 Batch File Converter CLI
+- **Objective:** Fast CLI batch conversion of legacy SutonnyMJ/Bijoy documents to standard Unicode for entire directories and files (`.txt`, `.docx`, `.srt`).
+- **Target:** `crates/lekhani-cli/`
+
+### 7.3 🗣️ Colloquial & Regional Dialect Adaptation
+- **Objective:** Contextual suggestions for spoken Bengali and regional verbal forms (e.g., `kortesi` ➔ `করছি`/`করতেছি`, `khaitesi` ➔ `খাচ্ছি`/`খাইতেছি`).
+- **Target:** `crates/lekhani-core/src/phonetic/fuzzy.rs`
+
+---
+
 ## 📋 Status Matrix
 
 | Feature | Target Component | Status |
 | :--- | :--- | :--- |
-| **Fuzzy Phonetic Rules** | `lekhani-core` | ✅ Implemented |
+| **Fuzzy Phonetic Rules & Ergonomics** | `lekhani-core` | ✅ Implemented |
+| **Embedded Core Suffix Fallback** | `lekhani-core` | ✅ Implemented |
 | **Inline Math Calculator** | `lekhani-core` | ✅ Implemented |
 | **Smart Typography & Bengali Dari (`..` ➔ `।`)** | `lekhani-core` | ✅ Implemented |
 | **Interactive Key Highlighter** | `lekhani-gui` (Slint) | ✅ Implemented |
@@ -123,5 +174,14 @@ This document outlines the planned architectural improvements, intelligence feat
 | **Statistical & Neural Context Disambiguation** | `lekhani-ai` | ✅ Implemented |
 | **Zero-Preedit Next-Word Prediction** | `lekhani-ai` | ✅ Implemented |
 | **Global Beam Search Sequence Decoder** | `lekhani-ai` | ✅ Implemented |
+| **Memory-Mapped Binary FST Dictionary** | `lekhani-core` | 🗓️ Planned |
+| **SIMD-Vectorized Context Evaluation** | `lekhani-ai` | 🗓️ Planned |
+| **OSD / Floating Mode Switch Indicator** | `lekhani-gui` / `fcitx5` | 🗓️ Planned |
+| **Configurable Global Hotkeys** | `lekhani-settings` / `lekhani-gui` | 🗓️ Planned |
+| **Interactive GUI Analytics Dashboard** | `lekhani-gui` | 🗓️ Planned |
+| **Unijoy Keyboard Layout** | `lekhani-core` / `data` | 🗓️ Planned |
+| **Batch Document Converter CLI** | `lekhani-cli` | 🗓️ Planned |
+| **Colloquial & Regional Dialect Adaptation** | `lekhani-core` | 🗓️ Planned |
 | **Offline Voice Typing Bridge** | `lekhani-voice` | 🗓️ Planned |
+
 

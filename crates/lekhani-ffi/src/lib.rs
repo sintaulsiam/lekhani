@@ -295,15 +295,21 @@ pub extern "C" fn lekhani_engine_process_key(
     // Return
     if keyval == KEY_RETURN {
         if engine.session.is_prediction_mode() {
-            let idx = engine.session.get_selected_index();
-            if let Some(committed) = engine.session.commit(idx) {
-                engine.last_commit = CString::new(committed).ok();
-                if engine.config_mgr.config.phonetic.enable_predictive_next_words {
-                    engine.session.populate_predictions();
+            if engine.session.is_prediction_navigated() {
+                let idx = engine.session.get_selected_index();
+                if let Some(committed) = engine.session.commit(idx) {
+                    engine.last_commit = CString::new(committed).ok();
+                    if engine.config_mgr.config.phonetic.enable_predictive_next_words {
+                        engine.session.populate_predictions();
+                    }
                 }
+                engine.update_cached_strings();
+                return true;
+            } else {
+                engine.session.reset();
+                engine.update_cached_strings();
+                return false;
             }
-            engine.update_cached_strings();
-            return true;
         }
         if engine.session.is_active() {
             let idx = engine.session.get_selected_index();
@@ -326,9 +332,21 @@ pub extern "C" fn lekhani_engine_process_key(
     // Space or Keypad Enter
     if keyval == KEY_SPACE || keyval == KEY_KP_ENTER {
         if engine.session.is_prediction_mode() {
-            engine.session.reset();
-            engine.update_cached_strings();
-            return false;
+            if engine.session.is_prediction_navigated() {
+                let idx = engine.session.get_selected_index();
+                if let Some(committed) = engine.session.commit(idx) {
+                    engine.last_commit = CString::new(committed).ok();
+                    if engine.config_mgr.config.phonetic.enable_predictive_next_words {
+                        engine.session.populate_predictions();
+                    }
+                }
+                engine.update_cached_strings();
+                return true;
+            } else {
+                engine.session.reset();
+                engine.update_cached_strings();
+                return false;
+            }
         }
         if engine.session.is_active() {
             let idx = engine.session.get_selected_index();
@@ -429,6 +447,14 @@ pub extern "C" fn lekhani_engine_get_commit_text(ctx: *mut LekhaniEngineContext)
 }
 
 #[no_mangle]
+pub extern "C" fn lekhani_engine_clear_commit_text(ctx: *mut LekhaniEngineContext) {
+    if !ctx.is_null() {
+        let engine = unsafe { &mut *ctx };
+        engine.last_commit = None;
+    }
+}
+
+#[no_mangle]
 pub extern "C" fn lekhani_engine_get_preedit_text(ctx: *mut LekhaniEngineContext) -> *const c_char {
     if ctx.is_null() {
         return ptr::null();
@@ -522,6 +548,24 @@ pub extern "C" fn lekhani_engine_is_active(ctx: *mut LekhaniEngineContext) -> bo
     engine.session.is_active()
 }
 
+#[no_mangle]
+pub extern "C" fn lekhani_engine_is_prediction_mode(ctx: *mut LekhaniEngineContext) -> bool {
+    if ctx.is_null() {
+        return false;
+    }
+    let engine = unsafe { &*ctx };
+    engine.session.is_prediction_mode()
+}
+
+#[no_mangle]
+pub extern "C" fn lekhani_engine_is_prediction_navigated(ctx: *mut LekhaniEngineContext) -> bool {
+    if ctx.is_null() {
+        return false;
+    }
+    let engine = unsafe { &*ctx };
+    engine.session.is_prediction_navigated()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -530,6 +574,9 @@ mod tests {
     fn test_engine_typing_and_suggestions() {
         let engine_ptr = lekhani_engine_new();
         assert!(!engine_ptr.is_null());
+        unsafe {
+            (*engine_ptr).config_mgr.config.phonetic.enable_predictive_next_words = true;
+        }
 
         // Type 'a' (0x61), 'm' (0x6d), 'i' (0x69)
         lekhani_engine_process_key(engine_ptr, 0x0061, 0, 0, false);
@@ -555,13 +602,26 @@ mod tests {
         let pred_count = lekhani_engine_get_candidate_count(engine_ptr);
         assert!(pred_count > 0, "Proactive prediction count should be > 0");
 
-        // Select candidate index 1 ("তোমাকে") via lekhani_engine_select_candidate
-        let selected = lekhani_engine_select_candidate(engine_ptr, 1);
-        assert!(selected);
-        let pred_commit_ptr = lekhani_engine_get_commit_text(engine_ptr);
-        assert!(!pred_commit_ptr.is_null());
-        let pred_commit_str = unsafe { CStr::from_ptr(pred_commit_ptr).to_str().unwrap() };
+        // Verify Enter key in unnavigated prediction mode does NOT eat Enter, but passes through (false) and clears predictions for newline
+        let enter_handled = lekhani_engine_process_key(engine_ptr, KEY_RETURN, 0, 0, false);
+        assert!(!enter_handled, "Enter key should pass through to application to insert newline");
+        assert_eq!(lekhani_engine_get_candidate_count(engine_ptr), 0);
+
+        // Repopulate predictions and test Direct Selection with '2' (KEY_2 = 0x32 -> candidate index 1: "তোমাকে")
+        unsafe {
+            (*engine_ptr).session.populate_predictions();
+            (*engine_ptr).update_cached_strings();
+        }
+        let handled_2 = lekhani_engine_process_key(engine_ptr, KEY_1 + 1, 0, 0, false);
+        assert!(handled_2, "Pressing '2' should directly select candidate 2");
+        let pred_commit_str = unsafe { CStr::from_ptr(lekhani_engine_get_commit_text(engine_ptr)).to_str().unwrap() };
         assert_eq!(pred_commit_str, "তোমাকে");
+
+        // Test Tab navigation followed by Enter committing navigated candidate
+        let tab_handled = lekhani_engine_process_key(engine_ptr, KEY_TAB, 0, 0, false);
+        assert!(tab_handled, "Tab should navigate prediction candidates");
+        let enter_nav_handled = lekhani_engine_process_key(engine_ptr, KEY_RETURN, 0, 0, false);
+        assert!(enter_nav_handled, "Enter after Tab navigation should commit selected prediction");
 
         // Type 's', 'h', 'i', 'r', 't'
         for ch in "shirt".chars() {

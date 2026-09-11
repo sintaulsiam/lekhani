@@ -148,13 +148,18 @@ impl LekhaniIBusEngine {
             }
             IBUS_KEY_RETURN => {
                 if st.session.is_prediction_mode() {
-                    let idx = st.session.get_selected_index();
-                    if let Some(_committed) = st.session.commit(idx) {
-                        if st.config_mgr.config.phonetic.enable_predictive_next_words {
-                            st.session.populate_predictions();
+                    if st.session.is_prediction_navigated() {
+                        let idx = st.session.get_selected_index();
+                        if let Some(_committed) = st.session.commit(idx) {
+                            if st.config_mgr.config.phonetic.enable_predictive_next_words {
+                                st.session.populate_predictions();
+                            }
                         }
+                        return Ok(true);
+                    } else {
+                        st.session.reset();
+                        return Ok(false);
                     }
-                    return Ok(true);
                 }
                 if st.session.is_active() {
                     let idx = st.session.get_selected_index();
@@ -169,8 +174,18 @@ impl LekhaniIBusEngine {
             }
             IBUS_KEY_SPACE | IBUS_KEY_KP_ENTER => {
                 if st.session.is_prediction_mode() {
-                    st.session.reset();
-                    return Ok(false);
+                    if st.session.is_prediction_navigated() {
+                        let idx = st.session.get_selected_index();
+                        if let Some(_committed) = st.session.commit(idx) {
+                            if st.config_mgr.config.phonetic.enable_predictive_next_words {
+                                st.session.populate_predictions();
+                            }
+                        }
+                        return Ok(true);
+                    } else {
+                        st.session.reset();
+                        return Ok(false);
+                    }
                 }
                 if st.session.is_active() {
                     let idx = st.session.get_selected_index();

@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="#features">Features</a> •
+  <a href="docs/TYPING_GUIDE.md">Typing Guide</a> •
   <a href="ARCHITECTURE.md">Architecture</a> •
   <a href="#installation">Installation</a> •
   <a href="#building-from-source">Building</a> •

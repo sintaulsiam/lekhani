@@ -32,6 +32,9 @@ cargo build --workspace --release
 echo "=== Installing Lekhani Core Binaries & Desktop GUI ==="
 sudo install -Dm755 target/release/lekhani-gui /usr/bin/lekhani-gui
 sudo install -Dm755 target/release/lekhani /usr/bin/lekhani
+# Clean up or sync any legacy binaries in ~/.local/bin to prevent $PATH shadowing
+rm -f "$HOME/.local/bin/lekhani-gui" "$HOME/.local/bin/lekhani" 2>/dev/null || true
+
 
 echo "=== Installing Data Assets & Layouts ==="
 sudo install -d /usr/share/lekhani/layouts
@@ -40,17 +43,28 @@ sudo install -Dm644 data/layouts/*.json /usr/share/lekhani/layouts/
 sudo install -d /usr/share/lekhani/data
 sudo install -Dm644 data/dictionaries/*.json /usr/share/lekhani/data/
 
-echo "=== Installing Desktop Icons ==="
-sudo install -Dm644 data/icons/16.png /usr/share/icons/hicolor/16x16/apps/lekhani.png
-sudo install -Dm644 data/icons/32.png /usr/share/icons/hicolor/32x32/apps/lekhani.png
-sudo install -Dm644 data/icons/48.png /usr/share/icons/hicolor/48x48/apps/lekhani.png
-sudo install -Dm644 data/icons/128.png /usr/share/icons/hicolor/128x128/apps/lekhani.png
-sudo install -Dm644 data/icons/512.png /usr/share/icons/hicolor/512x512/apps/lekhani.png
-sudo install -Dm644 data/icons/1024.png /usr/share/icons/hicolor/1024x1024/apps/lekhani.png
-sudo install -Dm644 data/icons/32.png /usr/share/lekhani/icons/lekhani.png
+echo "=== Installing Desktop Icons (All Resolutions + SVG) ==="
+for size in 16 22 24 32 48 64 128 256 512 1024; do
+    if [ -f "data/icons/${size}.png" ]; then
+        sudo install -Dm644 "data/icons/${size}.png" "/usr/share/icons/hicolor/${size}x${size}/apps/lekhani.png"
+        install -Dm644 "data/icons/${size}.png" "$HOME/.local/share/icons/hicolor/${size}x${size}/apps/lekhani.png"
+    fi
+done
+if [ -f "data/icons/lekhani.svg" ]; then
+    sudo install -Dm644 data/icons/lekhani.svg /usr/share/icons/hicolor/scalable/apps/lekhani.svg
+    install -Dm644 data/icons/lekhani.svg "$HOME/.local/share/icons/hicolor/scalable/apps/lekhani.svg"
+fi
+sudo install -d /usr/share/lekhani/icons
+sudo install -Dm644 data/icons/128.png /usr/share/lekhani/icons/lekhani.png
+
+echo "=== Updating Desktop Icon Caches ==="
+sudo gtk-update-icon-cache -f -t /usr/share/icons/hicolor 2>/dev/null || true
+gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+kbuildsycoca6 --noincremental 2>/dev/null || kbuildsycoca5 --noincremental 2>/dev/null || true
 
 echo "=== Installing Desktop Entry & AppStream Metadata ==="
 sudo install -Dm644 data/io.github.lekhani.keyboard.desktop /usr/share/applications/io.github.lekhani.keyboard.desktop
+install -Dm644 data/io.github.lekhani.keyboard.desktop "$HOME/.local/share/applications/io.github.lekhani.keyboard.desktop"
 sudo install -Dm644 data/io.github.lekhani.keyboard.metainfo.xml /usr/share/metainfo/io.github.lekhani.keyboard.metainfo.xml
 
 if [ "$CHOICE" = "--fcitx5" ] || [ "$CHOICE" = "fcitx5" ] || [ "$CHOICE" = "--all" ] || [ "$CHOICE" = "all" ]; then

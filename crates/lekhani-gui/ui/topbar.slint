@@ -12,11 +12,11 @@ export struct AcEntry {
 
 component IconButton inherits Rectangle {
     in property <string> icon;
-    in property <string> tooltip;
     in property <bool> active: false;
     in property <color> icon-color: #cdd6f4;
     in property <color> active-color: #89b4fa;
     in property <color> active-bg: #89b4fa22;
+    out property <bool> has-hover: ta.has-hover;
     callback clicked;
 
     width: 36px;
@@ -38,32 +38,6 @@ component IconButton inherits Rectangle {
         color: root.active ? root.active-color : root.icon-color;
         horizontal-alignment: center;
         vertical-alignment: center;
-    }
-
-    // Modern floating tooltip badge (appears ONLY on hover)
-    if (ta.has-hover && root.tooltip != "") : Rectangle {
-        y: parent.height + 8px;
-        x: (parent.width - self.width) / 2;
-        background: #181825f8;
-        border-radius: 6px;
-        border-width: 1px;
-        border-color: #45475a;
-        drop-shadow-blur: 8px;
-        drop-shadow-color: #000000aa;
-        z: 200;
-
-        HorizontalLayout {
-            padding-left: 8px;
-            padding-right: 8px;
-            padding-top: 4px;
-            padding-bottom: 4px;
-            Text {
-                text: root.tooltip;
-                color: #cdd6f4;
-                font-size: 11px;
-                font-weight: 600;
-            }
-        }
     }
 }
 
@@ -159,14 +133,17 @@ export component TopBarWindow inherits Window {
     
     in-out property <string> active-layout-name: "Avro Phonetic";
     in-out property <[string]> available-layouts: ["Avro Phonetic", "Probhat", "National (Jatiya)", "Munir Optima", "Borno", "Avro Easy"];
-    in-out property <bool> show-layout-menu: false;
     
-    // Dialog visibility
-    in-out property <bool> show-viewer-dialog: false;
-    in-out property <bool> show-autocorrect-dialog: false;
-    in-out property <bool> show-converter-dialog: false;
-    in-out property <bool> show-settings-dialog: false;
-    in-out property <bool> show-about-dialog: false;
+    // Dialog state: 0: None, 1: Layout Menu, 2: Layout Viewer, 3: AutoCorrect, 4: Converter, 5: Settings, 6: About
+    in-out property <int> active-dialog: 0;
+
+    // Helper getters/setters for Rust backend compatibility
+    in-out property <bool> show-layout-menu: root.active-dialog == 1;
+    in-out property <bool> show-viewer-dialog: root.active-dialog == 2;
+    in-out property <bool> show-autocorrect-dialog: root.active-dialog == 3;
+    in-out property <bool> show-converter-dialog: root.active-dialog == 4;
+    in-out property <bool> show-settings-dialog: root.active-dialog == 5;
+    in-out property <bool> show-about-dialog: root.active-dialog == 6;
 
     // Layout Viewer state
     in-out property <int> viewer-mode: 0; // 0: Normal, 1: Shift, 2: AltGr
@@ -202,6 +179,8 @@ export component TopBarWindow inherits Window {
     callback trigger-settings();
     callback trigger-about();
     callback trigger-quit();
+    callback start-drag-window();
+    callback end-drag-window();
     
     // AutoCorrect Callbacks
     callback ac-search-changed(string);
@@ -217,15 +196,26 @@ export component TopBarWindow inherits Window {
     // Settings Callbacks
     callback save-settings();
 
+    // Tooltip reactivity based on hover state of buttons
+    out property <string> hover-tooltip:
+        btn_logo_ta.has-hover ? "About Lekhani (লেখনী)" :
+        (btn_layout_ta.has-hover ? "Switch Bengali Keyboard Layout" :
+        (btn_viewer.has-hover ? "Keyboard Layout Viewer & Virtual Keys (⌨)" :
+        (btn_ac.has-hover ? "AutoCorrect & Custom Dictionary Manager (✎)" :
+        (btn_conv.has-hover ? "Bijoy (ANSI) ⇄ Unicode Converter (⇄)" :
+        (btn_settings.has-hover ? "Settings & Typing Preferences (⚙)" :
+        (drag_ta.has-hover ? "Click & Drag to Move Floating Bar (⠿)" :
+        (btn_close.has-hover ? "Exit Lekhani Desktop Suite (✕)" : "")))))));
+
     VerticalLayout {
         alignment: start;
-        spacing: 10px;
+        spacing: 8px;
 
         // ---------------------------------------------------------------------
         // Main Floating TopBar
         // ---------------------------------------------------------------------
         Rectangle {
-            width: 440px;
+            width: 480px;
             height: 52px;
             background: #181825ee;
             border-radius: 26px;
@@ -235,95 +225,98 @@ export component TopBarWindow inherits Window {
             drop-shadow-color: #000000aa;
 
             HorizontalLayout {
-                padding-left: 12px;
-                padding-right: 12px;
-                spacing: 8px;
+                padding-left: 10px;
+                padding-right: 10px;
+                spacing: 6px;
                 alignment: center;
 
-                // 1. Brand Logo / About Button
+                // 1. Drag Handle Grip
                 Rectangle {
-                    width: 36px;
+                    width: 24px;
                     height: 36px;
-                    border-radius: 18px;
-                    background: brand_ta.has-hover ? #b4befefe : #89b4faff;
-                    drop-shadow-blur: 8px;
-                    drop-shadow-color: #89b4fa55;
+                    border-radius: 12px;
+                    background: drag_ta.has-hover ? #45475a : transparent;
                     animate background { duration: 150ms; }
 
-                    brand_ta := TouchArea {
-                        mouse-cursor: pointer;
-                        clicked => {
-                            root.show-about-dialog = !root.show-about-dialog;
-                            root.show-layout-menu = false;
+                    drag_ta := TouchArea {
+                        mouse-cursor: move;
+                        pointer-event(pe) => {
+                            if (pe.kind == PointerEventKind.down) {
+                                root.start-drag-window();
+                            }
+                            if (pe.kind == PointerEventKind.up || pe.kind == PointerEventKind.cancel) {
+                                root.end-drag-window();
+                            }
                         }
                     }
 
                     Text {
-                        text: "ল";
-                        font-size: 18px;
-                        font-weight: 800;
-                        color: #11111b;
+                        text: "⠿";
+                        font-size: 16px;
+                        color: drag_ta.has-hover ? #89b4fa : #6c7086;
                         horizontal-alignment: center;
                         vertical-alignment: center;
                     }
+                }
 
-                    if (brand_ta.has-hover) : Rectangle {
-                        y: parent.height + 8px;
-                        x: (parent.width - self.width) / 2;
-                        background: #181825f8;
-                        border-radius: 6px;
-                        border-width: 1px;
-                        border-color: #45475a;
-                        drop-shadow-blur: 8px;
-                        drop-shadow-color: #000000aa;
-                        z: 200;
+                // 2. Brand Logo / About Button
+                Rectangle {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 18px;
+                    background: root.active-dialog == 6 ? #89b4fa33 : (btn_logo_ta.has-hover ? #89b4fa22 : #1e1e2e);
+                    border-width: 1px;
+                    border-color: root.active-dialog == 6 ? #89b4fa : (btn_logo_ta.has-hover ? #89b4fa66 : #45475a);
+                    drop-shadow-blur: 10px;
+                    drop-shadow-color: #89b4fa44;
+                    animate background { duration: 150ms; }
 
-                        HorizontalLayout {
-                            padding-left: 8px;
-                            padding-right: 8px;
-                            padding-top: 4px;
-                            padding-bottom: 4px;
-                            Text {
-                                text: "About Lekhani (লেখনী)";
-                                color: #cdd6f4;
-                                font-size: 11px;
-                                font-weight: 600;
-                            }
+                    btn_logo_ta := TouchArea {
+                        mouse-cursor: pointer;
+                        clicked => {
+                            root.active-dialog = root.active-dialog == 6 ? 0 : 6;
                         }
+                    }
+
+                    Image {
+                        source: @image-url("../../../data/icons/48.png");
+                        width: 24px;
+                        height: 24px;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
                     }
                 }
 
-                // 2. Active Layout Selector Pill Button
+                // 3. Active Layout Selector Pill Button
                 Rectangle {
                     height: 36px;
-                    background: layout_pill_ta.has-hover ? #45475a : #313244;
+                    background: root.active-dialog == 1 ? #89b4fa22 : (btn_layout_ta.has-hover ? #45475a : #313244);
                     border-radius: 18px;
                     border-width: 1px;
-                    border-color: root.show-layout-menu ? #89b4fa : #45475a;
+                    border-color: root.active-dialog == 1 ? #89b4fa : (btn_layout_ta.has-hover ? #585b70 : #45475a);
                     animate background { duration: 150ms; }
 
-                    layout_pill_ta := TouchArea {
+                    btn_layout_ta := TouchArea {
                         mouse-cursor: pointer;
                         clicked => {
-                            root.show-layout-menu = !root.show-layout-menu;
-                            root.show-about-dialog = false;
+                            root.active-dialog = root.active-dialog == 1 ? 0 : 1;
                         }
                     }
 
                     HorizontalLayout {
-                        padding-left: 14px;
-                        padding-right: 14px;
-                        spacing: 8px;
+                        padding-left: 12px;
+                        padding-right: 12px;
+                        spacing: 6px;
                         alignment: center;
                         Text {
                             text: root.active-layout-name;
-                            color: #cdd6f4;
+                            color: root.active-dialog == 1 ? #89b4fa : #cdd6f4;
                             font-size: 13px;
                             font-weight: 700;
                             vertical-alignment: center;
                         }
                         Text {
-                            text: root.show-layout-menu ? "▴" : "▾";
+                            text: root.active-dialog == 1 ? "▴" : "▾";
                             color: #89b4fa;
                             font-size: 12px;
                             vertical-alignment: center;
@@ -331,74 +324,53 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                // 3. Layout Viewer Button (Keyboard Icon)
-                IconButton {
+                // 4. Layout Viewer Button (Keyboard Icon)
+                btn_viewer := IconButton {
                     icon: "⌨";
-                    tooltip: "Keyboard Layout Viewer & Virtual Keys";
-                    active: root.show-viewer-dialog;
+                    active: root.active-dialog == 2;
                     active-color: #89b4fa;
                     active-bg: #89b4fa22;
                     clicked => {
-                        root.show-viewer-dialog = !root.show-viewer-dialog;
-                        root.show-autocorrect-dialog = false;
-                        root.show-converter-dialog = false;
-                        root.show-settings-dialog = false;
-                        root.show-layout-menu = false;
+                        root.active-dialog = root.active-dialog == 2 ? 0 : 2;
                     }
                 }
 
-                // 4. AutoCorrect Manager Button (Pen Icon)
-                IconButton {
+                // 5. AutoCorrect Manager Button (Pen Icon)
+                btn_ac := IconButton {
                     icon: "✎";
-                    tooltip: "AutoCorrect & Custom Word Dictionary";
-                    active: root.show-autocorrect-dialog;
+                    active: root.active-dialog == 3;
                     active-color: #a6e3a1;
                     active-bg: #a6e3a122;
                     clicked => {
-                        root.show-autocorrect-dialog = !root.show-autocorrect-dialog;
-                        root.show-viewer-dialog = false;
-                        root.show-converter-dialog = false;
-                        root.show-settings-dialog = false;
-                        root.show-layout-menu = false;
+                        root.active-dialog = root.active-dialog == 3 ? 0 : 3;
                     }
                 }
 
-                // 5. Bijoy ⇄ Unicode Converter Button (Exchange Icon)
-                IconButton {
+                // 6. Bijoy ⇄ Unicode Converter Button (Exchange Icon)
+                btn_conv := IconButton {
                     icon: "⇄";
-                    tooltip: "Bijoy (ANSI) ⇄ Unicode Text Converter";
-                    active: root.show-converter-dialog;
+                    active: root.active-dialog == 4;
                     active-color: #fab387;
                     active-bg: #fab38722;
                     clicked => {
-                        root.show-converter-dialog = !root.show-converter-dialog;
-                        root.show-viewer-dialog = false;
-                        root.show-autocorrect-dialog = false;
-                        root.show-settings-dialog = false;
-                        root.show-layout-menu = false;
+                        root.active-dialog = root.active-dialog == 4 ? 0 : 4;
                     }
                 }
 
-                // 6. Settings Button (Gear Icon)
-                IconButton {
+                // 7. Settings Button (Gear Icon)
+                btn_settings := IconButton {
                     icon: "⚙";
-                    tooltip: "Settings & Typing Automation Options";
-                    active: root.show-settings-dialog;
+                    active: root.active-dialog == 5;
                     active-color: #cba6f7;
                     active-bg: #cba6f722;
                     clicked => {
-                        root.show-settings-dialog = !root.show-settings-dialog;
-                        root.show-viewer-dialog = false;
-                        root.show-autocorrect-dialog = false;
-                        root.show-converter-dialog = false;
-                        root.show-layout-menu = false;
+                        root.active-dialog = root.active-dialog == 5 ? 0 : 5;
                     }
                 }
 
-                // 7. Exit TopBar Button
-                IconButton {
+                // 8. Exit TopBar Button
+                btn_close := IconButton {
                     icon: "✕";
-                    tooltip: "Close Lekhani Floating TopBar";
                     icon-color: #f38ba8;
                     active: false;
                     clicked => { root.trigger-quit(); }
@@ -407,29 +379,64 @@ export component TopBarWindow inherits Window {
         }
 
         // ---------------------------------------------------------------------
-        // Layout Dropdown Popup
+        // Dynamic Floating Tooltip Badge (Integrated into layout, never clipped)
         // ---------------------------------------------------------------------
-        if (root.show-layout-menu) : Rectangle {
-            width: 240px;
+        if (root.hover-tooltip != "" && root.active-dialog == 0) : Rectangle {
+            height: 28px;
             background: #181825fa;
             border-radius: 14px;
+            border-width: 1px;
+            border-color: #45475a;
+            drop-shadow-blur: 12px;
+            drop-shadow-color: #000000bb;
+
+            HorizontalLayout {
+                padding-left: 14px;
+                padding-right: 14px;
+                alignment: center;
+                Text {
+                    text: root.hover-tooltip;
+                    color: #cdd6f4;
+                    font-size: 11px;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // 1. Layout Dropdown Popup Panel
+        // ---------------------------------------------------------------------
+        if (root.active-dialog == 1) : Rectangle {
+            width: 280px;
+            background: #181825fa;
+            border-radius: 16px;
             border-width: 1.5px;
             border-color: #45475a;
-            drop-shadow-blur: 16px;
-            drop-shadow-color: #000000aa;
+            drop-shadow-blur: 20px;
+            drop-shadow-color: #000000bb;
 
             VerticalLayout {
-                padding: 8px;
+                padding: 10px;
                 spacing: 4px;
-                Text {
-                    text: "SELECT KEYBOARD LAYOUT";
-                    color: #6c7086;
-                    font-size: 10px;
-                    font-weight: 700;
-                    x: 10px;
+                HorizontalLayout {
+                    alignment: space-between;
+                    padding-left: 6px;
+                    padding-right: 6px;
+                    padding-top: 4px;
+                    padding-bottom: 4px;
+                    Text {
+                        text: "SELECT KEYBOARD LAYOUT";
+                        color: #89b4fa;
+                        font-size: 10px;
+                        font-weight: 800;
+                    }
+                    CloseButton {
+                        clicked => { root.active-dialog = 0; }
+                    }
                 }
                 for layout[idx] in root.available-layouts: Rectangle {
-                    height: 32px;
+                    height: 34px;
                     border-radius: 8px;
                     border-width: 1px;
                     border-color: layout == root.active-layout-name ? #89b4fa55 : transparent;
@@ -438,12 +445,15 @@ export component TopBarWindow inherits Window {
 
                     layout_item_ta := TouchArea {
                         mouse-cursor: pointer;
-                        clicked => { root.select-layout(layout); }
+                        clicked => {
+                            root.select-layout(layout);
+                            root.active-dialog = 0;
+                        }
                     }
 
                     HorizontalLayout {
-                        padding-left: 10px;
-                        padding-right: 10px;
+                        padding-left: 12px;
+                        padding-right: 12px;
                         spacing: 8px;
                         alignment: space-between;
                         Text {
@@ -466,9 +476,9 @@ export component TopBarWindow inherits Window {
         }
 
         // ---------------------------------------------------------------------
-        // Visual Keyboard Layout Viewer Dialog
+        // 2. Visual Keyboard Layout Viewer Dialog
         // ---------------------------------------------------------------------
-        if (root.show-viewer-dialog) : Rectangle {
+        if (root.active-dialog == 2) : Rectangle {
             width: 620px;
             background: #181825fa;
             border-radius: 20px;
@@ -488,14 +498,14 @@ export component TopBarWindow inherits Window {
                         spacing: 8px;
                         Text { text: "⌨"; color: #89b4fa; font-size: 18px; }
                         Text {
-                            text: "Keyboard Layout Viewer - " + root.active-layout-name;
+                            text: "Keyboard Layout Viewer — " + root.active-layout-name;
                             color: #cdd6f4;
                             font-size: 16px;
                             font-weight: 700;
                         }
                     }
                     CloseButton {
-                        clicked => { root.show-viewer-dialog = false; }
+                        clicked => { root.active-dialog = 0; }
                     }
                 }
 
@@ -590,9 +600,9 @@ export component TopBarWindow inherits Window {
         }
 
         // ---------------------------------------------------------------------
-        // AutoCorrect & Custom Word Dictionary Dialog
+        // 3. AutoCorrect & Custom Word Dictionary Dialog
         // ---------------------------------------------------------------------
-        if (root.show-autocorrect-dialog) : Rectangle {
+        if (root.active-dialog == 3) : Rectangle {
             width: 520px;
             background: #181825fa;
             border-radius: 20px;
@@ -614,7 +624,7 @@ export component TopBarWindow inherits Window {
                         Text { text: "AutoCorrect & Custom Dictionary Manager"; color: #cdd6f4; font-size: 16px; font-weight: 700; }
                     }
                     CloseButton {
-                        clicked => { root.show-autocorrect-dialog = false; }
+                        clicked => { root.active-dialog = 0; }
                     }
                 }
 
@@ -679,9 +689,9 @@ export component TopBarWindow inherits Window {
         }
 
         // ---------------------------------------------------------------------
-        // Bijoy ⇄ Unicode Converter Dialog
+        // 4. Bijoy ⇄ Unicode Converter Dialog
         // ---------------------------------------------------------------------
-        if (root.show-converter-dialog) : Rectangle {
+        if (root.active-dialog == 4) : Rectangle {
             width: 520px;
             background: #181825fa;
             border-radius: 20px;
@@ -703,7 +713,7 @@ export component TopBarWindow inherits Window {
                         Text { text: "Bijoy (ANSI) ⇄ Unicode Converter"; color: #cdd6f4; font-size: 16px; font-weight: 700; }
                     }
                     CloseButton {
-                        clicked => { root.show-converter-dialog = false; }
+                        clicked => { root.active-dialog = 0; }
                     }
                 }
 
@@ -745,9 +755,9 @@ export component TopBarWindow inherits Window {
         }
 
         // ---------------------------------------------------------------------
-        // Settings Dialog Window
+        // 5. Settings Dialog Window
         // ---------------------------------------------------------------------
-        if (root.show-settings-dialog) : Rectangle {
+        if (root.active-dialog == 5) : Rectangle {
             width: 480px;
             background: #181825fa;
             border-radius: 20px;
@@ -769,7 +779,7 @@ export component TopBarWindow inherits Window {
                         Text { text: "Lekhani Preferences & Settings"; color: #cdd6f4; font-size: 16px; font-weight: 700; }
                     }
                     CloseButton {
-                        clicked => { root.show-settings-dialog = false; }
+                        clicked => { root.active-dialog = 0; }
                     }
                 }
 
@@ -821,9 +831,9 @@ export component TopBarWindow inherits Window {
         }
 
         // ---------------------------------------------------------------------
-        // About Dialog Window
+        // 6. About Dialog Window
         // ---------------------------------------------------------------------
-        if (root.show-about-dialog) : Rectangle {
+        if (root.active-dialog == 6) : Rectangle {
             width: 440px;
             background: #181825fa;
             border-radius: 20px;
@@ -838,17 +848,19 @@ export component TopBarWindow inherits Window {
                 alignment: center;
 
                 Rectangle {
-                    width: 56px;
-                    height: 56px;
-                    background: #89b4faff;
-                    border-radius: 28px;
-                    drop-shadow-blur: 16px;
-                    drop-shadow-color: #89b4fa66;
-                    Text {
-                        text: "ল";
-                        font-size: 28px;
-                        font-weight: 900;
-                        color: #11111b;
+                    width: 72px;
+                    height: 72px;
+                    background: #11111b;
+                    border-radius: 20px;
+                    border-width: 1.5px;
+                    border-color: #89b4fa55;
+                    drop-shadow-blur: 20px;
+                    drop-shadow-color: #89b4fa44;
+                    
+                    Image {
+                        source: @image-url("../../../data/icons/128.png");
+                        width: 56px;
+                        height: 56px;
                         horizontal-alignment: center;
                         vertical-alignment: center;
                     }
@@ -878,7 +890,7 @@ export component TopBarWindow inherits Window {
 
                 Button {
                     text: "Close";
-                    clicked => { root.show-about-dialog = false; }
+                    clicked => { root.active-dialog = 0; }
                 }
             }
         }
