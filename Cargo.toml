@@ -2,8 +2,8 @@
 members = [
     "crates/lekhani-core",
     "crates/lekhani-settings",
+    "crates/lekhani-ffi",
     "crates/lekhani-ibus",
-    "crates/lekhani-fcitx5",
     "crates/lekhani-gui",
     "crates/lekhani-cli",
 ]
@@ -36,6 +36,7 @@ clap = { version = "4.4", features = ["derive"] }
 slint = "1.4"
 quick-xml = "0.31"
 futures-util = "0.3"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 
 [profile.release]
 opt-level = 3

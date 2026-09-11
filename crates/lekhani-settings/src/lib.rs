@@ -75,10 +75,13 @@ impl Default for AppConfig {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ConfigManager {
     config_path: PathBuf,
     data_dir: PathBuf,
     pub config: AppConfig,
+    last_config_mtime: Option<std::time::SystemTime>,
+    last_autocorrect_mtime: Option<std::time::SystemTime>,
 }
 
 impl ConfigManager {
@@ -106,6 +109,8 @@ impl ConfigManager {
             config_path,
             data_dir,
             config: AppConfig::default(),
+            last_config_mtime: None,
+            last_autocorrect_mtime: None,
         };
 
         mgr.load();
@@ -114,6 +119,9 @@ impl ConfigManager {
 
     pub fn load(&mut self) {
         if self.config_path.exists() {
+            if let Ok(metadata) = self.config_path.metadata() {
+                self.last_config_mtime = metadata.modified().ok();
+            }
             if let Ok(content) = std::fs::read_to_string(&self.config_path) {
                 if let Ok(conf) = toml::from_str::<AppConfig>(&content) {
                     self.config = conf;
@@ -122,6 +130,40 @@ impl ConfigManager {
         } else {
             self.save();
         }
+
+        let ac_path = self.get_user_autocorrect_path();
+        if ac_path.exists() {
+            if let Ok(metadata) = ac_path.metadata() {
+                self.last_autocorrect_mtime = metadata.modified().ok();
+            }
+        }
+    }
+
+    /// Check if config.toml or autocorrect.json has been modified by external GUI/editor
+    pub fn check_and_reload(&mut self) -> bool {
+        let mut changed = false;
+
+        if let Ok(meta) = self.config_path.metadata() {
+            if let Ok(mtime) = meta.modified() {
+                if self.last_config_mtime.map_or(true, |last| mtime > last) {
+                    changed = true;
+                }
+            }
+        }
+
+        let ac_path = self.get_user_autocorrect_path();
+        if let Ok(meta) = ac_path.metadata() {
+            if let Ok(mtime) = meta.modified() {
+                if self.last_autocorrect_mtime.map_or(true, |last| mtime > last) {
+                    changed = true;
+                }
+            }
+        }
+
+        if changed {
+            self.load();
+        }
+        changed
     }
 
     pub fn save(&self) {
@@ -152,7 +194,7 @@ impl ConfigManager {
             PathBuf::from("../../data/layouts"),
         ];
         for c in candidates {
-            if c.exists() {
+            if c.exists() && (c.join("avrophonetic.json").exists() || c.join("Probhat.json").exists()) {
                 return c;
             }
         }
@@ -162,17 +204,124 @@ impl ConfigManager {
     pub fn get_system_data_dir() -> PathBuf {
         let candidates = [
             PathBuf::from("/usr/share/lekhani/data"),
+            PathBuf::from("/usr/share/lekhani/dictionaries"),
             PathBuf::from("/usr/share/openbangla-keyboard"),
             PathBuf::from("/usr/local/share/lekhani/data"),
+            PathBuf::from("./data/dictionaries"),
             PathBuf::from("./data"),
+            PathBuf::from("../data/dictionaries"),
             PathBuf::from("../data"),
+            PathBuf::from("../../data/dictionaries"),
             PathBuf::from("../../data"),
         ];
         for c in candidates {
             if c.exists() {
-                return c;
+                if c.join("dictionary.json").exists() {
+                    return c;
+                }
+                if c.join("dictionaries/dictionary.json").exists() {
+                    return c.join("dictionaries");
+                }
+                if c.join("data/dictionaries/dictionary.json").exists() {
+                    return c.join("data/dictionaries");
+                }
             }
         }
         PathBuf::from("/usr/share/lekhani/data")
     }
+
+    /// Export a complete portable backup of user configuration, autocorrect, layouts, and stats
+    pub fn export_backup<P: AsRef<std::path::Path>>(&self, dest: P) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let mut user_autocorrect = std::collections::HashMap::new();
+        let ac_path = self.get_user_autocorrect_path();
+        if ac_path.exists() {
+            if let Ok(content) = std::fs::read_to_string(&ac_path) {
+                if let Ok(map) = serde_json::from_str::<std::collections::HashMap<String, String>>(&content) {
+                    user_autocorrect = map;
+                }
+            }
+        }
+
+        let mut custom_layouts = std::collections::HashMap::new();
+        let layout_dir = self.get_user_layout_dir();
+        if layout_dir.exists() {
+            if let Ok(entries) = std::fs::read_dir(&layout_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_file() && path.extension().and_then(|s| s.to_str()) == Some("json") {
+                        if let Some(file_name) = path.file_name().and_then(|s| s.to_str()) {
+                            if let Ok(content) = std::fs::read_to_string(&path) {
+                                custom_layouts.insert(file_name.to_string(), content);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut user_stats = None;
+        let stats_path = self.data_dir.join("stats.json");
+        if stats_path.exists() {
+            if let Ok(content) = std::fs::read_to_string(&stats_path) {
+                if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
+                    user_stats = Some(val);
+                }
+            }
+        }
+
+        let bundle = BackupBundle {
+            version: "3.0.0".to_string(),
+            exported_at: chrono::Local::now().to_rfc3339(),
+            config: self.config.clone(),
+            user_autocorrect,
+            custom_layouts,
+            user_stats,
+        };
+
+        let data = serde_json::to_string_pretty(&bundle)?;
+        if let Some(parent) = dest.as_ref().parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        std::fs::write(dest, data)?;
+        Ok(())
+    }
+
+    /// Import and restore a complete backup bundle
+    pub fn import_backup<P: AsRef<std::path::Path>>(&mut self, src: P) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let content = std::fs::read_to_string(src)?;
+        let bundle: BackupBundle = serde_json::from_str(&content)?;
+
+        self.config = bundle.config;
+        self.save();
+
+        let ac_path = self.get_user_autocorrect_path();
+        let ac_json = serde_json::to_string_pretty(&bundle.user_autocorrect)?;
+        let _ = std::fs::write(ac_path, ac_json);
+
+        let layout_dir = self.get_user_layout_dir();
+        let _ = std::fs::create_dir_all(&layout_dir);
+        for (name, content) in bundle.custom_layouts {
+            let p = layout_dir.join(name);
+            let _ = std::fs::write(p, content);
+        }
+
+        if let Some(stats_val) = bundle.user_stats {
+            let stats_path = self.data_dir.join("stats.json");
+            let stats_json = serde_json::to_string_pretty(&stats_val)?;
+            let _ = std::fs::write(stats_path, stats_json);
+        }
+
+        self.load();
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackupBundle {
+    pub version: String,
+    pub exported_at: String,
+    pub config: AppConfig,
+    pub user_autocorrect: std::collections::HashMap<String, String>,
+    pub custom_layouts: std::collections::HashMap<String, String>,
+    pub user_stats: Option<serde_json::Value>,
 }

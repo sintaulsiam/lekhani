@@ -13,6 +13,7 @@
   <a href="#installation">Installation</a> •
   <a href="#building-from-source">Building</a> •
   <a href="#architecture">Architecture</a> •
+  <a href="ROADMAP.md">Roadmap</a> •
   <a href="#license">License</a>
 </p>
 

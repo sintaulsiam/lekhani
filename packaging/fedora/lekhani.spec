@@ -108,7 +108,7 @@ install -Dpm 0644 data/io.github.lekhani.keyboard.metainfo.xml %{buildroot}%{_me
 %{_datadir}/ibus/component/lekhani.xml
 
 %files -n fcitx5-lekhani
-%{_bindir}/fcitx5-lekhani
+%{_libdir}/fcitx5/fcitx5-lekhani.so
 %{_datadir}/fcitx5/addon/lekhani.conf
 %{_datadir}/fcitx5/inputmethod/lekhani.conf
 

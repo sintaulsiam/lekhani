@@ -55,7 +55,34 @@ sudo install -Dm644 data/io.github.lekhani.keyboard.metainfo.xml /usr/share/meta
 
 if [ "$CHOICE" = "--fcitx5" ] || [ "$CHOICE" = "fcitx5" ] || [ "$CHOICE" = "--all" ] || [ "$CHOICE" = "all" ]; then
     echo "=== Installing Fcitx5 Engine (KDE Plasma 6 / Wayland) ==="
-    sudo install -Dm755 target/release/fcitx5-lekhani /usr/bin/fcitx5-lekhani
+    
+    # Check if Fcitx5 development headers are available for compiling native shared library plugin
+    if [ -d "/usr/include/Fcitx5" ] || pkg-config --exists fcitx5 2>/dev/null; then
+        echo "--> Building native Fcitx5 shared library plugin (C++ / Rust FFI)..."
+        cmake -B crates/lekhani-fcitx5/build -S crates/lekhani-fcitx5 -DCMAKE_BUILD_TYPE=Release
+        cmake --build crates/lekhani-fcitx5/build --config Release
+        
+        FCITX_LIB_DIR="/usr/lib64/fcitx5"
+        if [ ! -d "/usr/lib64/fcitx5" ]; then
+            if [ -d "/usr/lib/x86_64-linux-gnu/fcitx5" ]; then
+                FCITX_LIB_DIR="/usr/lib/x86_64-linux-gnu/fcitx5"
+            else
+                FCITX_LIB_DIR="/usr/lib/fcitx5"
+            fi
+        fi
+        sudo install -d "$FCITX_LIB_DIR"
+        sudo install -Dm755 crates/lekhani-fcitx5/build/fcitx5-lekhani.so "$FCITX_LIB_DIR/fcitx5-lekhani.so"
+        echo "--> Installed fcitx5-lekhani.so to $FCITX_LIB_DIR/"
+    else
+        echo "========================================================================="
+        echo "NOTE: Fcitx5 C++ headers not detected (/usr/include/Fcitx5)."
+        echo "To build the native Fcitx5 plugin, install the development package:"
+        echo "  Fedora / RHEL : sudo dnf install -y fcitx5-devel"
+        echo "  Ubuntu / Debian: sudo apt install -y libfcitx5core-dev"
+        echo "  Arch Linux    : sudo pacman -S fcitx5"
+        echo "========================================================================="
+    fi
+
     sudo install -d /usr/share/fcitx5/addon /usr/share/fcitx5/inputmethod
     sudo install -Dm644 data/fcitx5/addon/lekhani.conf /usr/share/fcitx5/addon/lekhani.conf
     sudo install -Dm644 data/fcitx5/inputmethod/lekhani.conf /usr/share/fcitx5/inputmethod/lekhani.conf

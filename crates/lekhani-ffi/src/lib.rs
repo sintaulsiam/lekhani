@@ -1,0 +1,532 @@
+//! Lekhani C-ABI FFI Library
+//!
+//! Provides a C-compatible interface for Lekhani Core, used by the native
+//! Fcitx5 shared library plugin and external integrations.
+
+use std::ffi::{CStr, CString};
+use std::os::raw::c_char;
+use std::ptr;
+use std::sync::{OnceLock, RwLock};
+use lekhani_core::{
+    ActiveLayoutType, InputSession, KeycodeMapper, MODIFIER_ALT_GR, MODIFIER_SHIFT, VC_UNKNOWN,
+};
+use lekhani_settings::{ConfigManager, LayoutManager};
+
+// Special X11 Keysyms
+const KEY_BACKSPACE: u32 = 0xff08;
+const KEY_RETURN: u32 = 0xff0d;
+const KEY_KP_ENTER: u32 = 0xff8d;
+const KEY_SPACE: u32 = 0x0020;
+const KEY_LEFT: u32 = 0xff51;
+const KEY_UP: u32 = 0xff52;
+const KEY_RIGHT: u32 = 0xff53;
+const KEY_DOWN: u32 = 0xff54;
+const KEY_TAB: u32 = 0xff09;
+const KEY_ALT_R: u32 = 0xffea;
+const KEY_ISO_LEVEL3_SHIFT: u32 = 0xfe03;
+const KEY_ESCAPE: u32 = 0xff1b;
+
+struct GlobalSharedResources {
+    config_mgr: ConfigManager,
+    layout_mgr: LayoutManager,
+    session_template: InputSession,
+}
+
+static GLOBAL_RESOURCES: OnceLock<RwLock<GlobalSharedResources>> = OnceLock::new();
+
+fn get_global_resources() -> &'static RwLock<GlobalSharedResources> {
+    GLOBAL_RESOURCES.get_or_init(|| {
+        let config_mgr = ConfigManager::new();
+        let mut layout_mgr = LayoutManager::new();
+
+        let system_dir = ConfigManager::get_system_layout_dir();
+        let user_dir = config_mgr.get_user_layout_dir();
+        layout_mgr.discover_layouts(system_dir, user_dir);
+
+        let mut session_template = InputSession::new();
+        let system_data = ConfigManager::get_system_data_dir();
+        let user_ac = config_mgr.get_user_autocorrect_path();
+        session_template.load_database(&system_data);
+        session_template.load_user_autocorrect(&user_ac);
+
+        let active_name = &config_mgr.config.general.active_layout;
+        if let Some(json) = layout_mgr.load_layout_json(active_name) {
+            let layout_type = if layout_mgr
+                .get_layout(active_name)
+                .map(|i| i.layout_type.as_str())
+                == Some("fixed")
+            {
+                ActiveLayoutType::Fixed
+            } else {
+                ActiveLayoutType::Phonetic
+            };
+            session_template.set_layout(layout_type, &json);
+        }
+
+        RwLock::new(GlobalSharedResources {
+            config_mgr,
+            layout_mgr,
+            session_template,
+        })
+    })
+}
+
+pub struct LekhaniEngineContext {
+    pub session: InputSession,
+    pub config_mgr: ConfigManager,
+    pub layout_mgr: LayoutManager,
+    pub mapper: KeycodeMapper,
+    pub alt_gr: bool,
+    // Cached strings to return safely over FFI
+    last_commit: Option<CString>,
+    last_preedit: Option<CString>,
+    last_aux: Option<CString>,
+    last_candidates: Vec<CString>,
+}
+
+impl LekhaniEngineContext {
+    pub fn new() -> Self {
+        let (config_mgr, layout_mgr, session) = {
+            let lock = get_global_resources().read().unwrap();
+            (
+                lock.config_mgr.clone(),
+                lock.layout_mgr.clone(),
+                lock.session_template.clone(),
+            )
+        };
+
+        Self {
+            session,
+            config_mgr,
+            layout_mgr,
+            mapper: KeycodeMapper::new(),
+            alt_gr: false,
+            last_commit: None,
+            last_preedit: None,
+            last_aux: None,
+            last_candidates: Vec::new(),
+        }
+    }
+
+    pub fn set_layout(&mut self, layout_name: &str) -> bool {
+        if let Some(json) = self.layout_mgr.load_layout_json(layout_name) {
+            let layout_type = if self
+                .layout_mgr
+                .get_layout(layout_name)
+                .map(|i| i.layout_type.as_str())
+                == Some("fixed")
+            {
+                ActiveLayoutType::Fixed
+            } else {
+                ActiveLayoutType::Phonetic
+            };
+            self.session.set_layout(layout_type, &json);
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn update_cached_strings(&mut self) {
+        let preedit = self.session.get_preedit_text();
+        self.last_preedit = if !preedit.is_empty() {
+            CString::new(preedit).ok()
+        } else {
+            None
+        };
+
+        let aux = self.session.get_auxiliary_text();
+        self.last_aux = if !aux.is_empty() {
+            CString::new(aux).ok()
+        } else {
+            None
+        };
+
+        self.last_candidates.clear();
+        for cand in self.session.get_candidates() {
+            if let Ok(c_str) = CString::new(cand.as_str()) {
+                self.last_candidates.push(c_str);
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// C-ABI Exported Functions
+// ---------------------------------------------------------------------------
+
+#[no_mangle]
+pub extern "C" fn lekhani_engine_new() -> *mut LekhaniEngineContext {
+    let ctx = Box::new(LekhaniEngineContext::new());
+    Box::into_raw(ctx)
+}
+
+#[no_mangle]
+pub extern "C" fn lekhani_engine_free(ctx: *mut LekhaniEngineContext) {
+    if !ctx.is_null() {
+        unsafe {
+            drop(Box::from_raw(ctx));
+        }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn lekhani_engine_set_layout(
+    ctx: *mut LekhaniEngineContext,
+    layout_name: *const c_char,
+) -> bool {
+    if ctx.is_null() || layout_name.is_null() {
+        return false;
+    }
+    let engine = unsafe { &mut *ctx };
+    let c_str = unsafe { CStr::from_ptr(layout_name) };
+    if let Ok(name) = c_str.to_str() {
+        engine.set_layout(name)
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn lekhani_engine_reload_config(ctx: *mut LekhaniEngineContext) {
+    if ctx.is_null() {
+        return;
+    }
+    let engine = unsafe { &mut *ctx };
+    engine.config_mgr.load();
+    let system_dir = ConfigManager::get_system_layout_dir();
+    let user_dir = engine.config_mgr.get_user_layout_dir();
+    engine.layout_mgr.discover_layouts(system_dir, user_dir);
+}
+
+#[no_mangle]
+pub extern "C" fn lekhani_engine_reset(ctx: *mut LekhaniEngineContext) {
+    if ctx.is_null() {
+        return;
+    }
+    let engine = unsafe { &mut *ctx };
+    engine.session.reset();
+    engine.last_commit = None;
+    engine.update_cached_strings();
+}
+
+#[no_mangle]
+pub extern "C" fn lekhani_engine_process_key(
+    ctx: *mut LekhaniEngineContext,
+    keyval: u32,
+    _keycode: u32,
+    state_mask: u32,
+    is_release: bool,
+) -> bool {
+    if ctx.is_null() {
+        return false;
+    }
+    let engine = unsafe { &mut *ctx };
+    engine.last_commit = None;
+
+    if is_release {
+        if keyval == KEY_ALT_R || keyval == KEY_ISO_LEVEL3_SHIFT {
+            engine.alt_gr = false;
+        }
+        return false;
+    }
+
+    // Auto-sync configuration and autocorrect if modified externally
+    if engine.config_mgr.check_and_reload() {
+        let user_ac = engine.config_mgr.get_user_autocorrect_path();
+        engine.session.load_user_autocorrect(&user_ac);
+    }
+
+    // Backspace
+    if keyval == KEY_BACKSPACE {
+        if engine.session.is_active() {
+            let handled = engine.session.process_backspace();
+            engine.update_cached_strings();
+            return handled;
+        }
+        return false;
+    }
+
+    // Return
+    if keyval == KEY_RETURN {
+        if engine.session.is_active() {
+            let idx = engine.session.get_selected_index();
+            if let Some(committed) = engine.session.commit(idx) {
+                engine.last_commit = CString::new(committed).ok();
+            }
+            engine.update_cached_strings();
+            return engine
+                .config_mgr
+                .config
+                .phonetic
+                .enter_key_closes_candidate_window;
+        }
+        return false;
+    }
+
+    // Space or Keypad Enter
+    if keyval == KEY_SPACE || keyval == KEY_KP_ENTER {
+        if engine.session.is_active() {
+            let idx = engine.session.get_selected_index();
+            if let Some(committed) = engine.session.commit(idx) {
+                engine.last_commit = CString::new(committed).ok();
+            }
+            engine.update_cached_strings();
+        }
+        return false;
+    }
+
+    // Navigation & Candidate Selection
+    if keyval == KEY_RIGHT || keyval == KEY_DOWN || keyval == KEY_TAB {
+        if engine.session.is_active() {
+            engine.session.select_next();
+            engine.update_cached_strings();
+            return true;
+        }
+        return false;
+    }
+
+    if keyval == KEY_LEFT || keyval == KEY_UP {
+        if engine.session.is_active() {
+            engine.session.select_prev();
+            engine.update_cached_strings();
+            return true;
+        }
+        return false;
+    }
+
+    if keyval == KEY_ESCAPE {
+        if engine.session.is_active() {
+            engine.session.reset();
+            engine.update_cached_strings();
+            return true;
+        }
+        return false;
+    }
+
+    if keyval == KEY_ALT_R || keyval == KEY_ISO_LEVEL3_SHIFT {
+        engine.alt_gr = true;
+        return engine.session.is_active();
+    }
+
+    // Pass modifier hotkeys (Ctrl+C, Alt+Tab, etc.) through to app
+    let is_ctrl = (state_mask & (1 << 2)) != 0;
+    let is_alt = (state_mask & (1 << 3)) != 0;
+    if is_ctrl || (is_alt && !engine.alt_gr) {
+        if engine.session.is_active() {
+            let idx = engine.session.get_selected_index();
+            if let Some(committed) = engine.session.commit(idx) {
+                engine.last_commit = CString::new(committed).ok();
+            }
+            engine.update_cached_strings();
+        }
+        return false;
+    }
+
+    let mut mod_mask = 0u8;
+    if (state_mask & (1 << 0)) != 0 {
+        mod_mask |= MODIFIER_SHIFT;
+    }
+    if engine.alt_gr || ((state_mask & (1 << 2)) != 0 && (state_mask & (1 << 3)) != 0) {
+        mod_mask |= MODIFIER_ALT_GR;
+    }
+
+    let vc = engine.mapper.map_keyval(keyval);
+    if vc == VC_UNKNOWN {
+        if engine.session.is_active() {
+            let idx = engine.session.get_selected_index();
+            if let Some(committed) = engine.session.commit(idx) {
+                engine.last_commit = CString::new(committed).ok();
+            }
+            engine.update_cached_strings();
+        }
+        return false;
+    }
+
+    let handled = engine.session.process_key(vc, mod_mask);
+    engine.update_cached_strings();
+    handled
+}
+
+#[no_mangle]
+pub extern "C" fn lekhani_engine_get_commit_text(ctx: *mut LekhaniEngineContext) -> *const c_char {
+    if ctx.is_null() {
+        return ptr::null();
+    }
+    let engine = unsafe { &*ctx };
+    engine
+        .last_commit
+        .as_ref()
+        .map(|s| s.as_ptr())
+        .unwrap_or(ptr::null())
+}
+
+#[no_mangle]
+pub extern "C" fn lekhani_engine_get_preedit_text(ctx: *mut LekhaniEngineContext) -> *const c_char {
+    if ctx.is_null() {
+        return ptr::null();
+    }
+    let engine = unsafe { &*ctx };
+    engine
+        .last_preedit
+        .as_ref()
+        .map(|s| s.as_ptr())
+        .unwrap_or(ptr::null())
+}
+
+#[no_mangle]
+pub extern "C" fn lekhani_engine_get_auxiliary_text(
+    ctx: *mut LekhaniEngineContext,
+) -> *const c_char {
+    if ctx.is_null() {
+        return ptr::null();
+    }
+    let engine = unsafe { &*ctx };
+    engine
+        .last_aux
+        .as_ref()
+        .map(|s| s.as_ptr())
+        .unwrap_or(ptr::null())
+}
+
+#[no_mangle]
+pub extern "C" fn lekhani_engine_get_candidate_count(ctx: *mut LekhaniEngineContext) -> usize {
+    if ctx.is_null() {
+        return 0;
+    }
+    let engine = unsafe { &*ctx };
+    engine.last_candidates.len()
+}
+
+#[no_mangle]
+pub extern "C" fn lekhani_engine_get_candidate_at(
+    ctx: *mut LekhaniEngineContext,
+    index: usize,
+) -> *const c_char {
+    if ctx.is_null() {
+        return ptr::null();
+    }
+    let engine = unsafe { &*ctx };
+    if index < engine.last_candidates.len() {
+        engine.last_candidates[index].as_ptr()
+    } else {
+        ptr::null()
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn lekhani_engine_get_selected_candidate_index(
+    ctx: *mut LekhaniEngineContext,
+) -> usize {
+    if ctx.is_null() {
+        return 0;
+    }
+    let engine = unsafe { &*ctx };
+    engine.session.get_selected_index()
+}
+
+#[no_mangle]
+pub extern "C" fn lekhani_engine_select_candidate(
+    ctx: *mut LekhaniEngineContext,
+    index: usize,
+) -> bool {
+    if ctx.is_null() {
+        return false;
+    }
+    let engine = unsafe { &mut *ctx };
+    if let Some(committed) = engine.session.commit(index) {
+        engine.last_commit = CString::new(committed).ok();
+        engine.update_cached_strings();
+        true
+    } else {
+        false
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn lekhani_engine_is_active(ctx: *mut LekhaniEngineContext) -> bool {
+    if ctx.is_null() {
+        return false;
+    }
+    let engine = unsafe { &*ctx };
+    engine.session.is_active()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_engine_typing_and_suggestions() {
+        let engine_ptr = lekhani_engine_new();
+        assert!(!engine_ptr.is_null());
+
+        // Type 'a' (0x61), 'm' (0x6d), 'i' (0x69)
+        lekhani_engine_process_key(engine_ptr, 0x0061, 0, 0, false);
+        lekhani_engine_process_key(engine_ptr, 0x006d, 0, 0, false);
+        lekhani_engine_process_key(engine_ptr, 0x0069, 0, 0, false);
+
+        let count = lekhani_engine_get_candidate_count(engine_ptr);
+        assert!(count > 0, "Candidate count should be greater than 0");
+
+        let first_cand_ptr = lekhani_engine_get_candidate_at(engine_ptr, 0);
+        assert!(!first_cand_ptr.is_null());
+        let first_cand = unsafe { CStr::from_ptr(first_cand_ptr).to_str().unwrap() };
+        assert_eq!(first_cand, "আমি");
+
+        // Commit with Space (0x20)
+        lekhani_engine_process_key(engine_ptr, KEY_SPACE, 0, 0, false);
+        let commit_ptr = lekhani_engine_get_commit_text(engine_ptr);
+        assert!(!commit_ptr.is_null());
+        let commit_str = unsafe { CStr::from_ptr(commit_ptr).to_str().unwrap() };
+        assert_eq!(commit_str, "আমি");
+
+        // Type emoji shortcode :smile: -> ':' (0x3a), 's', 'm', 'i', 'l', 'e', ':'
+        lekhani_engine_process_key(engine_ptr, 0x003a, 0, 0, false);
+        lekhani_engine_process_key(engine_ptr, 0x0073, 0, 0, false);
+        lekhani_engine_process_key(engine_ptr, 0x006d, 0, 0, false);
+        lekhani_engine_process_key(engine_ptr, 0x0069, 0, 0, false);
+        lekhani_engine_process_key(engine_ptr, 0x006c, 0, 0, false);
+        lekhani_engine_process_key(engine_ptr, 0x0065, 0, 0, false);
+        lekhani_engine_process_key(engine_ptr, 0x003a, 0, 0, false);
+
+        let emoji_cand_ptr = lekhani_engine_get_candidate_at(engine_ptr, 0);
+        assert!(!emoji_cand_ptr.is_null());
+        let emoji_cand = unsafe { CStr::from_ptr(emoji_cand_ptr).to_str().unwrap() };
+        assert_eq!(emoji_cand, "😊");
+
+        // Commit emoji with Space
+        lekhani_engine_process_key(engine_ptr, KEY_SPACE, 0, 0, false);
+        let emoji_commit_ptr = lekhani_engine_get_commit_text(engine_ptr);
+        assert!(!emoji_commit_ptr.is_null());
+        let emoji_commit = unsafe { CStr::from_ptr(emoji_commit_ptr).to_str().unwrap() };
+        assert_eq!(emoji_commit, "😊");
+
+        // Type live prefix emoji :sm -> ':' (0x3a), 's', 'm'
+        lekhani_engine_process_key(engine_ptr, 0x003a, 0, 0, false);
+        lekhani_engine_process_key(engine_ptr, 0x0073, 0, 0, false);
+        lekhani_engine_process_key(engine_ptr, 0x006d, 0, 0, false);
+
+        let prefix_cand_ptr = lekhani_engine_get_candidate_at(engine_ptr, 0);
+        assert!(!prefix_cand_ptr.is_null());
+        let prefix_cand = unsafe { CStr::from_ptr(prefix_cand_ptr).to_str().unwrap() };
+        assert_eq!(prefix_cand, "😊");
+        lekhani_engine_reset(engine_ptr);
+
+        // Type math formula =125*8 -> '=' (0x3d), '1', '2', '5', '*', '8'
+        lekhani_engine_process_key(engine_ptr, 0x003d, 0, 0, false);
+        lekhani_engine_process_key(engine_ptr, 0x0031, 0, 0, false);
+        lekhani_engine_process_key(engine_ptr, 0x0032, 0, 0, false);
+        lekhani_engine_process_key(engine_ptr, 0x0035, 0, 0, false);
+        lekhani_engine_process_key(engine_ptr, 0x002a, 0, 0, false);
+        lekhani_engine_process_key(engine_ptr, 0x0038, 0, 0, false);
+
+        let math_cand_ptr = lekhani_engine_get_candidate_at(engine_ptr, 0);
+        assert!(!math_cand_ptr.is_null());
+        let math_cand = unsafe { CStr::from_ptr(math_cand_ptr).to_str().unwrap() };
+        assert_eq!(math_cand, "১,০০০");
+
+        // Clean up
+        lekhani_engine_free(engine_ptr);
+    }
+}

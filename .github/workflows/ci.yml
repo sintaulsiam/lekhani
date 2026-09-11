@@ -42,5 +42,15 @@ jobs:
       - name: Setup Rust Toolchain
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Install System Dependencies (Fcitx5 & IBus)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfcitx5core-dev cmake extra-cmake-modules build-essential
+
       - name: Build Release Binaries
         run: cargo build --workspace --release --verbose
+
+      - name: Build Native Fcitx5 Plugin
+        run: |
+          cmake -B crates/lekhani-fcitx5/build -S crates/lekhani-fcitx5 -DCMAKE_BUILD_TYPE=Release
+          cmake --build crates/lekhani-fcitx5/build --config Release
