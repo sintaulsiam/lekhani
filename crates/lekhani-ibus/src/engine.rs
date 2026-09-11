@@ -234,6 +234,17 @@ impl LekhaniIBusEngine {
             _ => {}
         }
 
+        // Pass modifier hotkeys (Ctrl+C, Ctrl+V, Alt+Tab, etc.) through to app
+        let is_ctrl = (state_mask & (1 << 2)) != 0;
+        let is_alt = (state_mask & (1 << 3)) != 0;
+        if is_ctrl || (is_alt && !st.alt_gr) {
+            if st.session.is_active() {
+                let idx = st.session.get_selected_index();
+                let _ = st.session.commit(idx);
+            }
+            return Ok(false);
+        }
+
         let mut mod_mask = 0u8;
         if (state_mask & (1 << 0)) != 0 { // Shift
             mod_mask |= MODIFIER_SHIFT;
