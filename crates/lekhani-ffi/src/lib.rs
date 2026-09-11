@@ -653,7 +653,7 @@ mod tests {
         );
         assert_eq!(lekhani_engine_get_candidate_count(engine_ptr), 0);
 
-        // Repopulate predictions and test Direct Selection with '2' (KEY_2 = 0x32 -> candidate index 1: "তোমাকে")
+        // Repopulate predictions and test Direct Selection with '2' (KEY_2 = 0x32 -> candidate index 1: "আছি")
         unsafe {
             (*engine_ptr).session.populate_predictions();
             (*engine_ptr).update_cached_strings();
@@ -665,7 +665,7 @@ mod tests {
                 .to_str()
                 .unwrap()
         };
-        assert_eq!(pred_commit_str, "তোমাকে");
+        assert_eq!(pred_commit_str, "আছি");
 
         // Test Tab navigation followed by Enter committing navigated candidate
         let tab_handled = lekhani_engine_process_key(engine_ptr, KEY_TAB, 0, 0, false);
