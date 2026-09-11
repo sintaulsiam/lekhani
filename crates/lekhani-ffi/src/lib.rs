@@ -252,6 +252,15 @@ pub extern "C" fn lekhani_engine_process_key(
         return false;
     }
 
+    // Standalone modifier keys (Shift_L, Shift_R, Ctrl, Alt, Super, AltGr, CapsLock)
+    // must NOT commit active preedit or dismiss the candidate window.
+    if matches!(keyval, 0xffe1..=0xffee | 0xfe03 | 0xfe08 | 0xfe09) {
+        if keyval == KEY_ALT_R || keyval == KEY_ISO_LEVEL3_SHIFT {
+            engine.alt_gr = true;
+        }
+        return false;
+    }
+
     // Auto-sync configuration and autocorrect if modified externally
     if engine.config_mgr.check_and_reload() {
         let user_ac = engine.config_mgr.get_user_autocorrect_path();

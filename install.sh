@@ -26,6 +26,18 @@ if [ -z "$CHOICE" ]; then
     esac
 fi
 
+# Auto-detect cargo in user directory if invoked via sudo
+if ! command -v cargo &>/dev/null; then
+    if [ -n "$SUDO_USER" ] && [ -x "/home/$SUDO_USER/.cargo/bin/cargo" ]; then
+        export PATH="/home/$SUDO_USER/.cargo/bin:$PATH"
+    elif [ -x "$HOME/.cargo/bin/cargo" ]; then
+        export PATH="$HOME/.cargo/bin:$PATH"
+    elif [ -x "$HOME/.cargo/env" ]; then
+        # shellcheck disable=SC1091
+        source "$HOME/.cargo/env"
+    fi
+fi
+
 echo "=== Building Lekhani (লেখনী) Pure Rust Input Method ==="
 cargo build --workspace --release
 
