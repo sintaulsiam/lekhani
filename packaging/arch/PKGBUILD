@@ -7,7 +7,7 @@ pkgdesc="Modern pure Rust Bengali input method framework and desktop suite"
 arch=('x86_64' 'aarch64')
 url="https://github.com/OpenBangla/lekhani"
 license=('GPL-3.0-or-later')
-makedepends=('cargo' 'rust')
+makedepends=('cargo' 'rust' 'cmake' 'extra-cmake-modules' 'fcitx5')
 source=("$pkgbase-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
 sha256sums=('SKIP')
 
@@ -22,6 +22,8 @@ build() {
     export RUSTUP_TOOLCHAIN=stable
     export CARGO_TARGET_DIR=target
     cargo build --frozen --release --workspace
+    cmake -B crates/lekhani-fcitx5/build -S crates/lekhani-fcitx5 -DCMAKE_BUILD_TYPE=Release
+    cmake --build crates/lekhani-fcitx5/build --config Release
 }
 
 check() {
@@ -79,7 +81,7 @@ package_fcitx5-lekhani() {
     depends=("lekhani-common=$pkgver" 'fcitx5')
 
     cd "$pkgbase-$pkgver"
-    install -Dm755 target/release/fcitx5-lekhani "$pkgdir/usr/bin/fcitx5-lekhani"
+    install -Dm755 crates/lekhani-fcitx5/build/fcitx5-lekhani.so "$pkgdir/usr/lib/fcitx5/fcitx5-lekhani.so"
     install -d "$pkgdir/usr/share/fcitx5/addon" "$pkgdir/usr/share/fcitx5/inputmethod"
     install -Dm644 data/fcitx5/addon/lekhani.conf "$pkgdir/usr/share/fcitx5/addon/lekhani.conf"
     install -Dm644 data/fcitx5/inputmethod/lekhani.conf "$pkgdir/usr/share/fcitx5/inputmethod/lekhani.conf"
