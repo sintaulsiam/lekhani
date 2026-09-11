@@ -184,6 +184,10 @@ impl ConfigManager {
         self.data_dir.join("autocorrect.json")
     }
 
+    pub fn get_user_learned_path(&self) -> PathBuf {
+        self.data_dir.join("user_learned.json")
+    }
+
     pub fn get_system_layout_dir() -> PathBuf {
         let candidates = [
             PathBuf::from("/usr/share/lekhani/layouts"),
@@ -198,15 +202,16 @@ impl ConfigManager {
                 return c;
             }
         }
-        PathBuf::from("/usr/share/lekhani/layouts")
+        PathBuf::from("./data/layouts")
     }
 
     pub fn get_system_data_dir() -> PathBuf {
         let candidates = [
             PathBuf::from("/usr/share/lekhani/data"),
-            PathBuf::from("/usr/share/lekhani/dictionaries"),
+            PathBuf::from("/usr/share/lekhani"),
             PathBuf::from("/usr/share/openbangla-keyboard"),
             PathBuf::from("/usr/local/share/lekhani/data"),
+            PathBuf::from("/usr/local/share/lekhani"),
             PathBuf::from("./data/dictionaries"),
             PathBuf::from("./data"),
             PathBuf::from("../data/dictionaries"),
@@ -215,22 +220,14 @@ impl ConfigManager {
             PathBuf::from("../../data"),
         ];
         for c in candidates {
-            if c.exists() {
-                if c.join("dictionary.json").exists() {
-                    return c;
-                }
-                if c.join("dictionaries/dictionary.json").exists() {
-                    return c.join("dictionaries");
-                }
-                if c.join("data/dictionaries/dictionary.json").exists() {
-                    return c.join("data/dictionaries");
-                }
+            if c.exists() && (c.join("dictionary.json").exists() || c.join("dictionary.bin").exists()) {
+                return c;
             }
         }
         PathBuf::from("/usr/share/lekhani/data")
     }
 
-    /// Export a complete portable backup of user configuration, autocorrect, layouts, and stats
+    /// Export a complete backup bundle (config, autocorrect, learned words, custom layouts, user stats)
     pub fn export_backup<P: AsRef<std::path::Path>>(&self, dest: P) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut user_autocorrect = std::collections::HashMap::new();
         let ac_path = self.get_user_autocorrect_path();
@@ -238,6 +235,16 @@ impl ConfigManager {
             if let Ok(content) = std::fs::read_to_string(&ac_path) {
                 if let Ok(map) = serde_json::from_str::<std::collections::HashMap<String, String>>(&content) {
                     user_autocorrect = map;
+                }
+            }
+        }
+
+        let mut user_learned = None;
+        let learned_path = self.get_user_learned_path();
+        if learned_path.exists() {
+            if let Ok(content) = std::fs::read_to_string(&learned_path) {
+                if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
+                    user_learned = Some(val);
                 }
             }
         }
@@ -274,6 +281,7 @@ impl ConfigManager {
             exported_at: chrono::Local::now().to_rfc3339(),
             config: self.config.clone(),
             user_autocorrect,
+            user_learned,
             custom_layouts,
             user_stats,
         };
@@ -297,6 +305,12 @@ impl ConfigManager {
         let ac_path = self.get_user_autocorrect_path();
         let ac_json = serde_json::to_string_pretty(&bundle.user_autocorrect)?;
         let _ = std::fs::write(ac_path, ac_json);
+
+        if let Some(learned_val) = bundle.user_learned {
+            let learned_path = self.get_user_learned_path();
+            let learned_json = serde_json::to_string_pretty(&learned_val)?;
+            let _ = std::fs::write(learned_path, learned_json);
+        }
 
         let layout_dir = self.get_user_layout_dir();
         let _ = std::fs::create_dir_all(&layout_dir);
@@ -322,6 +336,8 @@ pub struct BackupBundle {
     pub exported_at: String,
     pub config: AppConfig,
     pub user_autocorrect: std::collections::HashMap<String, String>,
+    #[serde(default)]
+    pub user_learned: Option<serde_json::Value>,
     pub custom_layouts: std::collections::HashMap<String, String>,
     pub user_stats: Option<serde_json::Value>,
 }

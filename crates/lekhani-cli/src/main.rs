@@ -64,6 +64,33 @@ enum Commands {
     },
     /// Benchmark typing engine performance
     Benchmark,
+    /// On-Device Bengali AI & Language Model Tools
+    Ai {
+        #[command(subcommand)]
+        subcommand: AiCommands,
+    },
+}
+
+#[derive(Subcommand)]
+enum AiCommands {
+    /// Predict the top next words given preceding sentence context
+    Predict {
+        /// Preceding sentence or phrase (e.g. "আমি ভাত" or "বাংলাদেশ একটি")
+        context: String,
+        /// Number of predictions to return (default: 5)
+        #[arg(short, long, default_value_t = 5)]
+        limit: usize,
+    },
+    /// Score sentence perplexity and conditional probabilities
+    Score {
+        /// Bengali sentence or phrase to score
+        sentence: String,
+    },
+    /// Disambiguate and decode a sequence of candidate options
+    Decode {
+        /// JSON array of candidate vectors (e.g. '[["আমি"],["শার্ট"],["পড়া","পরা"]]')
+        sequence_json: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -116,7 +143,12 @@ fn main() -> anyhow::Result<()> {
             }
             let converted = session.phonetic.suggestion_engine.transliterate_phrase_or_sentence(&text);
             let empty_mem = hashbrown::HashMap::new();
-            let (cands, _) = session.phonetic.suggestion_engine.suggest(&text, true, true, &empty_mem);
+            let cands = if text.contains(' ') {
+                vec![converted.clone(), text.clone()]
+            } else {
+                let (c, _) = session.phonetic.suggestion_engine.suggest(&text, true, true, &empty_mem);
+                c
+            };
             println!("Input:       {}", text);
             println!("Output:      {}", converted);
             println!("Candidates:  {:?}", cands);
@@ -252,6 +284,52 @@ fn main() -> anyhow::Result<()> {
             let elapsed = start.elapsed();
             println!("10,000 sentences converted in {:?}", elapsed);
             println!("Average latency per sentence: {:?}", elapsed / 10_000);
+        }
+        Commands::Ai { subcommand } => {
+            let lm = lekhani_ai::LanguageModel::new();
+            let predictor = lekhani_ai::NextWordPredictor::new();
+            let decoder = lekhani_ai::BeamSearchDecoder::new();
+
+            match subcommand {
+                AiCommands::Predict { context, limit } => {
+                    let tokens: Vec<&str> = context.split_whitespace().collect();
+                    let preds = predictor.predict_next(&tokens, limit);
+                    println!("╔══════════════════════════════════════════════════════╗");
+                    println!("║        🔮 Lekhani AI Next-Word Predictor             ║");
+                    println!("╠══════════════════════════════════════════════════════╣");
+                    println!("║ Context: \"{}\"", context);
+                    println!("║ Top Predictions:                                     ║");
+                    for (i, p) in preds.iter().enumerate() {
+                        println!("║   {}. {:<44} ║", i + 1, p);
+                    }
+                    println!("╚══════════════════════════════════════════════════════╝");
+                }
+                AiCommands::Score { sentence } => {
+                    let tokens: Vec<&str> = sentence.split_whitespace().collect();
+                    println!("╔══════════════════════════════════════════════════════╗");
+                    println!("║        🧠 Lekhani AI Language Model Scorer           ║");
+                    println!("╠══════════════════════════════════════════════════════╣");
+                    println!("║ Sentence: \"{}\"", sentence);
+                    println!("║ Conditional Probabilities:                           ║");
+                    let mut total_log_p = 0.0f32;
+                    for (i, &w) in tokens.iter().enumerate() {
+                        let prev1 = if i >= 1 { Some(tokens[i - 1]) } else { None };
+                        let prev2 = if i >= 2 { Some(tokens[i - 2]) } else { None };
+                        let log_p = lm.score_candidate(prev2, prev1, w);
+                        total_log_p += log_p;
+                        println!("║   • {:<16} (P = 10^{:<6.2})                  ║", w, log_p);
+                    }
+                    println!("╠══════════════════════════════════════════════════════╣");
+                    println!("║ Total Sequence Log-Likelihood: {:>17.2} ║", total_log_p);
+                    println!("╚══════════════════════════════════════════════════════╝");
+                }
+                AiCommands::Decode { sequence_json } => {
+                    let seq: Vec<Vec<String>> = serde_json::from_str(&sequence_json)?;
+                    let path = decoder.decode(&seq);
+                    println!("Optimal Decoded Sequence: {:?}", path);
+                    println!("Sentence: \"{}\"", path.join(" "));
+                }
+            }
         }
     }
 
