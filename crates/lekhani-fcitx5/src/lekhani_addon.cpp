@@ -127,6 +127,8 @@ void LekhaniAddon::activate(const InputMethodEntry &entry, InputContextEvent &ev
             lekhani_engine_set_layout(state->engine(), "Probhat");
         } else if (name.find("National") != std::string::npos || name.find("Jatiya") != std::string::npos) {
             lekhani_engine_set_layout(state->engine(), "National (Jatiya)");
+        } else if (name.find("Unijoy") != std::string::npos) {
+            lekhani_engine_set_layout(state->engine(), "Unijoy");
         } else if (name.find("Borno") != std::string::npos) {
             lekhani_engine_set_layout(state->engine(), "Borno");
         } else {

@@ -203,40 +203,30 @@ impl ConfigManager {
     }
 
     pub fn get_system_layout_dir() -> PathBuf {
-        let mut candidates = Vec::new();
-        if let Some(proj) = ProjectDirs::from("org", "lekhani", "lekhani") {
-            candidates.push(proj.data_local_dir().join("layouts"));
-        }
-        if let Some(home) = std::env::var_os("HOME") {
-            candidates.push(PathBuf::from(home).join(".local/share/lekhani/layouts"));
-        }
-        candidates.extend([
+        let candidates = [
             PathBuf::from("./data/layouts"),
             PathBuf::from("../data/layouts"),
             PathBuf::from("../../data/layouts"),
             PathBuf::from("/usr/share/lekhani/layouts"),
-            PathBuf::from("/usr/share/openbangla-keyboard/layouts"),
             PathBuf::from("/usr/local/share/lekhani/layouts"),
-        ]);
-        for c in candidates {
+            PathBuf::from("/usr/share/openbangla-keyboard/layouts"),
+        ];
+        for c in &candidates {
             if c.exists() && (c.join("avrophonetic.json").exists() || c.join("Probhat.json").exists()) {
-                return c;
+                return c.clone();
+            }
+        }
+        if let Some(home) = std::env::var_os("HOME") {
+            let u = PathBuf::from(home).join(".local/share/lekhani/layouts");
+            if u.exists() {
+                return u;
             }
         }
         PathBuf::from("./data/layouts")
     }
 
     pub fn get_system_data_dir() -> PathBuf {
-        let mut candidates = Vec::new();
-        if let Some(proj) = ProjectDirs::from("org", "lekhani", "lekhani") {
-            candidates.push(proj.data_local_dir().join("data"));
-            candidates.push(proj.data_local_dir().to_path_buf());
-        }
-        if let Some(home) = std::env::var_os("HOME") {
-            candidates.push(PathBuf::from(&home).join(".local/share/lekhani/data"));
-            candidates.push(PathBuf::from(home).join(".local/share/lekhani"));
-        }
-        candidates.extend([
+        let candidates = [
             PathBuf::from("./data/dictionaries"),
             PathBuf::from("./data"),
             PathBuf::from("../data/dictionaries"),
@@ -245,13 +235,13 @@ impl ConfigManager {
             PathBuf::from("../../data"),
             PathBuf::from("/usr/share/lekhani/data"),
             PathBuf::from("/usr/share/lekhani"),
-            PathBuf::from("/usr/share/openbangla-keyboard"),
             PathBuf::from("/usr/local/share/lekhani/data"),
             PathBuf::from("/usr/local/share/lekhani"),
-        ]);
-        for c in candidates {
+            PathBuf::from("/usr/share/openbangla-keyboard"),
+        ];
+        for c in &candidates {
             if c.exists() && (c.join("dictionary.json").exists() || c.join("dictionary.bin").exists() || c.join("autocorrect.json").exists()) {
-                return c;
+                return c.clone();
             }
         }
         PathBuf::from("/usr/share/lekhani/data")
