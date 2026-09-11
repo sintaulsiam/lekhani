@@ -169,6 +169,7 @@ export component TopBarWindow inherits Window {
     in-out property <bool> set-use-dict: true;
     in-out property <bool> set-include-eng: true;
     in-out property <bool> set-enter-closes: false;
+    in-out property <bool> set-predictive-next: true;
     in-out property <bool> set-auto-vowel: true;
     in-out property <bool> set-auto-chandra: true;
     in-out property <bool> set-traditional-kar: false;
@@ -798,6 +799,7 @@ export component TopBarWindow inherits Window {
                         CheckBox { text: "Enable Prefix Trie Dictionary Suggestions"; checked: root.set-use-dict; toggled => { root.set-use-dict = self.checked; } }
                         CheckBox { text: "Include Original English in Candidate List"; checked: root.set-include-eng; toggled => { root.set-include-eng = self.checked; } }
                         CheckBox { text: "Enter Key Closes Candidate Window"; checked: root.set-enter-closes; toggled => { root.set-enter-closes = self.checked; } }
+                        CheckBox { text: "Proactive AI Next-Word Prediction (Zero-Preedit)"; checked: root.set-predictive-next; toggled => { root.set-predictive-next = self.checked; } }
                     }
                 }
 

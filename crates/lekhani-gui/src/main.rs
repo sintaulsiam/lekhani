@@ -44,6 +44,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     app.set_set_use_dict(config_mgr.config.phonetic.use_dictionary);
     app.set_set_include_eng(config_mgr.config.phonetic.include_english);
     app.set_set_enter_closes(config_mgr.config.phonetic.enter_key_closes_candidate_window);
+    app.set_set_predictive_next(config_mgr.config.phonetic.enable_predictive_next_words);
     app.set_set_auto_vowel(config_mgr.config.fixed.auto_vowel_forming);
     app.set_set_auto_chandra(config_mgr.config.fixed.auto_chandra_position);
     app.set_set_traditional_kar(config_mgr.config.fixed.traditional_kar);
@@ -158,6 +159,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             cm.config.phonetic.use_dictionary = app.get_set_use_dict();
             cm.config.phonetic.include_english = app.get_set_include_eng();
             cm.config.phonetic.enter_key_closes_candidate_window = app.get_set_enter_closes();
+            cm.config.phonetic.enable_predictive_next_words = app.get_set_predictive_next();
             cm.config.fixed.auto_vowel_forming = app.get_set_auto_vowel();
             cm.config.fixed.auto_chandra_position = app.get_set_auto_chandra();
             cm.config.fixed.traditional_kar = app.get_set_traditional_kar();

@@ -22,11 +22,17 @@ pub struct GeneralConfig {
     pub check_updates: bool,
 }
 
+fn default_true() -> bool {
+    true
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PhoneticConfig {
     pub use_dictionary: bool,
     pub include_english: bool,
     pub enter_key_closes_candidate_window: bool,
+    #[serde(default = "default_true")]
+    pub enable_predictive_next_words: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,6 +63,7 @@ impl Default for AppConfig {
                 use_dictionary: true,
                 include_english: true,
                 enter_key_closes_candidate_window: false,
+                enable_predictive_next_words: true,
             },
             fixed: FixedConfig {
                 auto_vowel_forming: true,
