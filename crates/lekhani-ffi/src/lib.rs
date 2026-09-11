@@ -27,6 +27,10 @@ const KEY_TAB: u32 = 0xff09;
 const KEY_ALT_R: u32 = 0xffea;
 const KEY_ISO_LEVEL3_SHIFT: u32 = 0xfe03;
 const KEY_ESCAPE: u32 = 0xff1b;
+const KEY_1: u32 = 0x0031;
+const KEY_5: u32 = 0x0035;
+const KEY_KP_1: u32 = 0xffb1;
+const KEY_KP_5: u32 = 0xffb5;
 
 struct GlobalSharedResources {
     config_mgr: ConfigManager,
@@ -254,6 +258,30 @@ pub extern "C" fn lekhani_engine_process_key(
         engine.session.load_user_autocorrect(&user_ac);
     }
 
+    // Direct Selection via 1..5 in Prediction Mode
+    if engine.session.is_prediction_mode() {
+        let cand_idx = if (KEY_1..=KEY_5).contains(&keyval) {
+            Some((keyval - KEY_1) as usize)
+        } else if (KEY_KP_1..=KEY_KP_5).contains(&keyval) {
+            Some((keyval - KEY_KP_1) as usize)
+        } else {
+            None
+        };
+
+        if let Some(idx) = cand_idx {
+            if idx < engine.session.get_candidates().len() {
+                if let Some(committed) = engine.session.commit(idx) {
+                    engine.last_commit = CString::new(committed).ok();
+                    if engine.config_mgr.config.phonetic.enable_predictive_next_words {
+                        engine.session.populate_predictions();
+                    }
+                    engine.update_cached_strings();
+                    return true;
+                }
+            }
+        }
+    }
+
     // Backspace
     if keyval == KEY_BACKSPACE {
         if engine.session.is_active() {
@@ -266,10 +294,24 @@ pub extern "C" fn lekhani_engine_process_key(
 
     // Return
     if keyval == KEY_RETURN {
+        if engine.session.is_prediction_mode() {
+            let idx = engine.session.get_selected_index();
+            if let Some(committed) = engine.session.commit(idx) {
+                engine.last_commit = CString::new(committed).ok();
+                if engine.config_mgr.config.phonetic.enable_predictive_next_words {
+                    engine.session.populate_predictions();
+                }
+            }
+            engine.update_cached_strings();
+            return true;
+        }
         if engine.session.is_active() {
             let idx = engine.session.get_selected_index();
             if let Some(committed) = engine.session.commit(idx) {
                 engine.last_commit = CString::new(committed).ok();
+                if engine.config_mgr.config.phonetic.enable_predictive_next_words {
+                    engine.session.populate_predictions();
+                }
             }
             engine.update_cached_strings();
             return engine
@@ -283,10 +325,18 @@ pub extern "C" fn lekhani_engine_process_key(
 
     // Space or Keypad Enter
     if keyval == KEY_SPACE || keyval == KEY_KP_ENTER {
+        if engine.session.is_prediction_mode() {
+            engine.session.reset();
+            engine.update_cached_strings();
+            return false;
+        }
         if engine.session.is_active() {
             let idx = engine.session.get_selected_index();
             if let Some(committed) = engine.session.commit(idx) {
                 engine.last_commit = CString::new(committed).ok();
+                if engine.config_mgr.config.phonetic.enable_predictive_next_words {
+                    engine.session.populate_predictions();
+                }
             }
             engine.update_cached_strings();
         }
@@ -453,6 +503,9 @@ pub extern "C" fn lekhani_engine_select_candidate(
     let engine = unsafe { &mut *ctx };
     if let Some(committed) = engine.session.commit(index) {
         engine.last_commit = CString::new(committed).ok();
+        if engine.config_mgr.config.phonetic.enable_predictive_next_words {
+            engine.session.populate_predictions();
+        }
         engine.update_cached_strings();
         true
     } else {
@@ -497,6 +550,18 @@ mod tests {
         assert!(!commit_ptr.is_null());
         let commit_str = unsafe { CStr::from_ptr(commit_ptr).to_str().unwrap() };
         assert_eq!(commit_str, "আমি");
+
+        // Verify proactive predictions are active after committing "আমি"
+        let pred_count = lekhani_engine_get_candidate_count(engine_ptr);
+        assert!(pred_count > 0, "Proactive prediction count should be > 0");
+
+        // Select candidate index 1 ("তোমাকে") via lekhani_engine_select_candidate
+        let selected = lekhani_engine_select_candidate(engine_ptr, 1);
+        assert!(selected);
+        let pred_commit_ptr = lekhani_engine_get_commit_text(engine_ptr);
+        assert!(!pred_commit_ptr.is_null());
+        let pred_commit_str = unsafe { CStr::from_ptr(pred_commit_ptr).to_str().unwrap() };
+        assert_eq!(pred_commit_str, "তোমাকে");
 
         // Type 's', 'h', 'i', 'r', 't'
         for ch in "shirt".chars() {
