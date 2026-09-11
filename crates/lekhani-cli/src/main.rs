@@ -42,6 +42,18 @@ enum Commands {
         /// Optional output path
         output: Option<PathBuf>,
     },
+    /// Convert a text file or standard input between Bijoy (ANSI) and Unicode
+    ConvertFile {
+        /// Input file path (use '-' for standard input)
+        #[arg(short, long)]
+        input: PathBuf,
+        /// Output file path (defaults to stdout if omitted)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        /// Reverse direction: convert Unicode to Bijoy (ANSI)
+        #[arg(short, long)]
+        reverse: bool,
+    },
     /// Export or import user settings, custom layouts, autocorrect, and typing stats
     Sync {
         /// Export backup bundle to specified JSON file
@@ -176,6 +188,29 @@ fn main() -> anyhow::Result<()> {
             std::fs::write(&out, json_str)?;
             println!("Converted {:?} -> {:?}", input, out);
             println!("Conversion completed successfully!");
+        }
+        Commands::ConvertFile { input, output, reverse } => {
+            let input_content = if input.to_str() == Some("-") {
+                use std::io::Read;
+                let mut buffer = String::new();
+                std::io::stdin().read_to_string(&mut buffer)?;
+                buffer
+            } else {
+                std::fs::read_to_string(&input)?
+            };
+
+            let converted = if reverse {
+                unicode_to_bijoy(&input_content)
+            } else {
+                bijoy_to_unicode(&input_content)
+            };
+
+            if let Some(out_path) = output {
+                std::fs::write(&out_path, &converted)?;
+                println!("Converted {:?} -> {:?} ({} bytes)", input, out_path, converted.len());
+            } else {
+                print!("{}", converted);
+            }
         }
         Commands::Sync { export, import } => {
             if let Some(dest) = export {
