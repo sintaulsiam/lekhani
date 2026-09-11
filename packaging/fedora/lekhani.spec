@@ -10,6 +10,10 @@ Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 BuildRequires:  rust-packaging >= 21
 BuildRequires:  cargo
 BuildRequires:  rust
+BuildRequires:  cmake
+BuildRequires:  gcc-c++
+BuildRequires:  extra-cmake-modules
+BuildRequires:  fcitx5-devel
 BuildRequires:  systemd-rpm-macros
 
 Requires:       lekhani-common = %{version}-%{release}
@@ -56,13 +60,18 @@ Lekhani Bengali typing engine for Fcitx5 (recommended for KDE Plasma 6, Wayland,
 
 %build
 %cargo_build
+cmake -B crates/lekhani-fcitx5/build -S crates/lekhani-fcitx5 -DCMAKE_BUILD_TYPE=Release
+cmake --build crates/lekhani-fcitx5/build --config Release
 
 %install
 # Install binaries
 install -Dpm 0755 target/release/lekhani-gui %{buildroot}%{_bindir}/lekhani-gui
 install -Dpm 0755 target/release/ibus-lekhani %{buildroot}%{_bindir}/ibus-lekhani
-install -Dpm 0755 target/release/fcitx5-lekhani %{buildroot}%{_bindir}/fcitx5-lekhani
 install -Dpm 0755 target/release/lekhani %{buildroot}%{_bindir}/lekhani
+
+# Install Fcitx5 shared library plugin
+install -d %{buildroot}%{_libdir}/fcitx5
+install -Dpm 0755 crates/lekhani-fcitx5/build/fcitx5-lekhani.so %{buildroot}%{_libdir}/fcitx5/fcitx5-lekhani.so
 
 # Install data assets & layouts
 install -d %{buildroot}%{_datadir}/lekhani/layouts
