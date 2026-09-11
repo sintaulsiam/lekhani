@@ -26,7 +26,7 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libfcitx5core-dev cmake extra-cmake-modules build-essential libibus-1.0-dev
+          sudo apt-get install -y libfcitx5core-dev cmake extra-cmake-modules build-essential libibus-1.0-dev libfontconfig1-dev libxkbcommon-dev pkg-config
 
       - name: Build Debian Packages
         run: ./packaging/debian/build-deb.sh
@@ -45,7 +45,7 @@ jobs:
     steps:
       - name: Install Build Dependencies
         run: |
-          dnf install -y git cargo rust gcc-c++ cmake extra-cmake-modules fcitx5-devel ibus-devel rpm-build rpmdevtools
+          dnf install -y git cargo rust gcc-c++ cmake extra-cmake-modules fcitx5-devel ibus-devel rpm-build rpmdevtools fontconfig-devel libxkbcommon-devel
 
       - name: Checkout Source
         uses: actions/checkout@v4
@@ -71,7 +71,7 @@ jobs:
       - name: Setup Arch Linux Build Environment
         run: |
           pacman -Syu --noconfirm
-          pacman -S --noconfirm --needed git base-devel rust cargo cmake extra-cmake-modules fcitx5 sudo
+          pacman -S --noconfirm --needed git base-devel rust cargo cmake extra-cmake-modules fcitx5 sudo fontconfig
           useradd -m builder
           echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
