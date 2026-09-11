@@ -153,12 +153,18 @@ fn main() -> anyhow::Result<()> {
             if let Some(json) = layout_mgr.load_layout_json("Avro Phonetic") {
                 session.set_layout(lekhani_core::ActiveLayoutType::Phonetic, &json);
             }
-            let converted = session.phonetic.suggestion_engine.transliterate_phrase_or_sentence(&text);
+            let converted = session
+                .phonetic
+                .suggestion_engine
+                .transliterate_phrase_or_sentence(&text);
             let empty_mem = hashbrown::HashMap::new();
             let cands = if text.contains(' ') {
                 vec![converted.clone(), text.clone()]
             } else {
-                let (c, _) = session.phonetic.suggestion_engine.suggest(&text, true, true, &empty_mem);
+                let (c, _) = session
+                    .phonetic
+                    .suggestion_engine
+                    .suggest(&text, true, true, &empty_mem);
                 c
             };
             println!("Input:       {}", text);
@@ -177,7 +183,10 @@ fn main() -> anyhow::Result<()> {
             println!("Installed Lekhani Keyboard Layouts:");
             for layout in layout_mgr.get_layout_list() {
                 if let Some(info) = layout_mgr.get_layout(&layout) {
-                    println!("  • {} (v{}, type: {})", info.name, info.version, info.layout_type);
+                    println!(
+                        "  • {} (v{}, type: {})",
+                        info.name, info.version, info.layout_type
+                    );
                 }
             }
         }
@@ -189,7 +198,11 @@ fn main() -> anyhow::Result<()> {
             println!("Converted {:?} -> {:?}", input, out);
             println!("Conversion completed successfully!");
         }
-        Commands::ConvertFile { input, output, reverse } => {
+        Commands::ConvertFile {
+            input,
+            output,
+            reverse,
+        } => {
             let input_content = if input.to_str() == Some("-") {
                 use std::io::Read;
                 let mut buffer = String::new();
@@ -207,20 +220,31 @@ fn main() -> anyhow::Result<()> {
 
             if let Some(out_path) = output {
                 std::fs::write(&out_path, &converted)?;
-                println!("Converted {:?} -> {:?} ({} bytes)", input, out_path, converted.len());
+                println!(
+                    "Converted {:?} -> {:?} ({} bytes)",
+                    input,
+                    out_path,
+                    converted.len()
+                );
             } else {
                 print!("{}", converted);
             }
         }
         Commands::Sync { export, import } => {
             if let Some(dest) = export {
-                config_mgr.export_backup(&dest).map_err(|e| anyhow::anyhow!("{}", e))?;
+                config_mgr
+                    .export_backup(&dest)
+                    .map_err(|e| anyhow::anyhow!("{}", e))?;
                 println!("Backup successfully exported to: {:?}", dest);
             } else if let Some(src) = import {
-                config_mgr.import_backup(&src).map_err(|e| anyhow::anyhow!("{}", e))?;
+                config_mgr
+                    .import_backup(&src)
+                    .map_err(|e| anyhow::anyhow!("{}", e))?;
                 println!("Backup successfully imported from: {:?}", src);
             } else {
-                eprintln!("Error: Please specify either --export <file.json> or --import <file.json>");
+                eprintln!(
+                    "Error: Please specify either --export <file.json> or --import <file.json>"
+                );
             }
         }
         Commands::Dict { subcommand } => {
@@ -234,12 +258,18 @@ fn main() -> anyhow::Result<()> {
 
             match subcommand {
                 DictCommands::List => {
-                    println!("Custom User AutoCorrect & Dictionary Entries ({} total):", map.len());
+                    println!(
+                        "Custom User AutoCorrect & Dictionary Entries ({} total):",
+                        map.len()
+                    );
                     for (trigger, rep) in &map {
                         println!("  {}  ➔  {}", trigger, rep);
                     }
                 }
-                DictCommands::Add { trigger, replacement } => {
+                DictCommands::Add {
+                    trigger,
+                    replacement,
+                } => {
                     map.insert(trigger.clone(), replacement.clone());
                     let json = serde_json::to_string_pretty(&map)?;
                     if let Some(p) = ac_path.parent() {
@@ -267,7 +297,8 @@ fn main() -> anyhow::Result<()> {
                 }
                 DictCommands::Import { path } => {
                     let content = std::fs::read_to_string(&path)?;
-                    let imported: std::collections::BTreeMap<String, String> = serde_json::from_str(&content)?;
+                    let imported: std::collections::BTreeMap<String, String> =
+                        serde_json::from_str(&content)?;
                     let count = imported.len();
                     for (k, v) in imported {
                         map.insert(k, v);
@@ -277,7 +308,12 @@ fn main() -> anyhow::Result<()> {
                         let _ = std::fs::create_dir_all(p);
                     }
                     std::fs::write(&ac_path, json)?;
-                    println!("Imported {} entries from {:?}. Total active: {}", count, path, map.len());
+                    println!(
+                        "Imported {} entries from {:?}. Total active: {}",
+                        count,
+                        path,
+                        map.len()
+                    );
                 }
             }
         }
@@ -292,10 +328,16 @@ fn main() -> anyhow::Result<()> {
                 println!("╔══════════════════════════════════════════════════════╗");
                 println!("║         📊 Lekhani Personal Typing Dashboard         ║");
                 println!("╠══════════════════════════════════════════════════════╣");
-                println!("║ Total Words Typed:      {:>28} ║", stats.total_words_typed);
+                println!(
+                    "║ Total Words Typed:      {:>28} ║",
+                    stats.total_words_typed
+                );
                 println!("║ Total Keystrokes:       {:>28} ║", stats.total_keystrokes);
                 println!("║ Keystrokes Saved:       {:>28} ║", stats.keystrokes_saved);
-                println!("║ Typing Efficiency Gain: {:>27.1}% ║", stats.savings_percentage());
+                println!(
+                    "║ Typing Efficiency Gain: {:>27.1}% ║",
+                    stats.savings_percentage()
+                );
                 println!("╠══════════════════════════════════════════════════════╣");
                 println!("║ Top Frequent Words:                                  ║");
                 let top = stats.get_top_words(5);
@@ -303,7 +345,12 @@ fn main() -> anyhow::Result<()> {
                     println!("║   (No typing history recorded yet)                   ║");
                 } else {
                     for (i, (word, count)) in top.iter().enumerate() {
-                        println!("║   {}. {:<20} ({:>5} times)             ║", i + 1, word, count);
+                        println!(
+                            "║   {}. {:<20} ({:>5} times)             ║",
+                            i + 1,
+                            word,
+                            count
+                        );
                     }
                 }
                 println!("╚══════════════════════════════════════════════════════╝");
@@ -314,7 +361,10 @@ fn main() -> anyhow::Result<()> {
             let start = std::time::Instant::now();
             let session = InputSession::new();
             for _ in 0..10_000 {
-                let _ = session.phonetic.suggestion_engine.convert_phonetic("amader bangladesh");
+                let _ = session
+                    .phonetic
+                    .suggestion_engine
+                    .convert_phonetic("amader bangladesh");
             }
             let elapsed = start.elapsed();
             println!("10,000 sentences converted in {:?}", elapsed);

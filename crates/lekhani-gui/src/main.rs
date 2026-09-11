@@ -4,10 +4,10 @@ slint::include_modules!();
 
 mod tray;
 
-use std::rc::Rc;
-use tracing::info;
 use lekhani_core::{bijoy_to_unicode, unicode_to_bijoy, PhoneticDatabase, PhoneticSuggestion};
 use lekhani_settings::{ConfigManager, LayoutManager};
+use std::rc::Rc;
+use tracing::info;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
@@ -38,7 +38,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     app.set_available_layouts(model.into());
 
     let total_entries = db.get_user_autocorrect().len() + db.get_system_autocorrect().len();
-    app.set_ac_status_text(format!("Total active entries: {} (User: {})", total_entries, db.get_user_autocorrect().len()).into());
+    app.set_ac_status_text(
+        format!(
+            "Total active entries: {} (User: {})",
+            total_entries,
+            db.get_user_autocorrect().len()
+        )
+        .into(),
+    );
 
     // Settings state
     app.set_set_use_dict(config_mgr.config.phonetic.use_dictionary);
@@ -79,11 +86,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let app_weak_reset = app_weak_drag.clone();
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(app) = app_weak_reset.upgrade() {
-                    let _ = app.window().try_dispatch_event(slint::platform::WindowEvent::PointerReleased {
-                        position: slint::LogicalPosition::new(0.0, 0.0),
-                        button: slint::platform::PointerEventButton::Left,
-                    });
-                    let _ = app.window().try_dispatch_event(slint::platform::WindowEvent::PointerExited);
+                    let _ = app.window().try_dispatch_event(
+                        slint::platform::WindowEvent::PointerReleased {
+                            position: slint::LogicalPosition::new(0.0, 0.0),
+                            button: slint::platform::PointerEventButton::Left,
+                        },
+                    );
+                    let _ = app
+                        .window()
+                        .try_dispatch_event(slint::platform::WindowEvent::PointerExited);
                 }
             });
         }
@@ -92,11 +103,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app_weak_end = app_weak.clone();
     app.on_end_drag_window(move || {
         if let Some(app) = app_weak_end.upgrade() {
-            let _ = app.window().try_dispatch_event(slint::platform::WindowEvent::PointerReleased {
-                position: slint::LogicalPosition::new(0.0, 0.0),
-                button: slint::platform::PointerEventButton::Left,
-            });
-            let _ = app.window().try_dispatch_event(slint::platform::WindowEvent::PointerExited);
+            let _ =
+                app.window()
+                    .try_dispatch_event(slint::platform::WindowEvent::PointerReleased {
+                        position: slint::LogicalPosition::new(0.0, 0.0),
+                        button: slint::platform::PointerEventButton::Left,
+                    });
+            let _ = app
+                .window()
+                .try_dispatch_event(slint::platform::WindowEvent::PointerExited);
         }
     });
 
@@ -159,12 +174,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         db.insert_user_autocorrect(trigger.to_string(), replacement.to_string());
         let cm = cm_ac_clone.borrow();
         let user_ac_path = cm.get_user_autocorrect_path();
-        if let Ok(json) = serde_json::to_string_pretty(db.get_user_autocorrect()) {
-            let _ = std::fs::write(&user_ac_path, json);
-        }
+        let _ = db.save_user_autocorrect(&user_ac_path);
         if let Some(app) = app_weak_add.upgrade() {
             let total = db.get_user_autocorrect().len() + db.get_system_autocorrect().len();
-            app.set_ac_status_text(format!("Saved! Total entries: {} (User: {})", total, db.get_user_autocorrect().len()).into());
+            app.set_ac_status_text(
+                format!(
+                    "Saved! Total entries: {} (User: {})",
+                    total,
+                    db.get_user_autocorrect().len()
+                )
+                .into(),
+            );
         }
     });
 
@@ -176,12 +196,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         db.remove_user_autocorrect(&trigger);
         let cm = cm_del_clone.borrow();
         let user_ac_path = cm.get_user_autocorrect_path();
-        if let Ok(json) = serde_json::to_string_pretty(db.get_user_autocorrect()) {
-            let _ = std::fs::write(&user_ac_path, json);
-        }
+        let _ = db.save_user_autocorrect(&user_ac_path);
         if let Some(app) = app_weak_del.upgrade() {
             let total = db.get_user_autocorrect().len() + db.get_system_autocorrect().len();
-            app.set_ac_status_text(format!("Removed. Total entries: {} (User: {})", total, db.get_user_autocorrect().len()).into());
+            app.set_ac_status_text(
+                format!(
+                    "Removed. Total entries: {} (User: {})",
+                    total,
+                    db.get_user_autocorrect().len()
+                )
+                .into(),
+            );
         }
     });
 
@@ -189,10 +214,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app_weak_search = app_weak.clone();
     app.on_ac_search_changed(move |query| {
         let db = db_search_clone.borrow();
-        let user_matches = db.get_user_autocorrect().iter().filter(|(k, v)| k.contains(query.as_str()) || v.contains(query.as_str())).count();
-        let sys_matches = db.get_system_autocorrect().iter().filter(|(k, v)| k.contains(query.as_str()) || v.contains(query.as_str())).count();
+        let user_matches = db
+            .get_user_autocorrect()
+            .iter()
+            .filter(|(k, v)| k.contains(query.as_str()) || v.contains(query.as_str()))
+            .count();
+        let sys_matches = db
+            .get_system_autocorrect()
+            .iter()
+            .filter(|(k, v)| k.contains(query.as_str()) || v.contains(query.as_str()))
+            .count();
         if let Some(app) = app_weak_search.upgrade() {
-            app.set_ac_status_text(format!("Found {} matching entries (User: {}, System: {})", user_matches + sys_matches, user_matches, sys_matches).into());
+            app.set_ac_status_text(
+                format!(
+                    "Found {} matching entries (User: {}, System: {})",
+                    user_matches + sys_matches,
+                    user_matches,
+                    sys_matches
+                )
+                .into(),
+            );
         }
     });
 

@@ -110,7 +110,11 @@ fn parse_layout_info(path: &Path, val: &Value) -> Option<LayoutInfo> {
     let layout_type = info.get("type")?.as_str()?.to_string();
     let layout_obj = info.get("layout")?;
     let name = layout_obj.get("name")?.as_str()?.to_string();
-    let version = layout_obj.get("version").and_then(|v| v.as_str()).unwrap_or("1.0").to_string();
+    let version = layout_obj
+        .get("version")
+        .and_then(|v| v.as_str())
+        .unwrap_or("1.0")
+        .to_string();
     let developer = layout_obj
         .get("developer")
         .and_then(|d| d.get("name"))

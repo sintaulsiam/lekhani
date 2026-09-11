@@ -73,16 +73,38 @@ pub fn convert_avro_layout_xml(xml_content: &str) -> anyhow::Result<Value> {
 
 fn normalize_avro_key(key: &str) -> String {
     let mut k = key.to_string();
-    if k.contains("OEM1") { k = k.replace("OEM1", "Semicolon"); }
-    if k.contains("OEM2") { k = k.replace("OEM2", "Slash"); }
-    if k.contains("OEM3") { k = k.replace("OEM3", "BackQuote"); }
-    if k.contains("OEM4") { k = k.replace("OEM4", "OpenBracket"); }
-    if k.contains("OEM5") { k = k.replace("OEM5", "BackSlash"); }
-    if k.contains("OEM6") { k = k.replace("OEM6", "CloseBracket"); }
-    if k.contains("OEM7") { k = k.replace("OEM7", "Quote"); }
-    if k.contains("MINUS") { k = k.replace("MINUS", "Minus"); }
-    if k.contains("PLUS") { k = k.replace("PLUS", "Equals"); }
-    if k.contains("PERIOD") { k = k.replace("PERIOD", "Period"); }
-    if k.contains("COMMA") { k = k.replace("COMMA", "Comma"); }
+    if k.contains("OEM1") {
+        k = k.replace("OEM1", "Semicolon");
+    }
+    if k.contains("OEM2") {
+        k = k.replace("OEM2", "Slash");
+    }
+    if k.contains("OEM3") {
+        k = k.replace("OEM3", "BackQuote");
+    }
+    if k.contains("OEM4") {
+        k = k.replace("OEM4", "OpenBracket");
+    }
+    if k.contains("OEM5") {
+        k = k.replace("OEM5", "BackSlash");
+    }
+    if k.contains("OEM6") {
+        k = k.replace("OEM6", "CloseBracket");
+    }
+    if k.contains("OEM7") {
+        k = k.replace("OEM7", "Quote");
+    }
+    if k.contains("MINUS") {
+        k = k.replace("MINUS", "Minus");
+    }
+    if k.contains("PLUS") {
+        k = k.replace("PLUS", "Equals");
+    }
+    if k.contains("PERIOD") {
+        k = k.replace("PERIOD", "Period");
+    }
+    if k.contains("COMMA") {
+        k = k.replace("COMMA", "Comma");
+    }
     k
 }

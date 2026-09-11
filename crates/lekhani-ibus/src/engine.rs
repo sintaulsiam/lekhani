@@ -4,9 +4,10 @@ use std::sync::{Arc, Mutex};
 use tracing::{debug, info};
 use zbus::interface;
 
-use lekhani_core::{ActiveLayoutType, InputSession, MODIFIER_ALT_GR, MODIFIER_SHIFT, VC_UNKNOWN};
+use lekhani_core::{
+    ActiveLayoutType, InputSession, KeycodeMapper, MODIFIER_ALT_GR, MODIFIER_SHIFT, VC_UNKNOWN,
+};
 use lekhani_settings::{ConfigManager, LayoutManager};
-use crate::keycode::KeycodeMapper;
 
 // Special IBus Key Values
 const IBUS_KEY_BACKSPACE: u32 = 0xff08;
@@ -44,7 +45,7 @@ impl LekhaniIBusEngine {
     pub fn new() -> Self {
         let config_mgr = ConfigManager::new();
         let mut layout_mgr = LayoutManager::new();
-        
+
         let system_dir = ConfigManager::get_system_layout_dir();
         let user_dir = config_mgr.get_user_layout_dir();
         layout_mgr.discover_layouts(system_dir, user_dir);
@@ -58,11 +59,15 @@ impl LekhaniIBusEngine {
         session.load_user_autocorrect(&user_ac);
         session.load_user_learned(&user_learned);
         session.load_stats(&stats_path);
-        
+
         // Load active layout
         let active_name = &config_mgr.config.general.active_layout;
         if let Some(json) = layout_mgr.load_layout_json(active_name) {
-            let layout_type = if layout_mgr.get_layout(active_name).map(|i| i.layout_type.as_str()) == Some("fixed") {
+            let layout_type = if layout_mgr
+                .get_layout(active_name)
+                .map(|i| i.layout_type.as_str())
+                == Some("fixed")
+            {
                 ActiveLayoutType::Fixed
             } else {
                 ActiveLayoutType::Phonetic
@@ -177,7 +182,11 @@ impl LekhaniIBusEngine {
                             st.session.populate_predictions();
                         }
                     }
-                    return Ok(st.config_mgr.config.phonetic.enter_key_closes_candidate_window);
+                    return Ok(st
+                        .config_mgr
+                        .config
+                        .phonetic
+                        .enter_key_closes_candidate_window);
                 }
                 return Ok(false);
             }
@@ -246,7 +255,8 @@ impl LekhaniIBusEngine {
         }
 
         let mut mod_mask = 0u8;
-        if (state_mask & (1 << 0)) != 0 { // Shift
+        if (state_mask & (1 << 0)) != 0 {
+            // Shift
             mod_mask |= MODIFIER_SHIFT;
         }
         if st.alt_gr || ((state_mask & (1 << 2)) != 0 && (state_mask & (1 << 3)) != 0) {

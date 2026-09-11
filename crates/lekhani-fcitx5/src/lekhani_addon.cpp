@@ -122,14 +122,14 @@ void LekhaniAddon::activate(const InputMethodEntry &entry, InputContextEvent &ev
     auto *state = event.inputContext()->propertyFor(&factory_);
     if (state && state->engine()) {
         lekhani_engine_reload_config(state->engine());
-        std::string name = entry.uniqueName();
-        if (name.find("Probhat") != std::string::npos) {
+        std::string_view name = entry.uniqueName();
+        if (name.find("Probhat") != std::string_view::npos) {
             lekhani_engine_set_layout(state->engine(), "Probhat");
-        } else if (name.find("National") != std::string::npos || name.find("Jatiya") != std::string::npos) {
+        } else if (name.find("National") != std::string_view::npos || name.find("Jatiya") != std::string_view::npos) {
             lekhani_engine_set_layout(state->engine(), "National (Jatiya)");
-        } else if (name.find("Unijoy") != std::string::npos) {
+        } else if (name.find("Unijoy") != std::string_view::npos) {
             lekhani_engine_set_layout(state->engine(), "Unijoy");
-        } else if (name.find("Borno") != std::string::npos) {
+        } else if (name.find("Borno") != std::string_view::npos) {
             lekhani_engine_set_layout(state->engine(), "Borno");
         } else {
             lekhani_engine_set_layout(state->engine(), "Avro Phonetic");

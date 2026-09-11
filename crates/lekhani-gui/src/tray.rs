@@ -1,7 +1,7 @@
 //! Native Linux System Tray Icon (StatusNotifierItem via pure Rust zbus)
 
-use zbus::interface;
 use zbus::connection::Builder;
+use zbus::interface;
 
 pub struct LekhaniTray {
     pub active_layout: String,
@@ -73,7 +73,10 @@ impl LekhaniTray {
 
 pub fn spawn_tray(active_layout: String) -> Option<std::thread::JoinHandle<()>> {
     let handle = std::thread::spawn(move || {
-        let rt = match tokio::runtime::Builder::new_current_thread().enable_all().build() {
+        let rt = match tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+        {
             Ok(rt) => rt,
             Err(e) => {
                 tracing::warn!("Failed to create tokio runtime for tray: {}", e);
@@ -118,15 +121,20 @@ pub fn spawn_tray(active_layout: String) -> Option<std::thread::JoinHandle<()>> 
             };
 
             // Register with StatusNotifierWatcher if available
-            let _ = conn.call_method(
-                Some("org.kde.StatusNotifierWatcher"),
-                "/StatusNotifierWatcher",
-                Some("org.kde.StatusNotifierWatcher"),
-                "RegisterStatusNotifierItem",
-                &service_name,
-            ).await;
+            let _ = conn
+                .call_method(
+                    Some("org.kde.StatusNotifierWatcher"),
+                    "/StatusNotifierWatcher",
+                    Some("org.kde.StatusNotifierWatcher"),
+                    "RegisterStatusNotifierItem",
+                    &service_name,
+                )
+                .await;
 
-            tracing::info!("Lekhani StatusNotifierItem tray running on DBus: {}", service_name);
+            tracing::info!(
+                "Lekhani StatusNotifierItem tray running on DBus: {}",
+                service_name
+            );
             futures_util::future::pending::<()>().await;
         });
     });
