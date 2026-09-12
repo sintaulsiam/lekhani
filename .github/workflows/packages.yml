@@ -91,3 +91,81 @@ jobs:
         with:
           name: lekhani-arch-pkg
           path: dist/arch/*.pkg.tar.zst
+
+  build-portable-tarball:
+    name: Build Universal Portable Archive (.tar.gz)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Setup Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfcitx5core-dev cmake extra-cmake-modules build-essential libibus-1.0-dev libfontconfig1-dev libxkbcommon-dev pkg-config
+
+      - name: Build Release Binaries & Plugin
+        run: |
+          cargo build --release --workspace
+          cmake -B crates/lekhani-fcitx5/build -S crates/lekhani-fcitx5 -DCMAKE_BUILD_TYPE=Release
+          cmake --build crates/lekhani-fcitx5/build --config Release
+
+      - name: Create Portable Tarball
+        run: |
+          VERSION="3.0.0"
+          ARCH="$(uname -m)"
+          TARBALL_NAME="lekhani-v${VERSION}-linux-${ARCH}.tar.gz"
+          PORTABLE_DIR="target/portable_build/lekhani-v${VERSION}"
+          mkdir -p "$PORTABLE_DIR/bin" "$PORTABLE_DIR/fcitx5" dist
+          cp install.sh uninstall.sh "$PORTABLE_DIR/"
+          cp -r data "$PORTABLE_DIR/"
+          cp target/release/lekhani target/release/lekhani-gui target/release/ibus-lekhani "$PORTABLE_DIR/bin/"
+          if [ -f crates/lekhani-fcitx5/build/fcitx5-lekhani.so ]; then
+            cp crates/lekhani-fcitx5/build/fcitx5-lekhani.so "$PORTABLE_DIR/fcitx5/"
+          fi
+          tar -czf "dist/${TARBALL_NAME}" -C target/portable_build "lekhani-v${VERSION}"
+          echo "Created dist/${TARBALL_NAME}"
+
+      - name: Upload Tarball Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lekhani-portable-tarball
+          path: dist/*.tar.gz
+
+  publish-release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs:
+      - build-ubuntu-deb
+      - build-fedora-rpm
+      - build-arch-pkg
+      - build-portable-tarball
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Source
+        uses: actions/checkout@v4
+
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: downloaded-artifacts
+
+      - name: Collect Release Assets
+        run: |
+          mkdir -p release-assets
+          find downloaded-artifacts -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.pkg.tar.zst" -o -name "*.tar.gz" \) -exec cp {} release-assets/ \;
+          echo "=== Release Assets to Publish ==="
+          ls -la release-assets/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
