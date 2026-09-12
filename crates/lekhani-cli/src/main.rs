@@ -178,7 +178,15 @@ fn main() -> anyhow::Result<()> {
             };
             println!("Input:       {}", text);
             println!("Output:      {}", converted);
-            println!("Candidates:  {:?}", cands);
+            let formatted_cands = format!(
+                "[{}]",
+                cands
+                    .iter()
+                    .map(|c| format!("\"{}\"", c))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            );
+            println!("Candidates:  {}", formatted_cands);
         }
         Commands::BijoyToUnicode { text } => {
             let res = bijoy_to_unicode(&text);
