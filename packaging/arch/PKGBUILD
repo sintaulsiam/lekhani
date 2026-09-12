@@ -21,15 +21,17 @@ build() {
     cd "$pkgbase-$pkgver"
     export RUSTUP_TOOLCHAIN=stable
     export CARGO_TARGET_DIR=target
-    cargo build --frozen --release --workspace
-    cmake -B crates/lekhani-fcitx5/build -S crates/lekhani-fcitx5 -DCMAKE_BUILD_TYPE=Release
-    cmake --build crates/lekhani-fcitx5/build --config Release
+    cargo build --release --workspace
+    if [ -d "/usr/include/Fcitx5" ] || pkg-config --exists fcitx5 2>/dev/null; then
+        cmake -B crates/lekhani-fcitx5/build -S crates/lekhani-fcitx5 -DCMAKE_BUILD_TYPE=Release
+        cmake --build crates/lekhani-fcitx5/build --config Release
+    fi
 }
 
 check() {
     cd "$pkgbase-$pkgver"
     export RUSTUP_TOOLCHAIN=stable
-    cargo test --frozen --workspace
+    cargo test --workspace
 }
 
 package_lekhani-common() {
@@ -62,9 +64,12 @@ package_lekhani-common() {
     install -d "$pkgdir/usr/share/lekhani/icons"
     install -Dm644 data/icons/128.png "$pkgdir/usr/share/lekhani/icons/lekhani.png"
 
-    # Desktop Entry and AppStream Metadata
+    # Desktop Entry, AppStream Metadata & Systemd User Service
     install -Dm644 data/io.github.lekhani.keyboard.desktop "$pkgdir/usr/share/applications/io.github.lekhani.keyboard.desktop"
     install -Dm644 data/io.github.lekhani.keyboard.metainfo.xml "$pkgdir/usr/share/metainfo/io.github.lekhani.keyboard.metainfo.xml"
+    if [ -f data/systemd/lekhani-gui.service ]; then
+        install -Dm644 data/systemd/lekhani-gui.service "$pkgdir/usr/lib/systemd/user/lekhani-gui.service"
+    fi
 }
 
 package_ibus-lekhani() {
@@ -74,6 +79,9 @@ package_ibus-lekhani() {
     cd "$pkgbase-$pkgver"
     install -Dm755 target/release/ibus-lekhani "$pkgdir/usr/bin/ibus-lekhani"
     install -Dm644 data/ibus/lekhani.xml "$pkgdir/usr/share/ibus/component/lekhani.xml"
+    if [ -f data/systemd/ibus-lekhani.service ]; then
+        install -Dm644 data/systemd/ibus-lekhani.service "$pkgdir/usr/lib/systemd/user/ibus-lekhani.service"
+    fi
 }
 
 package_fcitx5-lekhani() {

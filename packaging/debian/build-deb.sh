@@ -165,6 +165,11 @@ done
 install -m644 "$ROOT_DIR/data/io.github.lekhani.keyboard.desktop" "$COMMON_DIR/usr/share/applications/"
 install -m644 "$ROOT_DIR/data/io.github.lekhani.keyboard.metainfo.xml" "$COMMON_DIR/usr/share/metainfo/"
 
+if [ -f "$ROOT_DIR/data/systemd/lekhani-gui.service" ]; then
+    mkdir -p "$COMMON_DIR/usr/lib/systemd/user"
+    install -m644 "$ROOT_DIR/data/systemd/lekhani-gui.service" "$COMMON_DIR/usr/lib/systemd/user/"
+fi
+
 cat <<EOF > "$COMMON_DIR/DEBIAN/control"
 Package: lekhani-common
 Version: $VERSION-1
@@ -204,6 +209,11 @@ mkdir -p "$IBUS_DIR/usr/share/ibus/component"
 
 install -m755 "$ROOT_DIR/target/release/ibus-lekhani" "$IBUS_DIR/usr/bin/"
 install -m644 "$ROOT_DIR/data/ibus/lekhani.xml" "$IBUS_DIR/usr/share/ibus/component/"
+
+if [ -f "$ROOT_DIR/data/systemd/ibus-lekhani.service" ]; then
+    mkdir -p "$IBUS_DIR/usr/lib/systemd/user"
+    install -m644 "$ROOT_DIR/data/systemd/ibus-lekhani.service" "$IBUS_DIR/usr/lib/systemd/user/"
+fi
 
 cat <<EOF > "$IBUS_DIR/DEBIAN/control"
 Package: ibus-lekhani

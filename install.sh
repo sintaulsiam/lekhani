@@ -139,24 +139,40 @@ if [ -z "$CHOICE" ]; then
     esac
 fi
 
-# Auto-detect cargo in user directory if invoked via sudo
-if ! command -v cargo &>/dev/null; then
-    if [ -n "$SUDO_USER" ] && [ -x "/home/$SUDO_USER/.cargo/bin/cargo" ]; then
-        export PATH="/home/$SUDO_USER/.cargo/bin:$PATH"
-    elif [ -x "$HOME/.cargo/bin/cargo" ]; then
-        export PATH="$HOME/.cargo/bin:$PATH"
-    elif [ -x "$HOME/.cargo/env" ]; then
-        # shellcheck disable=SC1091
-        source "$HOME/.cargo/env"
+# Check for pre-compiled binaries (e.g. inside portable release tarball)
+if [ -f "bin/lekhani-gui" ] && [ -f "bin/lekhani" ] && [ -f "bin/ibus-lekhani" ]; then
+    echo "=== Using Pre-Compiled Lekhani Binaries from bin/ ==="
+    GUI_BIN="bin/lekhani-gui"
+    CLI_BIN="bin/lekhani"
+    IBUS_BIN="bin/ibus-lekhani"
+elif [ -f "target/release/lekhani-gui" ] && [ -f "target/release/lekhani" ] && [ -f "target/release/ibus-lekhani" ]; then
+    echo "=== Using Existing Release Binaries from target/release/ ==="
+    GUI_BIN="target/release/lekhani-gui"
+    CLI_BIN="target/release/lekhani"
+    IBUS_BIN="target/release/ibus-lekhani"
+else
+    # Auto-detect cargo in user directory if invoked via sudo
+    if ! command -v cargo &>/dev/null; then
+        if [ -n "$SUDO_USER" ] && [ -x "/home/$SUDO_USER/.cargo/bin/cargo" ]; then
+            export PATH="/home/$SUDO_USER/.cargo/bin:$PATH"
+        elif [ -x "$HOME/.cargo/bin/cargo" ]; then
+            export PATH="$HOME/.cargo/bin:$PATH"
+        elif [ -x "$HOME/.cargo/env" ]; then
+            # shellcheck disable=SC1091
+            source "$HOME/.cargo/env"
+        fi
     fi
+
+    echo "=== Building Lekhani (লেখনী) Pure Rust Input Method ==="
+    cargo build --workspace --release
+    GUI_BIN="target/release/lekhani-gui"
+    CLI_BIN="target/release/lekhani"
+    IBUS_BIN="target/release/ibus-lekhani"
 fi
 
-echo "=== Building Lekhani (লেখনী) Pure Rust Input Method ==="
-cargo build --workspace --release
-
 echo "=== Installing Lekhani Core Binaries & Desktop GUI ==="
-sudo install -Dm755 target/release/lekhani-gui /usr/bin/lekhani-gui
-sudo install -Dm755 target/release/lekhani /usr/bin/lekhani
+sudo install -Dm755 "$GUI_BIN" /usr/bin/lekhani-gui
+sudo install -Dm755 "$CLI_BIN" /usr/bin/lekhani
 # Clean up or sync any legacy binaries in ~/.local/bin to prevent $PATH shadowing
 rm -f "$HOME/.local/bin/lekhani-gui" "$HOME/.local/bin/lekhani" 2>/dev/null || true
 
@@ -204,20 +220,28 @@ fi
 if [ "$CHOICE" = "--fcitx5" ] || [ "$CHOICE" = "fcitx5" ] || [ "$CHOICE" = "--all" ] || [ "$CHOICE" = "all" ]; then
     echo "=== Installing Fcitx5 Engine (KDE Plasma 6 / Wayland) ==="
     
-    # Check if Fcitx5 development headers are available for compiling native shared library plugin
-    if [ -d "/usr/include/Fcitx5" ] || pkg-config --exists fcitx5 2>/dev/null; then
+    FCITX_LIB_DIR="/usr/lib64/fcitx5"
+    if [ ! -d "/usr/lib64/fcitx5" ]; then
+        if [ -d "/usr/lib/x86_64-linux-gnu/fcitx5" ]; then
+            FCITX_LIB_DIR="/usr/lib/x86_64-linux-gnu/fcitx5"
+        else
+            FCITX_LIB_DIR="/usr/lib/fcitx5"
+        fi
+    fi
+
+    if [ -f "fcitx5/fcitx5-lekhani.so" ]; then
+        echo "--> Found pre-compiled fcitx5-lekhani.so..."
+        sudo install -d "$FCITX_LIB_DIR"
+        sudo install -Dm755 fcitx5/fcitx5-lekhani.so "$FCITX_LIB_DIR/fcitx5-lekhani.so"
+        echo "--> Installed fcitx5-lekhani.so to $FCITX_LIB_DIR/"
+    elif [ -f "crates/lekhani-fcitx5/build/fcitx5-lekhani.so" ]; then
+        sudo install -d "$FCITX_LIB_DIR"
+        sudo install -Dm755 crates/lekhani-fcitx5/build/fcitx5-lekhani.so "$FCITX_LIB_DIR/fcitx5-lekhani.so"
+        echo "--> Installed fcitx5-lekhani.so to $FCITX_LIB_DIR/"
+    elif [ -d "/usr/include/Fcitx5" ] || pkg-config --exists fcitx5 2>/dev/null; then
         echo "--> Building native Fcitx5 shared library plugin (C++ / Rust FFI)..."
         cmake -B crates/lekhani-fcitx5/build -S crates/lekhani-fcitx5 -DCMAKE_BUILD_TYPE=Release
         cmake --build crates/lekhani-fcitx5/build --config Release
-        
-        FCITX_LIB_DIR="/usr/lib64/fcitx5"
-        if [ ! -d "/usr/lib64/fcitx5" ]; then
-            if [ -d "/usr/lib/x86_64-linux-gnu/fcitx5" ]; then
-                FCITX_LIB_DIR="/usr/lib/x86_64-linux-gnu/fcitx5"
-            else
-                FCITX_LIB_DIR="/usr/lib/fcitx5"
-            fi
-        fi
         sudo install -d "$FCITX_LIB_DIR"
         sudo install -Dm755 crates/lekhani-fcitx5/build/fcitx5-lekhani.so "$FCITX_LIB_DIR/fcitx5-lekhani.so"
         echo "--> Installed fcitx5-lekhani.so to $FCITX_LIB_DIR/"
@@ -238,7 +262,7 @@ fi
 
 if [ "$CHOICE" = "--ibus" ] || [ "$CHOICE" = "ibus" ] || [ "$CHOICE" = "--all" ] || [ "$CHOICE" = "all" ]; then
     echo "=== Installing IBus Engine (GNOME / Ubuntu) ==="
-    sudo install -Dm755 target/release/ibus-lekhani /usr/bin/ibus-lekhani
+    sudo install -Dm755 "$IBUS_BIN" /usr/bin/ibus-lekhani
     sudo install -Dm644 data/ibus/lekhani.xml /usr/share/ibus/component/lekhani.xml
 fi
 

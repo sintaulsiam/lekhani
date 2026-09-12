@@ -100,6 +100,11 @@ install -Dpm 0644 data/io.github.lekhani.keyboard.desktop %{buildroot}%{_datadir
 install -d %{buildroot}%{_metainfodir}
 install -Dpm 0644 data/io.github.lekhani.keyboard.metainfo.xml %{buildroot}%{_metainfodir}/io.github.lekhani.keyboard.metainfo.xml
 
+# Install Systemd user service units
+install -d %{buildroot}%{_userunitdir}
+install -Dpm 0644 data/systemd/lekhani-gui.service %{buildroot}%{_userunitdir}/lekhani-gui.service
+install -Dpm 0644 data/systemd/ibus-lekhani.service %{buildroot}%{_userunitdir}/ibus-lekhani.service
+
 %check
 cargo test --workspace
 
@@ -114,12 +119,14 @@ cargo test --workspace
 %{_datadir}/lekhani/
 %{_datadir}/applications/io.github.lekhani.keyboard.desktop
 %{_metainfodir}/io.github.lekhani.keyboard.metainfo.xml
+%{_userunitdir}/lekhani-gui.service
 %{_datadir}/icons/hicolor/*/apps/lekhani.png
 %{_datadir}/icons/hicolor/scalable/apps/lekhani.svg
 
 %files -n ibus-lekhani
 %{_bindir}/ibus-lekhani
 %{_datadir}/ibus/component/lekhani.xml
+%{_userunitdir}/ibus-lekhani.service
 
 %files -n fcitx5-lekhani
 %{_libdir}/fcitx5/fcitx5-lekhani.so
