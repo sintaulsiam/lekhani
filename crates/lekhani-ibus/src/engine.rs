@@ -1,6 +1,7 @@
 //! IBus Engine Implementation with zbus
 
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tracing::{debug, info};
 use zbus::interface;
 
@@ -91,13 +92,39 @@ impl LekhaniIBusEngine {
 
 #[interface(name = "org.freedesktop.IBus.Engine")]
 impl LekhaniIBusEngine {
+    #[zbus(signal)]
+    async fn commit_text(emitter: &zbus::object_server::SignalContext<'_>, text: &str) -> zbus::Result<()>;
+
+    #[zbus(signal)]
+    async fn update_preedit_text(
+        emitter: &zbus::object_server::SignalContext<'_>,
+        text: &str,
+        cursor_pos: u32,
+        visible: bool,
+    ) -> zbus::Result<()>;
+
+    #[zbus(signal)]
+    async fn hide_preedit_text(emitter: &zbus::object_server::SignalContext<'_>) -> zbus::Result<()>;
+
+    #[zbus(signal)]
+    async fn update_lookup_table(
+        emitter: &zbus::object_server::SignalContext<'_>,
+        candidates: &[String],
+        selected_index: u32,
+        visible: bool,
+    ) -> zbus::Result<()>;
+
+    #[zbus(signal)]
+    async fn hide_lookup_table(emitter: &zbus::object_server::SignalContext<'_>) -> zbus::Result<()>;
+
     async fn process_key_event(
         &mut self,
+        #[zbus(signal_context)] emitter: zbus::object_server::SignalContext<'_>,
         keyval: u32,
         _keycode: u32,
         state_mask: u32,
     ) -> zbus::fdo::Result<bool> {
-        let mut st = self.state.lock().unwrap();
+        let mut st = self.state.lock().await;
 
         // Check key release
         if (state_mask & IBUS_RELEASE_MASK) != 0 {
@@ -134,9 +161,15 @@ impl LekhaniIBusEngine {
 
             if let Some(idx) = cand_idx {
                 if idx < st.session.get_candidates().len() {
-                    if let Some(_committed) = st.session.commit(idx) {
+                    if let Some(committed) = st.session.commit(idx) {
+                        let _ = Self::commit_text(&emitter, &committed).await;
                         if st.config_mgr.config.phonetic.enable_predictive_next_words {
                             st.session.populate_predictions();
+                            let cands = st.session.get_candidates();
+                            let _ = Self::update_lookup_table(&emitter, cands, 0, true).await;
+                        } else {
+                            let _ = Self::hide_lookup_table(&emitter).await;
+                            let _ = Self::hide_preedit_text(&emitter).await;
                         }
                         return Ok(true);
                     }
@@ -149,13 +182,25 @@ impl LekhaniIBusEngine {
             IBUS_KEY_BACKSPACE => {
                 if st.session.is_active() {
                     let handled = st.session.process_backspace();
+                    if st.session.is_active() {
+                        let preedit = st.session.get_preedit_text();
+                        let cands = st.session.get_candidates();
+                        let sel = st.session.get_selected_index() as u32;
+                        let _ = Self::update_preedit_text(&emitter, &preedit, preedit.chars().count() as u32, true).await;
+                        let _ = Self::update_lookup_table(&emitter, cands, sel, true).await;
+                    } else {
+                        let _ = Self::hide_preedit_text(&emitter).await;
+                        let _ = Self::hide_lookup_table(&emitter).await;
+                    }
                     return Ok(handled);
                 }
                 return Ok(false);
             }
             IBUS_KEY_ESCAPE => {
-                if st.session.is_active() {
+                if st.session.is_active() || st.session.is_prediction_mode() {
                     st.session.reset();
+                    let _ = Self::hide_preedit_text(&emitter).await;
+                    let _ = Self::hide_lookup_table(&emitter).await;
                     return Ok(true);
                 }
                 return Ok(false);
@@ -164,22 +209,36 @@ impl LekhaniIBusEngine {
                 if st.session.is_prediction_mode() {
                     if st.session.is_prediction_navigated() {
                         let idx = st.session.get_selected_index();
-                        if let Some(_committed) = st.session.commit(idx) {
+                        if let Some(committed) = st.session.commit(idx) {
+                            let _ = Self::commit_text(&emitter, &committed).await;
                             if st.config_mgr.config.phonetic.enable_predictive_next_words {
                                 st.session.populate_predictions();
+                                let cands = st.session.get_candidates();
+                                let _ = Self::update_lookup_table(&emitter, cands, 0, true).await;
+                            } else {
+                                let _ = Self::hide_lookup_table(&emitter).await;
+                                let _ = Self::hide_preedit_text(&emitter).await;
                             }
                         }
                         return Ok(true);
                     } else {
                         st.session.reset();
+                        let _ = Self::hide_preedit_text(&emitter).await;
+                        let _ = Self::hide_lookup_table(&emitter).await;
                         return Ok(false);
                     }
                 }
                 if st.session.is_active() {
                     let idx = st.session.get_selected_index();
-                    if let Some(_committed) = st.session.commit(idx) {
+                    if let Some(committed) = st.session.commit(idx) {
+                        let _ = Self::commit_text(&emitter, &committed).await;
                         if st.config_mgr.config.phonetic.enable_predictive_next_words {
                             st.session.populate_predictions();
+                            let cands = st.session.get_candidates();
+                            let _ = Self::update_lookup_table(&emitter, cands, 0, true).await;
+                        } else {
+                            let _ = Self::hide_lookup_table(&emitter).await;
+                            let _ = Self::hide_preedit_text(&emitter).await;
                         }
                     }
                     return Ok(st
@@ -194,44 +253,67 @@ impl LekhaniIBusEngine {
                 if st.session.is_prediction_mode() {
                     if st.session.is_prediction_navigated() {
                         let idx = st.session.get_selected_index();
-                        if let Some(_committed) = st.session.commit(idx) {
+                        if let Some(committed) = st.session.commit(idx) {
+                            let _ = Self::commit_text(&emitter, &committed).await;
                             if st.config_mgr.config.phonetic.enable_predictive_next_words {
                                 st.session.populate_predictions();
+                                let cands = st.session.get_candidates();
+                                let _ = Self::update_lookup_table(&emitter, cands, 0, true).await;
+                            } else {
+                                let _ = Self::hide_lookup_table(&emitter).await;
+                                let _ = Self::hide_preedit_text(&emitter).await;
                             }
                         }
                         return Ok(true);
                     } else {
                         st.session.reset();
+                        let _ = Self::hide_preedit_text(&emitter).await;
+                        let _ = Self::hide_lookup_table(&emitter).await;
                         return Ok(false);
                     }
                 }
                 if st.session.is_active() {
                     let idx = st.session.get_selected_index();
-                    if let Some(_committed) = st.session.commit(idx) {
+                    if let Some(committed) = st.session.commit(idx) {
+                        let _ = Self::commit_text(&emitter, &committed).await;
                         if st.config_mgr.config.phonetic.enable_predictive_next_words {
                             st.session.populate_predictions();
+                            let cands = st.session.get_candidates();
+                            let _ = Self::update_lookup_table(&emitter, cands, 0, true).await;
+                        } else {
+                            let _ = Self::hide_lookup_table(&emitter).await;
+                            let _ = Self::hide_preedit_text(&emitter).await;
                         }
                     }
                 }
                 return Ok(false);
             }
             IBUS_KEY_RIGHT | IBUS_KEY_DOWN => {
-                if st.session.is_active() {
+                if st.session.is_active() || st.session.is_prediction_mode() {
                     st.session.select_next();
+                    let cands = st.session.get_candidates();
+                    let sel = st.session.get_selected_index() as u32;
+                    let _ = Self::update_lookup_table(&emitter, cands, sel, true).await;
                     return Ok(true);
                 }
                 return Ok(false);
             }
             IBUS_KEY_LEFT | IBUS_KEY_UP => {
-                if st.session.is_active() {
+                if st.session.is_active() || st.session.is_prediction_mode() {
                     st.session.select_prev();
+                    let cands = st.session.get_candidates();
+                    let sel = st.session.get_selected_index() as u32;
+                    let _ = Self::update_lookup_table(&emitter, cands, sel, true).await;
                     return Ok(true);
                 }
                 return Ok(false);
             }
             IBUS_KEY_TAB => {
-                if st.session.is_active() {
+                if st.session.is_active() || st.session.is_prediction_mode() {
                     st.session.select_next();
+                    let cands = st.session.get_candidates();
+                    let sel = st.session.get_selected_index() as u32;
+                    let _ = Self::update_lookup_table(&emitter, cands, sel, true).await;
                     return Ok(true);
                 }
                 return Ok(false);
@@ -249,7 +331,11 @@ impl LekhaniIBusEngine {
         if is_ctrl || (is_alt && !st.alt_gr) {
             if st.session.is_active() {
                 let idx = st.session.get_selected_index();
-                let _ = st.session.commit(idx);
+                if let Some(committed) = st.session.commit(idx) {
+                    let _ = Self::commit_text(&emitter, &committed).await;
+                }
+                let _ = Self::hide_preedit_text(&emitter).await;
+                let _ = Self::hide_lookup_table(&emitter).await;
             }
             return Ok(false);
         }
@@ -267,15 +353,39 @@ impl LekhaniIBusEngine {
         if vc == VC_UNKNOWN {
             if st.session.is_active() {
                 let idx = st.session.get_selected_index();
-                let _ = st.session.commit(idx);
-                if st.config_mgr.config.phonetic.enable_predictive_next_words {
-                    st.session.populate_predictions();
+                if let Some(committed) = st.session.commit(idx) {
+                    let _ = Self::commit_text(&emitter, &committed).await;
+                    if st.config_mgr.config.phonetic.enable_predictive_next_words {
+                        st.session.populate_predictions();
+                        let cands = st.session.get_candidates();
+                        let _ = Self::update_lookup_table(&emitter, cands, 0, true).await;
+                    } else {
+                        let _ = Self::hide_lookup_table(&emitter).await;
+                        let _ = Self::hide_preedit_text(&emitter).await;
+                    }
                 }
             }
             return Ok(false);
         }
 
         let handled = st.session.process_key(vc, mod_mask);
+
+        // Update preedit and lookup table signals
+        if st.session.is_active() {
+            let preedit = st.session.get_preedit_text();
+            let cands = st.session.get_candidates();
+            let sel = st.session.get_selected_index() as u32;
+            let _ = Self::update_preedit_text(&emitter, &preedit, preedit.chars().count() as u32, true).await;
+            if !cands.is_empty() {
+                let _ = Self::update_lookup_table(&emitter, cands, sel, true).await;
+            } else {
+                let _ = Self::hide_lookup_table(&emitter).await;
+            }
+        } else {
+            let _ = Self::hide_preedit_text(&emitter).await;
+            let _ = Self::hide_lookup_table(&emitter).await;
+        }
+
         Ok(handled)
     }
 
@@ -284,35 +394,50 @@ impl LekhaniIBusEngine {
         Ok(())
     }
 
-    async fn focus_out(&mut self) -> zbus::fdo::Result<()> {
+    async fn focus_out(
+        &mut self,
+        #[zbus(signal_context)] emitter: zbus::object_server::SignalContext<'_>,
+    ) -> zbus::fdo::Result<()> {
         debug!("IBus Engine Focus Out");
-        let mut st = self.state.lock().unwrap();
+        let mut st = self.state.lock().await;
         st.session.reset();
+        let _ = Self::hide_preedit_text(&emitter).await;
+        let _ = Self::hide_lookup_table(&emitter).await;
         Ok(())
     }
 
-    async fn reset(&mut self) -> zbus::fdo::Result<()> {
+    async fn reset(
+        &mut self,
+        #[zbus(signal_context)] emitter: zbus::object_server::SignalContext<'_>,
+    ) -> zbus::fdo::Result<()> {
         debug!("IBus Engine Reset");
-        let mut st = self.state.lock().unwrap();
+        let mut st = self.state.lock().await;
         st.session.reset();
+        let _ = Self::hide_preedit_text(&emitter).await;
+        let _ = Self::hide_lookup_table(&emitter).await;
         Ok(())
     }
 
     async fn enable(&mut self) -> zbus::fdo::Result<()> {
         info!("IBus Engine Enabled");
-        let mut st = self.state.lock().unwrap();
+        let mut st = self.state.lock().await;
         st.config_mgr.load();
         Ok(())
     }
 
-    async fn disable(&mut self) -> zbus::fdo::Result<()> {
+    async fn disable(
+        &mut self,
+        #[zbus(signal_context)] emitter: zbus::object_server::SignalContext<'_>,
+    ) -> zbus::fdo::Result<()> {
         info!("IBus Engine Disabled");
-        let mut st = self.state.lock().unwrap();
+        let mut st = self.state.lock().await;
         let user_learned = st.config_mgr.get_user_learned_path();
         let stats_path = st.config_mgr.get_data_dir().join("stats.json");
         let _ = st.session.save_user_learned(&user_learned);
         let _ = st.session.save_stats(&stats_path);
         st.session.reset();
+        let _ = Self::hide_preedit_text(&emitter).await;
+        let _ = Self::hide_lookup_table(&emitter).await;
         Ok(())
     }
 }
