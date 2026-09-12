@@ -1,11 +1,15 @@
 [Desktop Entry]
 Name=Lekhani
+Name[bn]=লেখনী
 GenericName=Bengali Input Method
+GenericName[bn]=বাংলা কীবোর্ড ও ইনপুট মেথড
 Comment=Modern Pure Rust Bengali Input Method & Productivity Suite
+Comment[bn]=আধুনিক পিওর রাস্ট বাংলা কীবোর্ড ও ইনপুট মেথড
 Exec=lekhani-gui
 Icon=lekhani
 Terminal=false
 Type=Application
 Categories=Utility;TextTools;Settings;
 Keywords=bangla;bengali;keyboard;input;avro;bijoy;
+Keywords[bn]=বাংলা;কীবোর্ড;ইনপুট;অভ্র;বিজয়;লেখনী;
 StartupNotify=true

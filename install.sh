@@ -53,6 +53,13 @@ uninstall_lekhani() {
     rm -f "$HOME/.local/share/fcitx5/inputmethod/lekhani.conf" 2>/dev/null || true
     rm -f "$HOME/.local/lib/fcitx5/fcitx5-lekhani.so" 2>/dev/null || true
 
+    echo "--> Removing systemd user services..."
+    systemctl --user stop lekhani-gui.service ibus-lekhani.service 2>/dev/null || true
+    systemctl --user disable lekhani-gui.service ibus-lekhani.service 2>/dev/null || true
+    sudo rm -f /usr/lib/systemd/user/lekhani-gui.service /usr/lib/systemd/user/ibus-lekhani.service
+    rm -f "$HOME/.config/systemd/user/lekhani-gui.service" "$HOME/.config/systemd/user/ibus-lekhani.service" 2>/dev/null || true
+    rm -f "$HOME/.local/share/systemd/user/lekhani-gui.service" "$HOME/.local/share/systemd/user/ibus-lekhani.service" 2>/dev/null || true
+
     echo "--> Removing IBus component XML..."
     sudo rm -f /usr/share/ibus/component/lekhani.xml
     rm -f "$HOME/.local/share/ibus/component/lekhani.xml" 2>/dev/null || true
@@ -184,6 +191,15 @@ echo "=== Installing Desktop Entry & AppStream Metadata ==="
 sudo install -Dm644 data/io.github.lekhani.keyboard.desktop /usr/share/applications/io.github.lekhani.keyboard.desktop
 install -Dm644 data/io.github.lekhani.keyboard.desktop "$HOME/.local/share/applications/io.github.lekhani.keyboard.desktop"
 sudo install -Dm644 data/io.github.lekhani.keyboard.metainfo.xml /usr/share/metainfo/io.github.lekhani.keyboard.metainfo.xml
+
+echo "=== Installing Systemd User Services ==="
+if [ -d "data/systemd" ]; then
+    sudo install -d /usr/lib/systemd/user
+    sudo install -Dm644 data/systemd/*.service /usr/lib/systemd/user/ 2>/dev/null || true
+    install -d "$HOME/.config/systemd/user"
+    install -Dm644 data/systemd/*.service "$HOME/.config/systemd/user/" 2>/dev/null || true
+    systemctl --user daemon-reload 2>/dev/null || true
+fi
 
 if [ "$CHOICE" = "--fcitx5" ] || [ "$CHOICE" = "fcitx5" ] || [ "$CHOICE" = "--all" ] || [ "$CHOICE" = "all" ]; then
     echo "=== Installing Fcitx5 Engine (KDE Plasma 6 / Wayland) ==="
