@@ -24,29 +24,34 @@
 
 - **🚀 100% Pure Rust Architecture**: Zero C/C++ memory leaks, zero FFI overhead, and compiler-enforced memory safety.
 - **🎙️ Full Avro Phonetic Support**: Complete compatibility with official Avro Phonetic typing rules.
-- **⚡ Frequency-Weighted Trie Candidate Engine**: Sub-millisecond candidate queries with 200+ conversational unigram weights.
+- **🗣️ Colloquial & Spoken Verbal Conjugations**: Native recognition and suffix peeling for spoken dialect continuous and past forms (`kortesi` ➔ `করছি`/`করতেছি`, `jaitasi` ➔ `যাচ্ছি`/`যাইতেছি`, `khaitesi` ➔ `খাচ্ছি`/`খাইতেছি`, `boltase` ➔ `বলছে`/`বলতেছে`).
+- **🧩 4-Layer Affix & Sandhi Engine**: Systematic classifier, plural, case, and particle composition with automatic phonetic Sandhi joins (`ভবিষ্যৎ` + `ের` ➔ `ভবিষ্যতের`, `রং` + `এর` ➔ `রঙের`, `পা` + `ে` ➔ `পায়ে`).
+- **🔊 Canonical Bengali Phonetic Soundex**: $O(1)$ phonetic sound laws clustering for effortless homophone disambiguation (`বিদেশি` ↔ `বিদেশী`, `শহীদ` ↔ `সহিদ`).
+- **⚡ Zero-Allocation Compact PrefixTrie**: Cache-line friendly contiguous memory layout with 12-byte packed entries for instant sub-millisecond dictionary queries.
 - **🧠 Context-Aware Homophone Disambiguation**: Evaluates preceding words ($w_{t-1}$) to resolve homophones (*বই পড়া* vs *শার্ট পরা*, *বাংলা ভাষা* vs *ভেসে ভাসা*, *জীবনের লক্ষ্য* vs *এক লক্ষ*).
-- **🔮 Zero-Preedit Next-Word Prediction**: Instant probable word suggestions upon committing (`আমি` ➔ `ভালো`, `তোমাকে`, `যাব`, `চাই`).
-- **📖 Autonomous Morphological Learner**: Automatically extracts base stems and indexes new vocabulary from user typing.
+- **🔮 Zero-Preedit Next-Word Prediction**: Instant AI trigram continuations upon committing words (`আমি` ➔ `ভালো`, `তোমাকে`, `যাব`, `চাই`).
+- **📖 Autonomous Morphological Learner**: Automatically extracts base stems and indexes new vocabulary dynamically from user typing.
 - **🌐 Bilingual Code-Mixing & Tech Loanwords**: Dual candidate generation for English words (`meeting` ➔ `মিটিং` & `meeting`, `laptop`, `doctor`).
-- **⌨️ Popular Fixed Keyboard Layouts**: Full built-in support for **Probhat**, **National (Jatiya)**, **Munir Optima**, **Borno**, and **Avro Easy**.
+- **⌨️ Popular Fixed Keyboard Layouts**: Full built-in support for **Probhat**, **National (Jatiya)**, **Munir Optima**, **Borno**, **Unijoy**, and **Avro Easy**.
 - **🪄 Advanced Typing Automations**:
   - Automatic Vowel Forming (অ + া ➔ আ)
   - Automatic Chandra Position Fixing (কঁ + া ➔ কাঁ)
   - Traditional Kar Joining (ligature blocking via ZWNJ)
-  - Old-style Reph (র্) insertion algorithm
-  - Number pad Bengali digits auto-mapping
+  - Smart Old-style Reph (র্) insertion algorithm
+  - Number pad Bengali digits auto-mapping (০-৯)
 - **🌐 Dual Desktop Framework Support**:
   - **Fcitx5 Native Addon** (`fcitx5-lekhani.so`) for **KDE Plasma 6** and modern **Wayland** compositors (Hyprland, Sway).
-  - **IBus Daemon** (`ibus-lekhani` via `zbus`) for GNOME and standard desktops.
+  - **IBus Daemon** (`ibus-lekhani` via `zbus`) with real-time D-Bus signal emitters for GNOME and standard desktops.
 - **🎨 Sleek Slint Native Desktop UI** (`lekhani-gui`):
   - Floating, frameless, draggable TopBar with always-on-top mode.
-  - Interactive Layout Viewer (Normal & AltGr views with key-press lighting up).
+  - **Mode-Switch OSD HUD Overlay**: Instant visual on-screen display confirming layout toggling (<kbd>F12</kbd>).
+  - Interactive Layout Viewer (Normal, Shift, and AltGr views with key-press illumination).
   - AutoCorrect Manager with live real-time search, insert/update, and deletion.
-- **🔄 Bijoy (ANSI) ⇄ Unicode Converter**: Built-in lossless bidirectional converter for legacy SutonnyMJ/Bijoy documents.
-- **😀 Semantic Emojis & Bengali Shortcodes**: Instant expansion for `:bhalobasha:` (❤️), `:cha:` (☕), `:pani:` (💧), `:daktar:` (🩺), `*taka*` (৳), `*dari*` (।).
-- **🧮 Inline Math Calculator & Currency Converter**: Live formula calculation (`=125*8` ➔ `১,০০০`) and currency conversion (`#usd50` ➔ `৳৬,১০০`).
-- **📝 Text Expander & Macros**: Dynamic date/time macros (`#tarikh`, `#shomoy`), cultural phrases (`!shubhechha`), and custom user shortcuts (`;email`).
+- **🔄 Bijoy (ANSI) ⇄ Unicode Converter**: Built-in lossless bidirectional converter supporting 50+ rare Sanskrit conjuncts, pre-Kar multi-glyph cluster reordering, and split-vowel synthesis.
+- **😀 Semantic Emojis & Bilingual Shortcodes**: 3,600+ emojis with English and Bengali tags (`:bhalobasha:`, `:cha:`, `:fire:`/`:আগুন:`).
+- **🧮 Inline Math Calculator & Currency Converter**: Live formula calculation (`=25*4+10=` ➔ `১১০`) and currency conversion (`#usd50` ➔ `৳৫,৮৫০`).
+- **📝 Text Expander & Macros**: Dynamic date/time macros (`#date`/`#tarikh`, `#time`/`#shomoy`, `#bongabdo`), cultural phrases (`!shubhechha`), and custom user shortcuts.
+- **⚙️ Systemd User Service Integration**: Ready-to-use background service units (`ibus-lekhani.service`, `lekhani-gui.service`).
 - **☁️ Cross-Device Backup & Sync CLI**: One-line command to export/import configurations, dictionaries, and custom layouts (`lekhani sync`).
 - **📊 Personal Typing Dashboard**: Live telemetry measuring words typed, keystrokes saved, and typing efficiency gains (`lekhani stats`).
 
