@@ -171,8 +171,17 @@ export component TopBarWindow inherits Window {
     in-out property <bool> set-old-reph: true;
     in-out property <bool> set-numberpad: true;
 
+    // Mode-Switch OSD HUD properties
+    in-out property <bool> show-osd: false;
+    in-out property <string> osd-title: "Avro Phonetic";
+    in-out property <string> osd-subtitle: "বাংলা মোড সক্রিয় (Bengali Active)";
+    in-out property <string> osd-icon: "🇧🇩";
+    in-out property <color> osd-badge-color: #a6e3a1;
+    in-out property <color> osd-badge-bg: #a6e3a122;
+
     // Callbacks
     callback select-layout(string);
+    callback toggle-layout-mode();
     callback trigger-layout-viewer();
     callback trigger-autocorrect();
     callback trigger-converter();
@@ -894,5 +903,87 @@ export component TopBarWindow inherits Window {
                 }
             }
         }
+
+        // ---------------------------------------------------------------------
+        // 7. Mode-Switch OSD HUD Overlay (Activated on F12 / Layout Toggle)
+        // ---------------------------------------------------------------------
+        if (root.show-osd) : HorizontalLayout {
+            alignment: center;
+            Rectangle {
+                width: 340px;
+                height: 56px;
+                background: #11111bf5;
+                border-radius: 16px;
+                border-width: 1.5px;
+                border-color: root.osd-badge-color;
+                drop-shadow-blur: 24px;
+                drop-shadow-color: #000000dd;
+
+                HorizontalLayout {
+                    padding-left: 14px;
+                    padding-right: 14px;
+                    spacing: 12px;
+                    alignment: center;
+
+                    Rectangle {
+                        width: 36px;
+                        height: 36px;
+                        border-radius: 10px;
+                        background: root.osd-badge-bg;
+                        border-width: 1px;
+                        border-color: root.osd-badge-color;
+
+                        Text {
+                            text: root.osd-icon;
+                            font-size: 18px;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    VerticalLayout {
+                        alignment: center;
+                        spacing: 2px;
+                        Text {
+                            text: root.osd-title;
+                            font-size: 13px;
+                            font-weight: 800;
+                            color: #cdd6f4;
+                        }
+                        Text {
+                            text: root.osd-subtitle;
+                            font-size: 11px;
+                            font-weight: 600;
+                            color: root.osd-badge-color;
+                        }
+                    }
+
+                    Rectangle {
+                        width: 1px;
+                        height: 24px;
+                        background: #313244;
+                    }
+
+                    Rectangle {
+                        height: 24px;
+                        border-radius: 6px;
+                        background: #313244;
+                        HorizontalLayout {
+                            padding-left: 8px;
+                            padding-right: 8px;
+                            alignment: center;
+                            Text {
+                                text: "F12";
+                                font-size: 11px;
+                                font-weight: 700;
+                                color: #89b4fa;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
+
