@@ -54,6 +54,19 @@
 
 ## 📦 Installation
 
+### Quick Installer Script (All Linux Distributions)
+```bash
+./install.sh           # Interactive installer menu
+./install.sh --fcitx5  # Install for KDE Plasma 6 / Wayland
+./install.sh --ibus    # Install for GNOME / Ubuntu
+./install.sh --all     # Install both Fcitx5 and IBus engines
+```
+
+### Uninstallation
+```bash
+./uninstall.sh         # Or: ./install.sh --uninstall
+```
+
 ### Arch Linux / Manjaro
 ```bash
 cd packaging/arch

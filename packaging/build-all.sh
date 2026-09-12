@@ -50,6 +50,7 @@ rm -rf "$PORTABLE_DIR"
 mkdir -p "$PORTABLE_DIR"
 
 cp "$ROOT_DIR/install.sh" "$PORTABLE_DIR/"
+cp "$ROOT_DIR/uninstall.sh" "$PORTABLE_DIR/"
 cp -r "$ROOT_DIR/data" "$PORTABLE_DIR/"
 mkdir -p "$PORTABLE_DIR/bin"
 cp "$ROOT_DIR/target/release/lekhani" "$PORTABLE_DIR/bin/"
