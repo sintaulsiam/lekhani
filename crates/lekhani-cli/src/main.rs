@@ -3,7 +3,9 @@
 mod converter;
 
 use clap::{Parser, Subcommand};
-use lekhani_core::{bijoy_to_unicode, unicode_to_bijoy, InputSession, UserStats};
+use lekhani_core::{
+    bijoy_to_unicode, unicode_to_bijoy, AutonomousLearner, InputSession, UserStats,
+};
 use lekhani_settings::{ConfigManager, LayoutManager};
 use std::path::PathBuf;
 
@@ -103,7 +105,9 @@ enum AiCommands {
         /// JSON array of candidate vectors (e.g. '[["আমি"],["শার্ট"],["পড়া","পরা"]]')
         sequence_json: String,
     },
-    /// Train the statistical N-gram language model on a raw Bengali text corpus
+    /// Pretrain or seed the user's personal model with rich baseline conversational phrases
+    Pretrain,
+    /// Train the statistical N-gram language model or user personal memory on a raw Bengali text corpus
     Train {
         /// Input text file containing Bengali corpus
         #[arg(short, long)]
@@ -111,6 +115,9 @@ enum AiCommands {
         /// Optional output path to save compiled model JSON
         #[arg(short, long)]
         output: Option<PathBuf>,
+        /// Ingest directly into active user personal vocabulary and bigram memory
+        #[arg(short, long)]
+        user: bool,
     },
 }
 
@@ -370,7 +377,34 @@ fn main() -> anyhow::Result<()> {
                         );
                     }
                 }
+                println!("╠══════════════════════════════════════════════════════╣");
+                println!("║ 🧠 Autonomous Intelligence & Personalization:        ║");
+                let learned_path = config_mgr.get_user_learned_path();
+                let learner = AutonomousLearner::load_from_path(&learned_path);
+                println!(
+                    "║ Learned Vocabulary:     {:>28} ║",
+                    learner.learned_words.len()
+                );
+                println!(
+                    "║ Personal Bigram Pairs:  {:>28} ║",
+                    learner.user_bigrams.len()
+                );
+                println!(
+                    "║ Distinct Words Tracked: {:>28} ║",
+                    learner.observed_counts.len()
+                );
+                if !learner.learned_words.is_empty() {
+                    println!("║ Recent Learned Vocabulary:                           ║");
+                    let mut recent: Vec<_> = learner.learned_words.iter().collect();
+                    recent.sort();
+                    for (i, w) in recent.iter().take(5).enumerate() {
+                        println!("║   {}. {:<44} ║", i + 1, w);
+                    }
+                }
                 println!("╚══════════════════════════════════════════════════════╝");
+                println!("\nStorage Locations:");
+                println!("  • User Vocabulary & Bigrams: {}", learned_path.display());
+                println!("  • Raw Typing Metrics:        {}", stats_path.display());
             }
         }
         Commands::Benchmark => {
@@ -431,11 +465,41 @@ fn main() -> anyhow::Result<()> {
                     println!("Optimal Decoded Sequence: {:?}", path);
                     println!("Sentence: \"{}\"", path.join(" "));
                 }
-                AiCommands::Train { input, output } => {
+                AiCommands::Pretrain => {
+                    let learned_path = config_mgr.get_user_learned_path();
+                    let mut learner = AutonomousLearner::load_from_path(&learned_path);
+                    learner.pretrain_baseline();
+                    let _ = learner.save_to_path(&learned_path);
+
+                    println!("╔══════════════════════════════════════════════════════╗");
+                    println!("║      🚀 Lekhani Personal Pre-Training Complete       ║");
+                    println!("╠══════════════════════════════════════════════════════╣");
+                    println!("║ Baseline Vocabulary:    {:>28} ║", learner.learned_words.len());
+                    println!("║ Baseline Bigram Pairs:  {:>28} ║", learner.user_bigrams.len());
+                    println!("║ Stored Path:            {:<28} ║", learned_path.display());
+                    println!("╚══════════════════════════════════════════════════════╝");
+                }
+                AiCommands::Train {
+                    input,
+                    output,
+                    user,
+                } => {
                     let text = std::fs::read_to_string(&input)?;
                     let mut trainer = lekhani_ai::CorpusTrainer::new();
                     trainer.train_text(&text);
                     let compiled = trainer.compile();
+
+                    if user {
+                        let learned_path = config_mgr.get_user_learned_path();
+                        let mut learner = AutonomousLearner::load_from_path(&learned_path);
+                        learner.train_text(&text);
+                        let _ = learner.save_to_path(&learned_path);
+                        println!(
+                            "Ingested directly into user memory: {} vocabulary, {} bigrams.",
+                            learner.learned_words.len(),
+                            learner.user_bigrams.len()
+                        );
+                    }
 
                     println!("╔══════════════════════════════════════════════════════╗");
                     println!("║        🎓 Lekhani AI Corpus Training Complete        ║");
