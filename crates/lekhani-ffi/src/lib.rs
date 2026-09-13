@@ -92,6 +92,7 @@ pub struct LekhaniEngineContext {
     last_preedit: Option<CString>,
     last_aux: Option<CString>,
     last_candidates: Vec<CString>,
+    pub commit_count: u64,
 }
 
 impl Default for LekhaniEngineContext {
@@ -121,7 +122,21 @@ impl LekhaniEngineContext {
             last_preedit: None,
             last_aux: None,
             last_candidates: Vec::new(),
+            commit_count: 0,
         }
+    }
+
+    /// Commit candidate and periodically flush learning & stats to disk
+    pub fn commit(&mut self, idx: usize) -> Option<String> {
+        let committed = self.session.commit(idx)?;
+        self.commit_count += 1;
+        if self.commit_count % 3 == 0 {
+            let user_learned = self.config_mgr.get_user_learned_path();
+            let stats_path = self.config_mgr.get_data_dir().join("stats.json");
+            let _ = self.session.save_user_learned(&user_learned);
+            let _ = self.session.save_stats(&stats_path);
+        }
+        Some(committed)
     }
 
     pub fn set_layout(&mut self, layout_name: &str) -> bool {
@@ -279,7 +294,7 @@ pub extern "C" fn lekhani_engine_process_key(
 
         if let Some(idx) = cand_idx {
             if idx < engine.session.get_candidates().len() {
-                if let Some(committed) = engine.session.commit(idx) {
+                if let Some(committed) = engine.commit(idx) {
                     engine.last_commit = CString::new(committed).ok();
                     if engine
                         .config_mgr
@@ -311,7 +326,7 @@ pub extern "C" fn lekhani_engine_process_key(
         if engine.session.is_prediction_mode() {
             if engine.session.is_prediction_navigated() {
                 let idx = engine.session.get_selected_index();
-                if let Some(committed) = engine.session.commit(idx) {
+                if let Some(committed) = engine.commit(idx) {
                     engine.last_commit = CString::new(committed).ok();
                     if engine
                         .config_mgr
@@ -332,7 +347,7 @@ pub extern "C" fn lekhani_engine_process_key(
         }
         if engine.session.is_active() {
             let idx = engine.session.get_selected_index();
-            if let Some(committed) = engine.session.commit(idx) {
+            if let Some(committed) = engine.commit(idx) {
                 engine.last_commit = CString::new(committed).ok();
                 if engine
                     .config_mgr
@@ -358,7 +373,7 @@ pub extern "C" fn lekhani_engine_process_key(
         if engine.session.is_prediction_mode() {
             if engine.session.is_prediction_navigated() {
                 let idx = engine.session.get_selected_index();
-                if let Some(committed) = engine.session.commit(idx) {
+                if let Some(committed) = engine.commit(idx) {
                     engine.last_commit = CString::new(committed).ok();
                     if engine
                         .config_mgr
@@ -379,7 +394,7 @@ pub extern "C" fn lekhani_engine_process_key(
         }
         if engine.session.is_active() {
             let idx = engine.session.get_selected_index();
-            if let Some(committed) = engine.session.commit(idx) {
+            if let Some(committed) = engine.commit(idx) {
                 engine.last_commit = CString::new(committed).ok();
                 if engine
                     .config_mgr
@@ -434,7 +449,7 @@ pub extern "C" fn lekhani_engine_process_key(
     if is_ctrl || (is_alt && !engine.alt_gr) {
         if engine.session.is_active() {
             let idx = engine.session.get_selected_index();
-            if let Some(committed) = engine.session.commit(idx) {
+            if let Some(committed) = engine.commit(idx) {
                 engine.last_commit = CString::new(committed).ok();
             }
             engine.update_cached_strings();
@@ -454,7 +469,7 @@ pub extern "C" fn lekhani_engine_process_key(
     if vc == VC_UNKNOWN {
         if engine.session.is_active() {
             let idx = engine.session.get_selected_index();
-            if let Some(committed) = engine.session.commit(idx) {
+            if let Some(committed) = engine.commit(idx) {
                 engine.last_commit = CString::new(committed).ok();
             }
             engine.update_cached_strings();
@@ -561,7 +576,7 @@ pub extern "C" fn lekhani_engine_select_candidate(
         return false;
     }
     let engine = unsafe { &mut *ctx };
-    if let Some(committed) = engine.session.commit(index) {
+    if let Some(committed) = engine.commit(index) {
         engine.last_commit = CString::new(committed).ok();
         if engine
             .config_mgr
