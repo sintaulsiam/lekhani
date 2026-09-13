@@ -227,6 +227,25 @@ impl ConfigManager {
     }
 
     pub fn get_system_data_dir() -> PathBuf {
+        if let Some(home) = std::env::var_os("HOME") {
+            let u_data = PathBuf::from(&home).join(".local/share/lekhani/data");
+            if u_data.exists()
+                && (u_data.join("dictionary.json").exists()
+                    || u_data.join("dictionary.bin").exists()
+                    || u_data.join("autocorrect.json").exists())
+            {
+                return u_data;
+            }
+            let u_dict = PathBuf::from(&home).join(".local/share/lekhani/dictionaries");
+            if u_dict.exists()
+                && (u_dict.join("dictionary.json").exists()
+                    || u_dict.join("dictionary.bin").exists()
+                    || u_dict.join("autocorrect.json").exists())
+            {
+                return u_dict;
+            }
+        }
+
         let candidates = [
             PathBuf::from("./data/dictionaries"),
             PathBuf::from("./data"),

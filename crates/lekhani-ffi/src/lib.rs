@@ -130,7 +130,7 @@ impl LekhaniEngineContext {
     pub fn commit(&mut self, idx: usize) -> Option<String> {
         let committed = self.session.commit(idx)?;
         self.commit_count += 1;
-        if self.commit_count % 3 == 0 {
+        if self.commit_count.is_multiple_of(3) {
             let user_learned = self.config_mgr.get_user_learned_path();
             let stats_path = self.config_mgr.get_data_dir().join("stats.json");
             let _ = self.session.save_user_learned(&user_learned);

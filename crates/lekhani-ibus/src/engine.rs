@@ -32,8 +32,6 @@ const IBUS_RELEASE_MASK: u32 = 1 << 30;
 pub struct IBusEngineState {
     pub session: InputSession,
     pub config_mgr: ConfigManager,
-    #[allow(dead_code)]
-    pub layout_mgr: LayoutManager,
     pub mapper: KeycodeMapper,
     pub alt_gr: bool,
 }
@@ -79,7 +77,6 @@ impl LekhaniIBusEngine {
         let state = IBusEngineState {
             session,
             config_mgr,
-            layout_mgr,
             mapper: KeycodeMapper::new(),
             alt_gr: false,
         };
