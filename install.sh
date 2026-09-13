@@ -139,17 +139,12 @@ if [ -z "$CHOICE" ]; then
     esac
 fi
 
-# Check for pre-compiled binaries (e.g. inside portable release tarball)
+# Check for pre-compiled binaries (e.g. inside portable release tarball in bin/)
 if [ -f "bin/lekhani-gui" ] && [ -f "bin/lekhani" ] && [ -f "bin/ibus-lekhani" ]; then
     echo "=== Using Pre-Compiled Lekhani Binaries from bin/ ==="
     GUI_BIN="bin/lekhani-gui"
     CLI_BIN="bin/lekhani"
     IBUS_BIN="bin/ibus-lekhani"
-elif [ -f "target/release/lekhani-gui" ] && [ -f "target/release/lekhani" ] && [ -f "target/release/ibus-lekhani" ]; then
-    echo "=== Using Existing Release Binaries from target/release/ ==="
-    GUI_BIN="target/release/lekhani-gui"
-    CLI_BIN="target/release/lekhani"
-    IBUS_BIN="target/release/ibus-lekhani"
 else
     # Auto-detect cargo in user directory if invoked via sudo
     if ! command -v cargo &>/dev/null; then
