@@ -224,19 +224,19 @@ if [ "$CHOICE" = "--fcitx5" ] || [ "$CHOICE" = "fcitx5" ] || [ "$CHOICE" = "--al
         fi
     fi
 
-    if [ -f "fcitx5/fcitx5-lekhani.so" ]; then
+    if [ -d "/usr/include/Fcitx5" ] || pkg-config --exists fcitx5 2>/dev/null; then
+        echo "--> Building native Fcitx5 shared library plugin (C++ / Rust FFI)..."
+        cmake -B crates/lekhani-fcitx5/build -S crates/lekhani-fcitx5 -DCMAKE_BUILD_TYPE=Release
+        cmake --build crates/lekhani-fcitx5/build --config Release
+        sudo install -d "$FCITX_LIB_DIR"
+        sudo install -Dm755 crates/lekhani-fcitx5/build/fcitx5-lekhani.so "$FCITX_LIB_DIR/fcitx5-lekhani.so"
+        echo "--> Installed fcitx5-lekhani.so to $FCITX_LIB_DIR/"
+    elif [ -f "fcitx5/fcitx5-lekhani.so" ]; then
         echo "--> Found pre-compiled fcitx5-lekhani.so..."
         sudo install -d "$FCITX_LIB_DIR"
         sudo install -Dm755 fcitx5/fcitx5-lekhani.so "$FCITX_LIB_DIR/fcitx5-lekhani.so"
         echo "--> Installed fcitx5-lekhani.so to $FCITX_LIB_DIR/"
     elif [ -f "crates/lekhani-fcitx5/build/fcitx5-lekhani.so" ]; then
-        sudo install -d "$FCITX_LIB_DIR"
-        sudo install -Dm755 crates/lekhani-fcitx5/build/fcitx5-lekhani.so "$FCITX_LIB_DIR/fcitx5-lekhani.so"
-        echo "--> Installed fcitx5-lekhani.so to $FCITX_LIB_DIR/"
-    elif [ -d "/usr/include/Fcitx5" ] || pkg-config --exists fcitx5 2>/dev/null; then
-        echo "--> Building native Fcitx5 shared library plugin (C++ / Rust FFI)..."
-        cmake -B crates/lekhani-fcitx5/build -S crates/lekhani-fcitx5 -DCMAKE_BUILD_TYPE=Release
-        cmake --build crates/lekhani-fcitx5/build --config Release
         sudo install -d "$FCITX_LIB_DIR"
         sudo install -Dm755 crates/lekhani-fcitx5/build/fcitx5-lekhani.so "$FCITX_LIB_DIR/fcitx5-lekhani.so"
         echo "--> Installed fcitx5-lekhani.so to $FCITX_LIB_DIR/"
@@ -267,7 +267,7 @@ echo "    Installation Completed Successfully!                 "
 echo "=========================================================="
 if [ "$CHOICE" = "--fcitx5" ] || [ "$CHOICE" = "fcitx5" ]; then
     echo "To activate in KDE Plasma 6 / Fcitx5:"
-    echo "  1. Run 'fcitx5 -r &' (or log out and back in)"
+    echo "  1. Run 'fcitx5-remote -e && fcitx5 -d' (or log out and back in)"
     echo "  2. Go to System Settings -> Input Devices -> Virtual Keyboard / Fcitx5"
     echo "  3. Add 'Bangla (Lekhani)' to your input methods"
 elif [ "$CHOICE" = "--ibus" ] || [ "$CHOICE" = "ibus" ]; then
