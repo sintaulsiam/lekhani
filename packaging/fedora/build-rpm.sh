@@ -5,7 +5,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 OUTPUT_DIR="$ROOT_DIR/dist/rpm"
-VERSION="3.0.0"
+VERSION="1.0.0"
 
 mkdir -p "$OUTPUT_DIR"
 
@@ -14,8 +14,8 @@ if command -v rpmbuild &>/dev/null; then
     RPMBUILD_DIR="$ROOT_DIR/target/rpmbuild"
     mkdir -p "$RPMBUILD_DIR"/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
 
-    # Create source tarball
-    git archive --format=tar.gz --prefix="lekhani-$VERSION/" -o "$RPMBUILD_DIR/SOURCES/lekhani-$VERSION.tar.gz" HEAD
+    # Create source tarball from repository root
+    git -C "$ROOT_DIR" archive --format=tar.gz --prefix="lekhani-$VERSION/" -o "$RPMBUILD_DIR/SOURCES/lekhani-$VERSION.tar.gz" HEAD
     cp "$SCRIPT_DIR/lekhani.spec" "$RPMBUILD_DIR/SPECS/"
 
     rpmbuild --define "_topdir $RPMBUILD_DIR" -ba "$RPMBUILD_DIR/SPECS/lekhani.spec"

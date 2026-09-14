@@ -2782,7 +2782,7 @@ checksum = "7a79a3332a6609480d7d0c9eab957bca6b455b91bb84e66d19f5ff66294b85b8"
 
 [[package]]
 name = "lekhani-ai"
-version = "3.0.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "hashbrown 0.14.5",
@@ -2794,7 +2794,7 @@ dependencies = [
 
 [[package]]
 name = "lekhani-cli"
-version = "3.0.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -2810,7 +2810,7 @@ dependencies = [
 
 [[package]]
 name = "lekhani-core"
-version = "3.0.0"
+version = "1.0.0"
 dependencies = [
  "chrono",
  "edit-distance",
@@ -2826,7 +2826,7 @@ dependencies = [
 
 [[package]]
 name = "lekhani-ffi"
-version = "3.0.0"
+version = "1.0.0"
 dependencies = [
  "hashbrown 0.14.5",
  "lekhani-core",
@@ -2838,7 +2838,7 @@ dependencies = [
 
 [[package]]
 name = "lekhani-gui"
-version = "3.0.0"
+version = "1.0.0"
 dependencies = [
  "futures-util",
  "i-slint-backend-winit",
@@ -2858,7 +2858,7 @@ dependencies = [
 
 [[package]]
 name = "lekhani-ibus"
-version = "3.0.0"
+version = "1.0.0"
 dependencies = [
  "hashbrown 0.14.5",
  "lekhani-core",
@@ -2874,7 +2874,7 @@ dependencies = [
 
 [[package]]
 name = "lekhani-settings"
-version = "3.0.0"
+version = "1.0.0"
 dependencies = [
  "chrono",
  "directories",

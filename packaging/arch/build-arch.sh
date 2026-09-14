@@ -10,11 +10,11 @@ mkdir -p "$OUTPUT_DIR"
 
 if command -v makepkg &>/dev/null; then
     echo "=== Building Arch Linux packages using makepkg ==="
-    cd "$SCRIPT_DIR"
-    # Create local source archive if needed
-    VERSION="3.0.0"
+    # Create source archive from repository root so all crates are included
+    VERSION="1.0.0"
     TARBALL="lekhani-$VERSION.tar.gz"
-    git archive --format=tar.gz --prefix="lekhani-$VERSION/" -o "$SCRIPT_DIR/$TARBALL" HEAD
+    git -C "$ROOT_DIR" archive --format=tar.gz --prefix="lekhani-$VERSION/" -o "$SCRIPT_DIR/$TARBALL" HEAD
+    cd "$SCRIPT_DIR"
     makepkg -f --nodeps --skipinteg
     mv ./*.pkg.tar.zst "$OUTPUT_DIR/" 2>/dev/null || true
     rm -f "$SCRIPT_DIR/$TARBALL"

@@ -83,6 +83,8 @@ enum Commands {
         #[command(subcommand)]
         subcommand: AiCommands,
     },
+    /// Show version, author, and special acknowledgments
+    About,
 }
 
 #[derive(Subcommand)]
@@ -520,6 +522,26 @@ fn main() -> anyhow::Result<()> {
                     println!("╚══════════════════════════════════════════════════════╝");
                 }
             }
+        }
+        Commands::About => {
+            println!("╔══════════════════════════════════════════════════════════════════╗");
+            println!("║                       Lekhani (লেখনী)                            ║");
+            println!("║       Pure Rust Bengali Input Method & Desktop Suite             ║");
+            println!("╠══════════════════════════════════════════════════════════════════╣");
+            println!("║ Version:    v{:<51} ║", env!("CARGO_PKG_VERSION"));
+            println!("║ Author:     Sintaul Mahdi Siam <sintaulsiam@gmail.com>           ║");
+            println!("║ Company:    Syntenieum                                           ║");
+            println!("║ Year:       2026                                                 ║");
+            println!("║ Repository: https://github.com/sintaulsiam/lekhani               ║");
+            println!("╠══════════════════════════════════════════════════════════════════╣");
+            println!("║ Special Thanks & Acknowledgments:                                ║");
+            println!("║   • Avro Keyboard (Mehdi Hasan Khan & OmicronLab):               ║");
+            println!("║     For the pioneering Bengali phonetic layout and rules         ║");
+            println!("║     that revolutionized digital Bengali computing.               ║");
+            println!("║   • OpenBangla Keyboard (Muhammad Mominul Huq & OpenBangla Team):║");
+            println!("║     For pioneering native Linux Bengali input methods            ║");
+            println!("║     and laying foundational open-source architecture.            ║");
+            println!("╚══════════════════════════════════════════════════════════════════╝");
         }
     }
 

@@ -1,8 +1,9 @@
-lekhani (3.0.0-1) unstable; urgency=medium
+lekhani (1.0.0-1) unstable; urgency=medium
 
-  * Release version 3.0.0.
+  * Official release version 1.0.0 by Syntenieum (2026).
   * Native pure Rust Bengali input method architecture.
   * Added dedicated ibus-lekhani and fcitx5-lekhani packages.
   * Added statistical N-gram Bengali language model & dynamic corpus trainer.
+  * Special thanks to Avro Keyboard (OmicronLab) and OpenBangla Keyboard.
 
- -- Lekhani Contributors <openbanglateam@gmail.com>  Fri, 11 Sep 2026 21:00:00 +0600
+ -- Sintaul Mahdi Siam (Syntenieum) <sintaulsiam@gmail.com>  Mon, 14 Sep 2026 02:00:00 +0600

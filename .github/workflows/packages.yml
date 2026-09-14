@@ -84,7 +84,7 @@ jobs:
       - name: Build Arch Packages as Non-Root
         run: |
           chown -R builder:builder "$GITHUB_WORKSPACE"
-          su builder -c "./packaging/arch/build-arch.sh"
+          su builder -c "git config --global --add safe.directory '$GITHUB_WORKSPACE' && ./packaging/arch/build-arch.sh"
 
       - name: Upload Arch Artifacts
         uses: actions/upload-artifact@v4

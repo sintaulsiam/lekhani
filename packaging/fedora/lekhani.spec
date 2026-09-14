@@ -1,10 +1,9 @@
 Name:           lekhani
-Version:        3.0.0
+Version:        1.0.0
 Release:        1%{?dist}
 Summary:        Modern pure Rust Bengali input method and desktop suite
-
 License:        GPL-3.0-or-later
-URL:            https://github.com/OpenBangla/lekhani
+URL:            https://github.com/sintaulsiam/lekhani
 Source0:        %{url}/archive/v%{version}/%{name}-%{version}.tar.gz
 
 BuildRequires:  cargo
@@ -136,5 +135,6 @@ cargo test --workspace
 %{_datadir}/fcitx5/inputmethod/lekhani.conf
 
 %changelog
-* Fri Sep 11 2026 Lekhani Contributors <openbanglateam@gmail.com> - 3.0.0-1
-- Initial release with independent ibus-lekhani and fcitx5-lekhani packages
+* Mon Sep 14 2026 Sintaul Mahdi Siam (Syntenieum) <sintaulsiam@gmail.com> - 1.0.0-1
+- Lekhani 1.0.0 official release by Syntenieum (2026) with pure Rust core, regression-proof phonetic engine, native Fcitx5 and IBus engines
+- Special thanks to Avro Keyboard (OmicronLab) and OpenBangla Keyboard

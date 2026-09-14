@@ -1,10 +1,10 @@
 <component>
 	<name>org.freedesktop.IBus.Lekhani</name>
 	<description>Lekhani Bengali Input Method for Linux</description>
-	<version>3.0.0</version>
+	<version>1.0.0</version>
 	<license>GPL-3.0-or-later</license>
-	<author>Lekhani Contributors</author>
-	<homepage>https://openbangla.github.io/</homepage>
+	<author>Sintaul Mahdi Siam (Syntenieum)</author>
+	<homepage>https://github.com/sintaulsiam/lekhani</homepage>
 	<exec>/usr/bin/ibus-lekhani</exec>
 	<textdomain>lekhani</textdomain>
 	<engines>
@@ -12,7 +12,7 @@
 			<name>lekhani</name>
 			<language>bn</language>
 			<license>GPL-3.0-or-later</license>
-			<author>Lekhani Contributors</author>
+			<author>Sintaul Mahdi Siam (Syntenieum)</author>
 			<icon>/usr/share/lekhani/icons/lekhani.png</icon>
 			<layout>default</layout>
 			<longname>Lekhani (লেখনী)</longname>

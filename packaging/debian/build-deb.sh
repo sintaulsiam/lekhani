@@ -6,7 +6,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 OUTPUT_DIR="$ROOT_DIR/dist/deb"
-VERSION="3.0.0"
+VERSION="1.0.0"
 ARCH="$(uname -m)"
 
 case "$ARCH" in
@@ -176,7 +176,7 @@ Version: $VERSION-1
 Section: utils
 Priority: optional
 Architecture: $DEB_ARCH
-Maintainer: Lekhani Contributors <openbanglateam@gmail.com>
+Maintainer: Sintaul Mahdi Siam (Syntenieum) <sintaulsiam@gmail.com>
 Depends: hicolor-icon-theme
 Recommends: fonts-noto-core | fonts-beng-extra
 Description: Modern pure Rust Bengali input method (data, GUI, and CLI)
@@ -221,7 +221,7 @@ Version: $VERSION-1
 Section: utils
 Priority: optional
 Architecture: $DEB_ARCH
-Maintainer: Lekhani Contributors <openbanglateam@gmail.com>
+Maintainer: Sintaul Mahdi Siam (Syntenieum) <sintaulsiam@gmail.com>
 Depends: lekhani-common (= $VERSION-1), ibus
 Provides: openbangla-keyboard
 Replaces: openbangla-keyboard
@@ -254,7 +254,7 @@ Version: $VERSION-1
 Section: utils
 Priority: optional
 Architecture: $DEB_ARCH
-Maintainer: Lekhani Contributors <openbanglateam@gmail.com>
+Maintainer: Sintaul Mahdi Siam (Syntenieum) <sintaulsiam@gmail.com>
 Depends: lekhani-common (= $VERSION-1), fcitx5
 Description: Lekhani engine for Fcitx5 (KDE Plasma 6 / Wayland)
  Pure Rust Bengali input method engine integrating with the Fcitx5 framework.
@@ -276,7 +276,7 @@ Version: $VERSION-1
 Section: utils
 Priority: optional
 Architecture: all
-Maintainer: Lekhani Contributors <openbanglateam@gmail.com>
+Maintainer: Sintaul Mahdi Siam (Syntenieum) <sintaulsiam@gmail.com>
 Depends: lekhani-common (>= $VERSION-1)
 Recommends: ibus-lekhani | fcitx5-lekhani
 Description: Modern Bengali input method suite (metapackage)

@@ -1,11 +1,12 @@
-# Maintainer: Lekhani Team <openbanglateam@gmail.com>
+# Maintainer: Sintaul Mahdi Siam (Syntenieum) <sintaulsiam@gmail.com>
+# Special thanks to Avro Keyboard (OmicronLab) & OpenBangla Keyboard
 pkgbase=lekhani
 pkgname=('lekhani-common' 'ibus-lekhani' 'fcitx5-lekhani' 'lekhani')
-pkgver=3.0.0
+pkgver=1.0.0
 pkgrel=1
-pkgdesc="Modern pure Rust Bengali input method framework and desktop suite"
+pkgdesc="Modern pure Rust Bengali input method framework and desktop suite (powered by Avro & OpenBangla)"
 arch=('x86_64' 'aarch64')
-url="https://github.com/OpenBangla/lekhani"
+url="https://github.com/sintaulsiam/lekhani"
 license=('GPL-3.0-or-later')
 makedepends=('cargo' 'rust' 'cmake' 'extra-cmake-modules' 'fcitx5')
 source=("$pkgbase-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
@@ -22,7 +23,7 @@ build() {
     export RUSTUP_TOOLCHAIN=stable
     export CARGO_TARGET_DIR=target
     cargo build --release --workspace
-    if [ -d "/usr/include/Fcitx5" ] || pkg-config --exists fcitx5 2>/dev/null; then
+    if [ -d "/usr/include/Fcitx5" ] || pkg-config --exists Fcitx5Core 2>/dev/null || pkg-config --exists fcitx5 2>/dev/null; then
         cmake -B crates/lekhani-fcitx5/build -S crates/lekhani-fcitx5 -DCMAKE_BUILD_TYPE=Release
         cmake --build crates/lekhani-fcitx5/build --config Release
     fi
