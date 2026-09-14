@@ -1,12 +1,12 @@
 Source: lekhani
 Section: utils
 Priority: optional
-Maintainer: Lekhani Contributors <openbanglateam@gmail.com>
+Maintainer: Sintaul Mahdi Siam (Syntenieum) <sintaulsiam@gmail.com>
 Build-Depends: debhelper-compat (= 13), cargo, rustc, cmake, extra-cmake-modules, libfcitx5core-dev
 Standards-Version: 4.6.2
-Homepage: https://github.com/OpenBangla/lekhani
+Homepage: https://github.com/sintaulsiam/lekhani
 Vcs-Git: https://github.com/sintaulsiam/lekhani.git
-Vcs-Browser: https://github.com/OpenBangla/lekhani
+Vcs-Browser: https://github.com/sintaulsiam/lekhani
 
 Package: lekhani-common
 Architecture: any

@@ -176,7 +176,7 @@ Version: $VERSION-1
 Section: utils
 Priority: optional
 Architecture: $DEB_ARCH
-Maintainer: Lekhani Contributors <openbanglateam@gmail.com>
+Maintainer: Sintaul Mahdi Siam (Syntenieum) <sintaulsiam@gmail.com>
 Depends: hicolor-icon-theme
 Recommends: fonts-noto-core | fonts-beng-extra
 Description: Modern pure Rust Bengali input method (data, GUI, and CLI)
@@ -221,7 +221,7 @@ Version: $VERSION-1
 Section: utils
 Priority: optional
 Architecture: $DEB_ARCH
-Maintainer: Lekhani Contributors <openbanglateam@gmail.com>
+Maintainer: Sintaul Mahdi Siam (Syntenieum) <sintaulsiam@gmail.com>
 Depends: lekhani-common (= $VERSION-1), ibus
 Description: Lekhani engine for IBus (GNOME / Ubuntu)
  Pure Rust Bengali input method engine integrating with the IBus framework.
@@ -252,7 +252,7 @@ Version: $VERSION-1
 Section: utils
 Priority: optional
 Architecture: $DEB_ARCH
-Maintainer: Lekhani Contributors <openbanglateam@gmail.com>
+Maintainer: Sintaul Mahdi Siam (Syntenieum) <sintaulsiam@gmail.com>
 Depends: lekhani-common (= $VERSION-1), fcitx5
 Description: Lekhani engine for Fcitx5 (KDE Plasma 6 / Wayland)
  Pure Rust Bengali input method engine integrating with the Fcitx5 framework.
@@ -274,7 +274,7 @@ Version: $VERSION-1
 Section: utils
 Priority: optional
 Architecture: all
-Maintainer: Lekhani Contributors <openbanglateam@gmail.com>
+Maintainer: Sintaul Mahdi Siam (Syntenieum) <sintaulsiam@gmail.com>
 Depends: lekhani-common (>= $VERSION-1)
 Recommends: ibus-lekhani | fcitx5-lekhani
 Description: Modern Bengali input method suite (metapackage)

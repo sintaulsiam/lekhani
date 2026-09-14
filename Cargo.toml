@@ -12,12 +12,12 @@ resolver = "2"
 
 [workspace.package]
 version = "1.0.0"
-authors = ["Lekhani Contributors <openbanglateam@gmail.com>"]
+authors = ["Sintaul Mahdi Siam <sintaulsiam@gmail.com>", "Syntenieum"]
 edition = "2021"
 license = "GPL-3.0-or-later"
-repository = "https://github.com/OpenBangla/lekhani"
-homepage = "https://openbangla.github.io/"
-description = "Modern, ultra-fast pure Rust Bengali input method framework and desktop suite for IBus, Fcitx5, and KDE"
+repository = "https://github.com/sintaulsiam/lekhani"
+homepage = "https://github.com/sintaulsiam/lekhani"
+description = "Modern, ultra-fast pure Rust Bengali input method framework and desktop suite for IBus, Fcitx5, and KDE. © 2026 Syntenieum. With special thanks to Avro Keyboard (OmicronLab) and OpenBangla Keyboard."
 
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }

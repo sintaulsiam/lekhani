@@ -326,7 +326,7 @@ impl ConfigManager {
         }
 
         let bundle = BackupBundle {
-            version: "3.0.0".to_string(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
             exported_at: chrono::Local::now().to_rfc3339(),
             config: self.config.clone(),
             user_autocorrect,
