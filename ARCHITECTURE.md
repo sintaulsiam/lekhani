@@ -5,7 +5,7 @@
 > **Language:** 100% Pure Rust (C++ C-ABI bridge for native Fcitx5 plugin)  
 > **License:** GPL-3.0-or-later  
 
-Lekhani (লেখনী) is a modern, ultra-fast, memory-safe, and offline-first Bengali input method engine and desktop suite engineered for Linux (KDE Plasma 6, GNOME, Wayland, and X11).
+Lekhani (লেখনী) is a modern, ultra-fast, memory-safe, and offline-first Bengali input method engine and desktop suite engineered for Linux (KDE Plasma 6, GNOME, Wayland, and X11) and Windows (10 and 11).
 
 ---
 
@@ -29,8 +29,9 @@ Lekhani (লেখনী) is a modern, ultra-fast, memory-safe, and offline-firs
    - [5.4 Bidirectional Bijoy (ANSI) ⇄ Unicode Converter](#54-bidirectional-bijoy-ansi--unicode-converter)
 6. [Fixed Layout Engine & Typing Automations](#6-fixed-layout-engine--typing-automations)
 7. [Desktop GUI Suite (Slint) & System Tray](#7-desktop-gui-suite-slint--system-tray)
-8. [CLI, Data Backup, Sync & Telemetry](#8-cli-data-backup-sync--telemetry)
-9. [Lifecycle of a Keystroke (Data Flow)](#9-lifecycle-of-a-keystroke-data-flow)
+8. [Windows Native Input Subsystem & Global Hook](#8-windows-native-input-subsystem--global-hook)
+9. [CLI, Data Backup, Sync & Telemetry](#9-cli-data-backup-sync--telemetry)
+10. [Lifecycle of a Keystroke (Data Flow)](#10-lifecycle-of-a-keystroke-data-flow)
 
 ---
 
@@ -41,7 +42,7 @@ Lekhani is designed around four core engineering pillars:
 - **⚡ Sub-Millisecond Latency (< 0.05 ms):** All dictionary prefix searches, transliterations, and context ranking operations execute in microseconds using flat binary memory structures, hash tables, and pre-compiled Trie nodes without allocating on the hot keystroke path.
 - **🛡️ 100% Memory Safety & Robustness:** Implemented entirely in safe Rust, eliminating buffer overflows, memory leaks, and segmentation faults common in legacy C/C++ input methods.
 - **🔒 Zero Telemetry & 100% Offline Privacy:** All machine intelligence, n-gram predictions, morphological learning, and dictionary lookups run locally on the user's CPU without making any network requests.
-- **🌐 Universal Linux Compatibility:** Native first-class support for both **Fcitx5** (ideal for KDE Plasma 6 & modern Wayland compositors like Hyprland/Sway) and **IBus** (standard for GNOME/Ubuntu).
+- **🌐 Universal Cross-Platform Compatibility:** Native first-class support for both Linux (**Fcitx5** for Wayland/KDE and **IBus** for GNOME/Ubuntu) and Windows (**Low-Level Keyboard Hook** `WH_KEYBOARD_LL` + `SendInput` and `Shell_NotifyIconW` system tray).
 
 ---
 
@@ -49,20 +50,27 @@ Lekhani is designed around four core engineering pillars:
 
 ```mermaid
 flowchart TD
-    subgraph Host ["Linux Desktop Environment"]
-        Wayland["Wayland Compositor (KDE / Hyprland / GNOME)"]
-        X11["X11 Window Server"]
+    subgraph Host ["Host Operating System"]
+        subgraph LinuxHost ["Linux (Wayland / X11)"]
+            Wayland["Wayland Compositor (KDE / Hyprland / GNOME)"]
+            X11["X11 Window Server"]
+        end
+        subgraph WinHost ["Windows (10 / 11)"]
+            WinApps["Target Windows Applications"]
+            WinHook["Low-Level Keyboard Hook (WH_KEYBOARD_LL)"]
+            WinInject["SendInput (VK_BACK + KEYEVENTF_UNICODE)"]
+        end
     end
 
     subgraph Frontends ["Input Framework Interfaces"]
         Fcitx5["fcitx5-lekhani (C++ Addon)"]
         IBus["ibus-lekhani (Pure Rust DBus Daemon)"]
-        CLI["lekhani-cli (CLI Tool & Benchmark)"]
-        GUI["lekhani-gui (Slint Desktop TopBar & Tools)"]
+        WinGUI["lekhani-gui (Slint Desktop TopBar & WinHook)"]
+        CLI["lekhani-cli (CLI Tool, Converter, Benchmark)"]
     end
 
     subgraph FFI ["FFI & IPC Boundary"]
-        LekhaniFFI["lekhani-ffi (C-ABI Shared Library)"]
+        LekhaniFFI["lekhani-ffi (C-ABI Shared Library / DLL)"]
         ZBus["zbus DBus IPC (/org/freedesktop/IBus/Engine)"]
     end
 
@@ -84,11 +92,11 @@ flowchart TD
     end
 
     subgraph Settings ["crates/lekhani-settings"]
-        Config["ConfigManager (~/.config/lekhani/config.toml)"]
-        Layouts["LayoutManager (/usr/share/lekhani/layouts)"]
+        Config["ConfigManager (XDG / %APPDATA% / Exe Dir)"]
+        Layouts["LayoutManager (/usr/share / %PROGRAMDATA% / layouts)"]
         Backup["BackupBundle (Sync & Export Engine)"]
         UserStats["UserStats (Keystroke & WPM Telemetry)"]
-        UserLearned["User Learned Words (~/.local/share/lekhani/)"]
+        UserLearned["User Learned Words (Local Share / %LOCALAPPDATA%)"]
     end
 
     Wayland --> Fcitx5
@@ -96,11 +104,16 @@ flowchart TD
     X11 --> Fcitx5
     X11 --> IBus
 
+    WinApps -- Physical Keystrokes --> WinHook
+    WinHook --> WinGUI
+    WinGUI --> WinInject
+    WinInject -- Injected Unicode --> WinApps
+
     Fcitx5 --> LekhaniFFI
     IBus --> ZBus
     ZBus --> Session
     LekhaniFFI --> Session
-    GUI --> Session
+    WinGUI --> Session
     CLI --> Session
 
     Session --> Phonetic
@@ -274,7 +287,28 @@ Built using the hardware-accelerated **Slint** UI framework:
 
 ---
 
-## 8. CLI, Data Backup, Sync & Telemetry
+## 8. Windows Native Input Subsystem & Global Hook
+
+On Windows 10 & 11, Lekhani provides a native typing engine inspired by the classic Avro Keyboard system-hook architecture:
+
+- **Global Low-Level Keyboard Hook (`WH_KEYBOARD_LL`):**
+  - Intercepts physical keystrokes system-wide before they reach the focused target application.
+  - Checks `KBDLLHOOKSTRUCT.flags & 0x10` (`LLKHF_INJECTED`) to safely filter synthetic events and avoid recursive re-hook loops.
+  - Global <kbd>F12</kbd> hotkey provides instant toggling between English and Bengali typing modes.
+- **Smart Preedit Buffer & Dynamic Unicode Injection (`SendInput`):**
+  - As the user types Latin phonetic letters, the engine buffers keycodes in `InputSession`.
+  - Upon candidate change: calculates the previous uncommitted UTF-16 code unit count, emits simulated backspaces (`VK_BACK`), and injects the new candidate via `SendInput` with `KEYEVENTF_UNICODE`.
+  - Commits on <kbd>Space</kbd>, <kbd>Enter</kbd>, or punctuation and seamlessly passes through native shortcuts (<kbd>Ctrl+C</kbd>, <kbd>Alt+Tab</kbd>, etc.).
+- **Windows Taskbar System Tray (`win_tray.rs`):**
+  - Registered via Win32 `Shell_NotifyIconW`.
+  - Provides a dynamic tooltip reflecting current mode (`Lekhani [বাংলা - Avro Phonetic]`).
+  - Right-click context menu enables quick mode toggling, settings access, and application exit.
+- **Console UTF-8 Initialization:**
+  - Automatic `SetConsoleOutputCP(CP_UTF8)` configuration ensuring Bengali glyphs render cleanly in PowerShell and Windows Terminal.
+
+---
+
+## 9. CLI, Data Backup, Sync & Telemetry
 
 Lekhani provides a comprehensive command-line interface (`lekhani`):
 
@@ -304,7 +338,7 @@ lekhani benchmark
 
 ---
 
-## 9. Lifecycle of a Keystroke (Data Flow)
+## 10. Lifecycle of a Keystroke (Data Flow)
 
 ```mermaid
 sequenceDiagram
