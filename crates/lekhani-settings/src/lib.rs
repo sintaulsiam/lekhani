@@ -110,9 +110,19 @@ impl ConfigManager {
             let _ = std::fs::create_dir_all(d_dir.join("layouts"));
             (conf_dir.join("config.toml"), d_dir)
         } else {
-            let home = std::env::var("HOME").unwrap_or_else(|_| ".".to_string());
-            let conf = PathBuf::from(&home).join(".config/lekhani");
-            let data = PathBuf::from(&home).join(".local/share/lekhani");
+            let base_dir = std::env::var("APPDATA")
+                .or_else(|_| std::env::var("USERPROFILE"))
+                .or_else(|_| std::env::var("HOME"))
+                .unwrap_or_else(|_| ".".to_string());
+            let (conf, data) = if cfg!(windows) {
+                let lekhani_dir = PathBuf::from(&base_dir).join("Lekhani");
+                (lekhani_dir.clone(), lekhani_dir)
+            } else {
+                (
+                    PathBuf::from(&base_dir).join(".config/lekhani"),
+                    PathBuf::from(&base_dir).join(".local/share/lekhani"),
+                )
+            };
             let _ = std::fs::create_dir_all(&conf);
             let _ = std::fs::create_dir_all(&data);
             let _ = std::fs::create_dir_all(data.join("layouts"));
@@ -203,14 +213,41 @@ impl ConfigManager {
     }
 
     pub fn get_system_layout_dir() -> PathBuf {
-        let candidates = [
-            PathBuf::from("./data/layouts"),
-            PathBuf::from("../data/layouts"),
-            PathBuf::from("../../data/layouts"),
-            PathBuf::from("/usr/share/lekhani/layouts"),
-            PathBuf::from("/usr/local/share/lekhani/layouts"),
-            PathBuf::from("/usr/share/openbangla-keyboard/layouts"),
-        ];
+        let mut candidates = Vec::new();
+
+        // 1. Check relative to current executable
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(exe_dir) = exe.parent() {
+                candidates.push(exe_dir.join("data").join("layouts"));
+                candidates.push(exe_dir.join("layouts"));
+                if let Some(parent) = exe_dir.parent() {
+                    candidates.push(parent.join("data").join("layouts"));
+                    candidates.push(parent.join("layouts"));
+                }
+            }
+        }
+
+        // 2. Windows specific system/app paths
+        if let Some(progdata) = std::env::var_os("ProgramData") {
+            candidates.push(PathBuf::from(progdata).join("Lekhani").join("layouts"));
+        }
+        if let Some(localapp) = std::env::var_os("LOCALAPPDATA") {
+            candidates.push(PathBuf::from(localapp).join("Lekhani").join("layouts"));
+        }
+        if let Some(appdata) = std::env::var_os("APPDATA") {
+            candidates.push(PathBuf::from(appdata).join("Lekhani").join("layouts"));
+        }
+
+        // 3. Local/relative development paths
+        candidates.push(PathBuf::from("./data/layouts"));
+        candidates.push(PathBuf::from("../data/layouts"));
+        candidates.push(PathBuf::from("../../data/layouts"));
+
+        // 4. Linux system paths
+        candidates.push(PathBuf::from("/usr/share/lekhani/layouts"));
+        candidates.push(PathBuf::from("/usr/local/share/lekhani/layouts"));
+        candidates.push(PathBuf::from("/usr/share/openbangla-keyboard/layouts"));
+
         for c in &candidates {
             if c.exists()
                 && (c.join("avrophonetic.json").exists() || c.join("Probhat.json").exists())
@@ -218,6 +255,7 @@ impl ConfigManager {
                 return c.clone();
             }
         }
+
         if let Some(home) = std::env::var_os("HOME") {
             let u = PathBuf::from(home).join(".local/share/lekhani/layouts");
             if u.exists() {
@@ -228,6 +266,39 @@ impl ConfigManager {
     }
 
     pub fn get_system_data_dir() -> PathBuf {
+        let mut candidates = Vec::new();
+
+        // 1. Check relative to current executable
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(exe_dir) = exe.parent() {
+                candidates.push(exe_dir.join("data").join("dictionaries"));
+                candidates.push(exe_dir.join("data"));
+                candidates.push(exe_dir.join("dictionaries"));
+                if let Some(parent) = exe_dir.parent() {
+                    candidates.push(parent.join("data").join("dictionaries"));
+                    candidates.push(parent.join("data"));
+                }
+            }
+        }
+
+        // 2. Windows specific system/app paths
+        if let Some(progdata) = std::env::var_os("ProgramData") {
+            let p = PathBuf::from(progdata).join("Lekhani");
+            candidates.push(p.join("data"));
+            candidates.push(p.join("dictionaries"));
+        }
+        if let Some(localapp) = std::env::var_os("LOCALAPPDATA") {
+            let p = PathBuf::from(localapp).join("Lekhani");
+            candidates.push(p.join("data"));
+            candidates.push(p.join("dictionaries"));
+        }
+        if let Some(appdata) = std::env::var_os("APPDATA") {
+            let p = PathBuf::from(appdata).join("Lekhani");
+            candidates.push(p.join("data"));
+            candidates.push(p.join("dictionaries"));
+        }
+
+        // 3. User local share
         if let Some(home) = std::env::var_os("HOME") {
             let u_data = PathBuf::from(&home).join(".local/share/lekhani/data");
             if u_data.exists()
@@ -247,19 +318,21 @@ impl ConfigManager {
             }
         }
 
-        let candidates = [
-            PathBuf::from("./data/dictionaries"),
-            PathBuf::from("./data"),
-            PathBuf::from("../data/dictionaries"),
-            PathBuf::from("../data"),
-            PathBuf::from("../../data/dictionaries"),
-            PathBuf::from("../../data"),
-            PathBuf::from("/usr/share/lekhani/data"),
-            PathBuf::from("/usr/share/lekhani"),
-            PathBuf::from("/usr/local/share/lekhani/data"),
-            PathBuf::from("/usr/local/share/lekhani"),
-            PathBuf::from("/usr/share/openbangla-keyboard"),
-        ];
+        // 4. Local/relative development paths
+        candidates.push(PathBuf::from("./data/dictionaries"));
+        candidates.push(PathBuf::from("./data"));
+        candidates.push(PathBuf::from("../data/dictionaries"));
+        candidates.push(PathBuf::from("../data"));
+        candidates.push(PathBuf::from("../../data/dictionaries"));
+        candidates.push(PathBuf::from("../../data"));
+
+        // 5. Linux system paths
+        candidates.push(PathBuf::from("/usr/share/lekhani/data"));
+        candidates.push(PathBuf::from("/usr/share/lekhani"));
+        candidates.push(PathBuf::from("/usr/local/share/lekhani/data"));
+        candidates.push(PathBuf::from("/usr/local/share/lekhani"));
+        candidates.push(PathBuf::from("/usr/share/openbangla-keyboard"));
+
         for c in &candidates {
             if c.exists()
                 && (c.join("dictionary.json").exists()
