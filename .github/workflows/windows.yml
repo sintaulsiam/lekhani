@@ -1,0 +1,61 @@
+name: Windows CI & Release Build
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run Core & AI Tests
+        run: |
+          cargo test --workspace --exclude lekhani-ibus
+
+      - name: Compile Release Binaries
+        run: |
+          cargo build --release -p lekhani-cli -p lekhani-gui -p lekhani-ffi
+
+      - name: Build Inno Setup Installer
+        uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
+        with:
+          path: packaging/windows/lekhani.iss
+
+      - name: Package Portable ZIP Bundle
+        shell: pwsh
+        run: |
+          $ver = "3.0.0"
+          $portable = "target/portable/lekhani-v$ver-windows-x64"
+          New-Item -ItemType Directory -Force -Path "$portable/data"
+          Copy-Item "target/release/lekhani-gui.exe" -Destination "$portable/"
+          Copy-Item "target/release/lekhani.exe" -Destination "$portable/"
+          if (Test-Path "target/release/lekhani.dll") {
+            Copy-Item "target/release/lekhani.dll" -Destination "$portable/"
+          }
+          Copy-Item -Recurse "data/layouts" -Destination "$portable/data/"
+          Copy-Item -Recurse "data/dictionaries" -Destination "$portable/data/"
+          Copy-Item -Recurse "data/icons" -Destination "$portable/data/"
+          Copy-Item "README.md" -Destination "$portable/README.txt"
+          Compress-Archive -Path "$portable/*" -DestinationPath "dist/lekhani-v$ver-windows-x64.zip" -Force
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lekhani-windows-packages
+          path: |
+            dist/*.exe
+            dist/*.zip

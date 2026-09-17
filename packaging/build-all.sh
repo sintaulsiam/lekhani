@@ -41,9 +41,16 @@ echo ""
 echo "=== Step 5: Building Arch Linux Packages ==="
 "$SCRIPT_DIR/arch/build-arch.sh"
 
-# 5. Create Universal Portable Release Archive
+# 5. Build Windows Distribution (if requested or cross-compiler available)
+if [[ "$*" == *"--windows"* ]] || [ -n "$BUILD_WINDOWS" ]; then
+    echo ""
+    echo "=== Step 6: Building Windows Distribution ==="
+    "$SCRIPT_DIR/windows/build-windows.sh"
+fi
+
+# 6. Create Universal Portable Release Archive
 echo ""
-echo "=== Step 6: Creating Universal Portable Tarball ==="
+echo "=== Step 7: Creating Universal Portable Tarball ==="
 TARBALL_NAME="lekhani-v$VERSION-linux-$(uname -m).tar.gz"
 PORTABLE_DIR="$ROOT_DIR/target/portable_build/lekhani-v$VERSION"
 rm -rf "$PORTABLE_DIR"
