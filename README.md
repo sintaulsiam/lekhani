@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <b>Modern, Ultra-Fast Pure Rust Bengali Input Method & Desktop Suite for Linux</b>
+  <b>Modern, Ultra-Fast Pure Rust Bengali Input Method & Desktop Suite for Linux & Windows</b>
 </p>
 
 <p align="center">
@@ -13,6 +13,7 @@
   <a href="docs/TYPING_GUIDE.md">Typing Guide</a> •
   <a href="ARCHITECTURE.md">Architecture</a> •
   <a href="#installation">Installation</a> •
+  <a href="#windows-support">Windows</a> •
   <a href="#building-from-source">Building</a> •
   <a href="ROADMAP.md">Roadmap</a> •
   <a href="#license">License</a>
@@ -23,6 +24,11 @@
 ## ✨ Features
 
 - **🚀 100% Pure Rust Architecture**: Zero C/C++ memory leaks, zero FFI overhead, and compiler-enforced memory safety.
+- **🪟 First-Class Windows Support**:
+  - **Native Global Keyboard Hook** (`WH_KEYBOARD_LL` + `SendInput`): Classic Avro-grade typing across every Windows application (Word, Notepad, Chrome, VS Code, Terminals).
+  - **Windows System Tray Integration** (`Shell_NotifyIconW`): Language state indicator, layout switcher, and settings launcher.
+  - **Native Inno Setup Installer** & standalone portable ZIP bundle.
+  - **UTF-8 Console Output**: Clean Bengali font rendering in PowerShell and Windows Terminal.
 - **🎙️ Full Avro Phonetic Support**: Complete compatibility with official Avro Phonetic typing rules.
 - **🗣️ Colloquial & Spoken Verbal Conjugations**: Native recognition and suffix peeling for spoken dialect continuous and past forms (`kortesi` ➔ `করছি`/`করতেছি`, `jaitasi` ➔ `যাচ্ছি`/`যাইতেছি`, `khaitesi` ➔ `খাচ্ছি`/`খাইতেছি`, `boltase` ➔ `বলছে`/`বলতেছে`).
 - **🧩 4-Layer Affix & Sandhi Engine**: Systematic classifier, plural, case, and particle composition with automatic phonetic Sandhi joins (`ভবিষ্যৎ` + `ের` ➔ `ভবিষ্যতের`, `রং` + `এর` ➔ `রঙের`, `পা` + `ে` ➔ `পায়ে`).
@@ -39,7 +45,7 @@
   - Traditional Kar Joining (ligature blocking via ZWNJ)
   - Smart Old-style Reph (র্) insertion algorithm
   - Number pad Bengali digits auto-mapping (০-৯)
-- **🌐 Dual Desktop Framework Support**:
+- **🌐 Dual Desktop Framework Support (Linux)**:
   - **Fcitx5 Native Addon** (`fcitx5-lekhani.so`) for **KDE Plasma 6** and modern **Wayland** compositors (Hyprland, Sway).
   - **IBus Daemon** (`ibus-lekhani` via `zbus`) with real-time D-Bus signal emitters for GNOME and standard desktops.
 - **🎨 Sleek Slint Native Desktop UI** (`lekhani-gui`):
@@ -59,7 +65,13 @@
 
 ## 📦 Installation
 
-### Quick Installer Script (All Linux Distributions)
+### Windows (10 / 11)
+
+1. **Installer Setup:** Download and run `Lekhani-v3.0.0-Setup.exe` from Releases.
+2. **Portable ZIP:** Extract `lekhani-v3.0.0-windows-x86_64.zip` and run `START_LEKHANI.bat` or `lekhani-gui.exe`.
+3. Press <kbd>F12</kbd> anywhere to toggle between English and Bengali typing.
+
+### Quick Installer Script (Linux Distributions)
 ```bash
 ./install.sh           # Interactive installer menu
 ./install.sh --fcitx5  # Install for KDE Plasma 6 / Wayland
@@ -97,8 +109,13 @@ cd lekhani
 # Run test suite
 cargo test --workspace
 
-# Build optimized release binaries
+# Build Linux release binaries
 cargo build --workspace --release
+
+# Cross-compile for Windows (from Linux)
+./packaging/windows/build-windows.sh
+# Or compile natively on Windows
+cargo build --release -p lekhani-cli -p lekhani-gui -p lekhani-ffi
 ```
 
 Binaries will be available in `target/release/`:
