@@ -1,11 +1,16 @@
 //! Lekhani IBus Daemon Main Entrypoint
 
+#[cfg(unix)]
 mod engine;
 
+#[cfg(unix)]
 use engine::LekhaniIBusEngine;
+#[cfg(unix)]
 use tracing::info;
+#[cfg(unix)]
 use zbus::connection::Builder;
 
+#[cfg(unix)]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
@@ -26,4 +31,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Shutting down Lekhani IBus engine...");
 
     Ok(())
+}
+
+#[cfg(not(unix))]
+fn main() {
+    eprintln!("Lekhani IBus engine daemon is only supported on Linux/Unix platforms.");
 }
