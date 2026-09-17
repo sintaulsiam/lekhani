@@ -2,6 +2,7 @@
 
 slint::include_modules!();
 
+#[cfg(unix)]
 mod tray;
 
 use lekhani_core::{bijoy_to_unicode, unicode_to_bijoy, PhoneticDatabase, PhoneticSuggestion};
@@ -58,7 +59,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     app.set_set_old_reph(config_mgr.config.fixed.old_reph);
     app.set_set_numberpad(config_mgr.config.fixed.numberpad);
 
-    // Initialize Desktop System Tray (ksni)
+    // Initialize Desktop System Tray (ksni on Linux)
+    #[cfg(unix)]
     let _tray_handle = tray::spawn_tray(current_layout);
 
     // Set Native Window Icon on Winit Window
