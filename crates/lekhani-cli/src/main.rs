@@ -152,6 +152,16 @@ enum DictCommands {
 }
 
 fn main() -> anyhow::Result<()> {
+    #[cfg(windows)]
+    unsafe {
+        extern "system" {
+            fn SetConsoleOutputCP(wCodePageID: u32) -> i32;
+            fn SetConsoleCP(wCodePageID: u32) -> i32;
+        }
+        let _ = SetConsoleOutputCP(65001);
+        let _ = SetConsoleCP(65001);
+    }
+
     let cli = Cli::parse();
     let mut config_mgr = ConfigManager::new();
     let mut layout_mgr = LayoutManager::new();
