@@ -5,6 +5,11 @@ slint::include_modules!();
 #[cfg(unix)]
 mod tray;
 
+#[cfg(windows)]
+mod win_hook;
+#[cfg(windows)]
+mod win_tray;
+
 use lekhani_core::{bijoy_to_unicode, unicode_to_bijoy, PhoneticDatabase, PhoneticSuggestion};
 use lekhani_settings::{ConfigManager, LayoutManager};
 use std::rc::Rc;
@@ -59,9 +64,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     app.set_set_old_reph(config_mgr.config.fixed.old_reph);
     app.set_set_numberpad(config_mgr.config.fixed.numberpad);
 
-    // Initialize Desktop System Tray (ksni on Linux)
+    // Initialize Desktop System Tray (ksni on Linux, Shell_NotifyIconW on Windows)
     #[cfg(unix)]
-    let _tray_handle = tray::spawn_tray(current_layout);
+    let _tray_handle = tray::spawn_tray(current_layout.clone());
+
+    #[cfg(windows)]
+    let win_tray_handle = win_tray::spawn_windows_tray(current_layout.clone());
+    #[cfg(windows)]
+    win_hook::spawn_windows_hook(current_layout.clone(), win_tray_handle);
 
     // Set Native Window Icon on Winit Window
     use i_slint_backend_winit::WinitWindowAccessor;
@@ -129,6 +139,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut cm = cm_clone.borrow_mut();
         cm.config.general.active_layout = name.to_string();
         cm.save();
+        #[cfg(windows)]
+        win_hook::update_active_layout(&name);
         if let Some(app) = app_weak_layout.upgrade() {
             app.set_active_layout_name(name.clone());
             app.set_show_layout_menu(false);
@@ -140,6 +152,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app_weak_toggle = app_weak.clone();
     let osd_timer_toggle = osd_timer.clone();
     app.on_toggle_layout_mode(move || {
+        #[cfg(windows)]
+        win_hook::toggle_bengali_mode();
         if let Some(app) = app_weak_toggle.upgrade() {
             let current = app.get_active_layout_name();
             if current == "English" {
