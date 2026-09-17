@@ -83,7 +83,7 @@ echo ""
 echo "=== Step 3: Checking Inno Setup Compiler (ISCC) ==="
 if command -v iscc >/dev/null 2>&1; then
     echo "Compiling Windows Installer with Inno Setup..."
-    iscc "$SCRIPT_DIR/lekhani.iss"
+    iscc "/DSourceDir=$ROOT_DIR/target/$TARGET/release" "$SCRIPT_DIR/lekhani.iss"
     echo "  [OK] Created $DIST_DIR/Lekhani-v$VERSION-Setup.exe"
 else
     echo "  [INFO] 'iscc' not found on this system."

@@ -8,6 +8,10 @@
 #define MyAppExeName "lekhani-gui.exe"
 #define MyAppCliName "lekhani.exe"
 
+#ifndef SourceDir
+  #define SourceDir "..\..\target\release"
+#endif
+
 [Setup]
 AppId={{D1A2E7F3-5C38-4A59-B812-3D7E81F9C942}
 AppName={#MyAppName}
@@ -38,9 +42,9 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Name: "autostart"; Description: "Automatically launch Lekhani when Windows starts"; GroupDescription: "Startup Options:"
 
 [Files]
-Source: "..\..\target\x86_64-pc-windows-gnu\release\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\..\target\x86_64-pc-windows-gnu\release\{#MyAppCliName}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\..\target\x86_64-pc-windows-gnu\release\lekhani.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourceDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourceDir}\{#MyAppCliName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourceDir}\lekhani.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "..\..\data\layouts\*"; DestDir: "{app}\data\layouts"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\..\data\dictionaries\*"; DestDir: "{app}\data\dictionaries"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\..\data\icons\*"; DestDir: "{app}\data\icons"; Flags: ignoreversion recursesubdirs createallsubdirs
