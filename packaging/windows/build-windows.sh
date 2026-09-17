@@ -22,7 +22,19 @@ if ! rustup target list | grep -q "$TARGET (installed)"; then
     rustup target add "$TARGET"
 fi
 
-# 2. Build Release Binaries
+# 2. Check for MinGW cross-compiler when running on Linux
+if [ "$(uname)" = "Linux" ]; then
+    if ! command -v x86_64-w64-mingw32-gcc >/dev/null 2>&1 && ! command -v x86_64-w64-mingw32-dlltool >/dev/null 2>&1; then
+        echo "  [ERROR] MinGW cross-compilation toolchain not found!"
+        echo "  Please install mingw-w64 on your distribution:"
+        echo "    - Fedora / RHEL:   sudo dnf install mingw64-gcc mingw64-binutils"
+        echo "    - Ubuntu / Debian: sudo apt install mingw-w64"
+        echo "    - Arch Linux:      sudo pacman -S mingw-w64-gcc"
+        exit 1
+    fi
+fi
+
+# 3. Build Release Binaries
 echo ""
 echo "=== Step 1: Compiling Windows Release Binaries ==="
 cargo build --manifest-path "$ROOT_DIR/Cargo.toml" \
