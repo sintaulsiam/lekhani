@@ -121,7 +121,8 @@ impl LekhaniTray {
     pub async fn new_icon(emitter: &zbus::object_server::SignalContext<'_>) -> zbus::Result<()>;
 
     #[zbus(signal)]
-    pub async fn new_tool_tip(emitter: &zbus::object_server::SignalContext<'_>) -> zbus::Result<()>;
+    pub async fn new_tool_tip(emitter: &zbus::object_server::SignalContext<'_>)
+        -> zbus::Result<()>;
 }
 
 #[derive(Clone)]

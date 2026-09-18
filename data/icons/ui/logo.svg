@@ -1,9 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none">
   <defs>
     <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#89b4fa"/>
-      <stop offset="100%" stop-color="#b4befe"/>
+      <stop offset="0%" stop-color="#a5b4fc"/>
+      <stop offset="50%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#c084fc"/>
     </linearGradient>
   </defs>
-  <path d="M7.5 4a1.5 1.5 0 0 1 1.5 1.5v10a2 2 0 0 0 2 2h6a1.5 1.5 0 0 1 1.5 1.5 1.5 1.5 0 0 1-1.5 1.5H10A4.5 4.5 0 0 1 5.5 16V5.5A1.5 1.5 0 0 1 7.5 4z" fill="url(#logoGrad)"/>
+  <!-- Beautiful modern rounded L glyph, perfectly centered in 24x24 box -->
+  <path d="M7 5.5 C7 4.67 7.67 4 8.5 4 H9.5 C10.33 4 11 4.67 11 5.5 V15.5 C11 16.33 11.67 17 12.5 17 H16.5 C17.33 17 18 17.67 18 18.5 C18 19.33 17.33 20 16.5 20 H10.5 C8.57 20 7 18.43 7 16.5 Z" fill="url(#logoGrad)"/>
 </svg>

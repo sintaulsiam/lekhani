@@ -47,8 +47,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize UI state
     let current_layout = config_mgr.config.general.active_layout.clone();
+    app.set_active_layout_name(current_layout.clone().into());
     #[cfg(windows)]
-    app.set_active_layout_name("English".into());
+    app.set_is_bengali_mode(false);
     #[cfg(not(windows))]
     {
         let is_fcitx5_active = std::process::Command::new("fcitx5-remote")
@@ -56,16 +57,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .output()
             .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "lekhani")
             .unwrap_or(true);
-        if is_fcitx5_active {
-            app.set_active_layout_name(current_layout.clone().into());
-        } else {
-            app.set_active_layout_name("English".into());
-        }
+        app.set_is_bengali_mode(is_fcitx5_active);
     }
     let layouts = layout_mgr.get_layout_list();
     let slint_layouts: Vec<slint::SharedString> = layouts.into_iter().map(|s| s.into()).collect();
     let model = std::rc::Rc::new(slint::VecModel::from(slint_layouts));
     app.set_available_layouts(model.into());
+
+    let args: Vec<String> = std::env::args().collect();
+    if args.contains(&"--converter".to_string()) {
+        app.set_active_dialog(4);
+    } else if args.contains(&"--settings".to_string()) {
+        app.set_active_dialog(5);
+    } else if args.contains(&"--autocorrect".to_string()) {
+        app.set_active_dialog(3);
+    } else if args.contains(&"--viewer".to_string()) {
+        app.set_active_dialog(2);
+    } else if args.contains(&"--layout-menu".to_string()) {
+        app.set_active_dialog(1);
+    }
 
     let total_entries = db.get_user_autocorrect().len() + db.get_system_autocorrect().len();
     app.set_ac_status_text(
@@ -132,6 +142,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if let Ok(icon) = i_slint_backend_winit::winit::window::Icon::from_rgba(raw, w, h) {
                 winit_window.set_window_icon(Some(icon));
             }
+            winit_window
+                .set_window_level(i_slint_backend_winit::winit::window::WindowLevel::AlwaysOnTop);
         });
     }
 
@@ -182,11 +194,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let osd_timer_mode = osd_timer.clone();
     app.on_notify_mode_change(move |active, layout| {
         if let Some(app) = app_weak_mode_notify.upgrade() {
+            app.set_is_bengali_mode(active);
             if active {
                 app.set_active_layout_name(layout.clone());
                 show_mode_osd(&app, &osd_timer_mode, layout.as_str(), true);
             } else {
-                app.set_active_layout_name("English".into());
                 show_mode_osd(&app, &osd_timer_mode, "English", false);
             }
         }
@@ -247,25 +259,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         #[cfg(not(windows))]
         if let Some(app) = app_weak_toggle.upgrade() {
-            let current = app.get_active_layout_name();
-            if current == "English" {
-                let cm = cm_toggle.borrow();
-                let layout = cm.config.general.active_layout.clone();
-                app.set_active_layout_name(layout.clone().into());
+            let is_bengali = app.get_is_bengali_mode();
+            let new_mode = !is_bengali;
+            app.set_is_bengali_mode(new_mode);
+            let cm = cm_toggle.borrow();
+            let layout = cm.config.general.active_layout.clone();
+            if new_mode {
                 #[cfg(unix)]
                 if let Some(ref th) = tray_handle_toggle {
                     th.update_layout(&layout);
                 }
                 show_mode_osd(&app, &osd_timer_toggle, &layout, true);
-                let _ = std::process::Command::new("fcitx5-remote").arg("-s").arg("lekhani").spawn();
+                let _ = std::process::Command::new("fcitx5-remote")
+                    .arg("-s")
+                    .arg("lekhani")
+                    .spawn();
             } else {
-                app.set_active_layout_name("English".into());
                 #[cfg(unix)]
                 if let Some(ref th) = tray_handle_toggle {
                     th.update_layout("English");
                 }
                 show_mode_osd(&app, &osd_timer_toggle, "English", false);
-                let _ = std::process::Command::new("fcitx5-remote").arg("-s").arg("keyboard-us").spawn();
+                let _ = std::process::Command::new("fcitx5-remote")
+                    .arg("-s")
+                    .arg("keyboard-us")
+                    .spawn();
             }
         }
     });
@@ -400,7 +418,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    app.on_copy_conjunct(move |conjunct| {
+    let copy_text = |text: &str| {
         #[cfg(windows)]
         {
             use windows_sys::Win32::System::DataExchange::{
@@ -412,7 +430,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             unsafe {
                 if OpenClipboard(std::ptr::null_mut()) != 0 {
                     EmptyClipboard();
-                    let wide: Vec<u16> = conjunct.as_str().encode_utf16().chain(Some(0)).collect();
+                    let wide: Vec<u16> = text.encode_utf16().chain(Some(0)).collect();
                     let bytes = wide.len() * 2;
                     let h_mem = GlobalAlloc(GMEM_MOVEABLE, bytes);
                     if !h_mem.is_null() {
@@ -429,8 +447,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         #[cfg(unix)]
         {
-            let text = conjunct.to_string();
-            let res = std::process::Command::new("wl-copy").arg(&text).spawn();
+            let res = std::process::Command::new("wl-copy").arg(text).spawn();
             if res.is_err() {
                 use std::io::Write;
                 if let Ok(mut child) = std::process::Command::new("xclip")
@@ -444,6 +461,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
             }
+        }
+    };
+
+    let copy_fn1 = copy_text;
+    app.on_copy_conjunct(move |conjunct| {
+        copy_fn1(conjunct.as_str());
+    });
+
+    let app_weak_conv = app_weak.clone();
+    let copy_fn2 = copy_text;
+    app.on_copy_to_clipboard(move |text| {
+        copy_fn2(text.as_str());
+        if let Some(app) = app_weak_conv.upgrade() {
+            app.set_conv_copied(true);
         }
     });
 
@@ -499,19 +530,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 #[cfg(unix)]
                 {
-                    if let Ok(out) = std::process::Command::new("fcitx5-remote").arg("-n").output() {
+                    if let Ok(out) = std::process::Command::new("fcitx5-remote")
+                        .arg("-n")
+                        .output()
+                    {
                         let im_name = String::from_utf8_lossy(&out.stdout).trim().to_string();
-                        let cur_ui = app.get_active_layout_name();
-                        if im_name == "lekhani" && cur_ui == "English" {
+                        let is_bengali = im_name == "lekhani";
+                        if app.get_is_bengali_mode() != is_bengali {
+                            app.set_is_bengali_mode(is_bengali);
                             let layout = cm.config.general.active_layout.clone();
-                            app.set_active_layout_name(layout.clone().into());
                             if let Some(ref th) = tray_handle_timer {
-                                th.update_layout(&layout);
-                            }
-                        } else if (im_name == "keyboard-us" || im_name.is_empty()) && cur_ui != "English" {
-                            app.set_active_layout_name("English".into());
-                            if let Some(ref th) = tray_handle_timer {
-                                th.update_layout("English");
+                                th.update_layout(if is_bengali { &layout } else { "English" });
                             }
                         }
                     }
