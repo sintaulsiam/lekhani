@@ -8,20 +8,29 @@ use std::sync::{Arc, Mutex};
 use windows_sys::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     GetKeyState, SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP,
-    KEYEVENTF_UNICODE, VK_BACK, VK_CAPITAL, VK_CONTROL, VK_ESCAPE, VK_F12, VK_LWIN, VK_MENU,
-    VK_OEM_1, VK_OEM_2, VK_OEM_3, VK_OEM_4, VK_OEM_5, VK_OEM_6, VK_OEM_7, VK_OEM_COMMA,
-    VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS, VK_RETURN, VK_RWIN, VK_SHIFT, VK_SPACE,
+    KEYEVENTF_UNICODE, VK_BACK, VK_CAPITAL, VK_CONTROL, VK_DOWN, VK_ESCAPE, VK_F12, VK_LWIN,
+    VK_MENU, VK_NUMPAD1, VK_NUMPAD5, VK_OEM_1, VK_OEM_2, VK_OEM_3, VK_OEM_4, VK_OEM_5,
+    VK_OEM_6, VK_OEM_7, VK_OEM_COMMA, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS, VK_RETURN,
+    VK_RWIN, VK_SHIFT, VK_SPACE, VK_TAB, VK_UP,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CallNextHookEx, DispatchMessageW, GetMessageW, SetWindowsHookExW, UnhookWindowsHookEx,
     HHOOK, KBDLLHOOKSTRUCT, MSG, WH_KEYBOARD_LL, WM_KEYDOWN, WM_SYSKEYDOWN,
 };
 
+use crate::win_candidate::CandidateWindow;
 use crate::win_tray::WindowsTray;
 use lekhani_core::{ActiveLayoutType, InputSession, KeycodeMapper, MODIFIER_SHIFT};
 use lekhani_settings::{ConfigManager, LayoutManager};
 
 static BENGALI_ACTIVE: AtomicBool = AtomicBool::new(false);
+
+pub type ModeChangeCallback = Arc<dyn Fn(bool, &str) + Send + Sync>;
+static MODE_CALLBACK: Mutex<Option<ModeChangeCallback>> = Mutex::new(None);
+
+pub fn set_mode_change_callback(cb: ModeChangeCallback) {
+    *MODE_CALLBACK.lock().unwrap() = Some(cb);
+}
 
 struct HookState {
     session: InputSession,
@@ -30,6 +39,7 @@ struct HookState {
     tray: Option<Arc<WindowsTray>>,
     active_layout_name: String,
     layout_mgr: LayoutManager,
+    candidate_win: Option<CandidateWindow>,
 }
 
 impl HookState {
@@ -66,12 +76,16 @@ impl HookState {
             tray: None,
             active_layout_name: initial_layout,
             layout_mgr,
+            candidate_win: None,
         }
     }
 
     fn reset(&mut self) {
         self.session.clear_context();
         self.uncommitted_units = 0;
+        if let Some(ref win) = self.candidate_win {
+            win.hide();
+        }
     }
 
     fn set_layout(&mut self, layout_name: &str) {
@@ -95,27 +109,26 @@ static HOOK_HANDLE: Mutex<Option<usize>> = Mutex::new(None);
 
 pub fn toggle_bengali_mode() {
     let new_state = !BENGALI_ACTIVE.load(Ordering::SeqCst);
-    BENGALI_ACTIVE.store(new_state, Ordering::SeqCst);
-
-    if let Ok(mut guard) = HOOK_STATE.lock() {
-        if let Some(ref mut state) = *guard {
-            state.reset();
-            if let Some(ref tray) = state.tray {
-                tray.set_bengali_active(new_state, &state.active_layout_name);
-            }
-        }
-    }
+    set_bengali_mode(new_state);
 }
 
 pub fn set_bengali_mode(active: bool) {
     BENGALI_ACTIVE.store(active, Ordering::SeqCst);
 
+    let mut layout_name = String::new();
     if let Ok(mut guard) = HOOK_STATE.lock() {
         if let Some(ref mut state) = *guard {
             state.reset();
+            layout_name = state.active_layout_name.clone();
             if let Some(ref tray) = state.tray {
-                tray.set_bengali_active(active, &state.active_layout_name);
+                tray.set_bengali_active(active, &layout_name);
             }
+        }
+    }
+
+    if let Ok(guard) = MODE_CALLBACK.lock() {
+        if let Some(ref cb) = *guard {
+            cb(active, &layout_name);
         }
     }
 }
@@ -132,16 +145,20 @@ pub fn update_active_layout(name: &str) {
 }
 
 pub fn spawn_windows_hook(initial_layout: String, tray: Option<Arc<WindowsTray>>) {
+    let cand_win = CandidateWindow::new();
     {
         let mut state = HookState::new(initial_layout.clone());
         state.tray = tray;
+        state.candidate_win = cand_win;
         let mut guard = HOOK_STATE.lock().unwrap();
         *guard = Some(state);
     }
 
     std::thread::spawn(|| {
         unsafe {
-            let hook = SetWindowsHookExW(WH_KEYBOARD_LL, Some(low_level_keyboard_proc), 0 as _, 0);
+            use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
+            let hmod = GetModuleHandleW(std::ptr::null());
+            let hook = SetWindowsHookExW(WH_KEYBOARD_LL, Some(low_level_keyboard_proc), hmod, 0);
             if hook != 0 as _ {
                 *HOOK_HANDLE.lock().unwrap() = Some(hook as usize);
                 tracing::info!("Windows Low-Level Keyboard Hook installed successfully");
@@ -155,7 +172,10 @@ pub fn spawn_windows_hook(initial_layout: String, tray: Option<Arc<WindowsTray>>
                     UnhookWindowsHookEx(h as HHOOK);
                 }
             } else {
-                tracing::error!("Failed to install Windows Low-Level Keyboard Hook");
+                tracing::error!(
+                    "Failed to install Windows Low-Level Keyboard Hook: {}",
+                    windows_sys::Win32::Foundation::GetLastError()
+                );
             }
         }
     });
@@ -184,8 +204,20 @@ unsafe extern "system" fn low_level_keyboard_proc(
 
     let vk = kbd.vkCode as u16;
 
-    // F12 Global Hotkey toggles Bengali mode
+    // F12 Global Hotkey toggles Bengali/English mode
     if vk == VK_F12 {
+        toggle_bengali_mode();
+        return 1;
+    }
+
+    let ctrl_down = (GetKeyState(VK_CONTROL as i32) & 0x8000u16 as i16) != 0;
+    let alt_down = (GetKeyState(VK_MENU as i32) & 0x8000u16 as i16) != 0;
+    let win_down = ((GetKeyState(VK_LWIN as i32) | GetKeyState(VK_RWIN as i32))
+        & 0x8000u16 as i16)
+        != 0;
+
+    // Ctrl+Space Global Hotkey toggles Bengali/English mode
+    if vk == VK_SPACE && ctrl_down && !alt_down && !win_down {
         toggle_bengali_mode();
         return 1;
     }
@@ -195,12 +227,6 @@ unsafe extern "system" fn low_level_keyboard_proc(
     }
 
     // If Ctrl, Alt, or Win are held down, let native shortcut pass through
-    let ctrl_down = (GetKeyState(VK_CONTROL as i32) & 0x8000u16 as i16) != 0;
-    let alt_down = (GetKeyState(VK_MENU as i32) & 0x8000u16 as i16) != 0;
-    let win_down = ((GetKeyState(VK_LWIN as i32) | GetKeyState(VK_RWIN as i32))
-        & 0x8000u16 as i16)
-        != 0;
-
     if ctrl_down || alt_down || win_down {
         if let Ok(mut guard) = HOOK_STATE.lock() {
             if let Some(ref mut state) = *guard {
@@ -220,6 +246,63 @@ unsafe extern "system" fn low_level_keyboard_proc(
         None => return CallNextHookEx(0 as _, n_code, w_param, l_param),
     };
 
+    let shift_down = (GetKeyState(VK_SHIFT as i32) & 0x8000u16 as i16) != 0;
+    let caps_locked = (GetKeyState(VK_CAPITAL as i32) & 1) != 0;
+
+    // Direct Selection via 1..5 and Candidate Navigation in Phonetic Mode
+    if state.session.active_layout_type == ActiveLayoutType::Phonetic && state.uncommitted_units > 0 {
+        let candidates = state.session.get_candidates();
+        if !candidates.is_empty() {
+            // Direct candidate selection with 1..5
+            let sel_num = match vk {
+                0x31..=0x35 if !shift_down => Some((vk - 0x31) as usize),
+                VK_NUMPAD1..=VK_NUMPAD5 => Some((vk - VK_NUMPAD1) as usize),
+                _ => None,
+            };
+
+            if let Some(idx) = sel_num {
+                if idx < candidates.len() {
+                    if let Some(committed) = state.session.commit(idx) {
+                        inject_backspaces(state.uncommitted_units);
+                        inject_unicode_str(&committed);
+                        state.uncommitted_units = 0;
+                        if let Some(ref win) = state.candidate_win {
+                            win.hide();
+                        }
+                        return 1;
+                    }
+                }
+            }
+
+            // Candidate navigation via Tab, Down, Up
+            if vk == VK_TAB || vk == VK_DOWN {
+                state.session.select_next();
+                let candidate = state.session.get_preedit_text();
+                if !candidate.is_empty() {
+                    inject_backspaces(state.uncommitted_units);
+                    state.uncommitted_units = inject_unicode_str(&candidate);
+                }
+                if let Some(ref win) = state.candidate_win {
+                    win.update(state.session.get_candidates(), state.session.get_selected_index());
+                }
+                return 1;
+            }
+
+            if vk == VK_UP {
+                state.session.select_prev();
+                let candidate = state.session.get_preedit_text();
+                if !candidate.is_empty() {
+                    inject_backspaces(state.uncommitted_units);
+                    state.uncommitted_units = inject_unicode_str(&candidate);
+                }
+                if let Some(ref win) = state.candidate_win {
+                    win.update(state.session.get_candidates(), state.session.get_selected_index());
+                }
+                return 1;
+            }
+        }
+    }
+
     // Handle Backspace
     if vk == VK_BACK {
         if state.uncommitted_units > 0 {
@@ -228,8 +311,16 @@ unsafe extern "system" fn low_level_keyboard_proc(
             let candidate = state.session.get_preedit_text();
             if !candidate.is_empty() {
                 state.uncommitted_units = inject_unicode_str(&candidate);
+                if state.session.active_layout_type == ActiveLayoutType::Phonetic {
+                    if let Some(ref win) = state.candidate_win {
+                        win.update(state.session.get_candidates(), state.session.get_selected_index());
+                    }
+                }
             } else {
                 state.uncommitted_units = 0;
+                if let Some(ref win) = state.candidate_win {
+                    win.hide();
+                }
             }
             return 1;
         }
@@ -241,6 +332,9 @@ unsafe extern "system" fn low_level_keyboard_proc(
         if state.uncommitted_units > 0 {
             state.session.commit(state.session.get_selected_index());
             state.uncommitted_units = 0;
+            if let Some(ref win) = state.candidate_win {
+                win.hide();
+            }
             inject_unicode_str(" ");
             return 1;
         }
@@ -252,6 +346,9 @@ unsafe extern "system" fn low_level_keyboard_proc(
         if state.uncommitted_units > 0 {
             state.session.commit(state.session.get_selected_index());
             state.uncommitted_units = 0;
+            if let Some(ref win) = state.candidate_win {
+                win.hide();
+            }
         }
         return CallNextHookEx(0 as _, n_code, w_param, l_param);
     }
@@ -262,15 +359,15 @@ unsafe extern "system" fn low_level_keyboard_proc(
             inject_backspaces(state.uncommitted_units);
             state.session.clear_context();
             state.uncommitted_units = 0;
+            if let Some(ref win) = state.candidate_win {
+                win.hide();
+            }
             return 1;
         }
         return CallNextHookEx(0 as _, n_code, w_param, l_param);
     }
 
     // Translate Virtual Key to character
-    let shift_down = (GetKeyState(VK_SHIFT as i32) & 0x8000u16 as i16) != 0;
-    let caps_locked = (GetKeyState(VK_CAPITAL as i32) & 1) != 0;
-
     if let Some(ch) = vk_to_char(vk, shift_down, caps_locked) {
         let keycode = state.mapper.map_keyval(ch as u32);
         let modifier_mask = if shift_down { MODIFIER_SHIFT } else { 0 };
@@ -281,15 +378,28 @@ unsafe extern "system" fn low_level_keyboard_proc(
             if !candidate.is_empty() {
                 inject_backspaces(state.uncommitted_units);
                 state.uncommitted_units = inject_unicode_str(&candidate);
+                if state.session.active_layout_type == ActiveLayoutType::Phonetic {
+                    if let Some(ref win) = state.candidate_win {
+                        win.update(state.session.get_candidates(), state.session.get_selected_index());
+                    }
+                } else if let Some(ref win) = state.candidate_win {
+                    win.hide();
+                }
                 return 1;
             }
         } else if state.uncommitted_units > 0 {
             state.session.commit(state.session.get_selected_index());
             state.uncommitted_units = 0;
+            if let Some(ref win) = state.candidate_win {
+                win.hide();
+            }
         }
     } else if state.uncommitted_units > 0 {
         state.session.commit(state.session.get_selected_index());
         state.uncommitted_units = 0;
+        if let Some(ref win) = state.candidate_win {
+            win.hide();
+        }
     }
 
     CallNextHookEx(0 as _, n_code, w_param, l_param)

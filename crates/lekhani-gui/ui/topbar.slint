@@ -170,6 +170,8 @@ export component TopBarWindow inherits Window {
     in-out property <bool> set-traditional-kar: false;
     in-out property <bool> set-old-reph: true;
     in-out property <bool> set-numberpad: true;
+    in-out property <bool> set-autostart: false;
+    in-out property <bool> is-windows: false;
 
     // Mode-Switch OSD HUD properties
     in-out property <bool> show-osd: false;
@@ -182,6 +184,7 @@ export component TopBarWindow inherits Window {
     // Callbacks
     callback select-layout(string);
     callback toggle-layout-mode();
+    callback notify-mode-change(bool, string);
     callback trigger-layout-viewer();
     callback trigger-autocorrect();
     callback trigger-converter();
@@ -826,6 +829,21 @@ export component TopBarWindow inherits Window {
                         CheckBox { text: "Traditional Kar Joining & Ligature ZWNJ Blocking"; checked: root.set-traditional-kar; toggled => { root.set-traditional-kar = self.checked; } }
                         CheckBox { text: "Smart Old-Style Reph (র্) Insertion"; checked: root.set-old-reph; toggled => { root.set-old-reph = self.checked; } }
                         CheckBox { text: "Map Numeric Keypad to Bengali Digits (০-৯)"; checked: root.set-numberpad; toggled => { root.set-numberpad = self.checked; } }
+                    }
+                }
+
+                // Section 3: System & Startup (Windows)
+                if root.is-windows : Rectangle {
+                    background: #11111b;
+                    border-radius: 12px;
+                    border-width: 1px;
+                    border-color: #313244;
+
+                    VerticalLayout {
+                        padding: 12px;
+                        spacing: 6px;
+                        Text { text: "🚀 SYSTEM & STARTUP"; color: #f9e2af; font-size: 11px; font-weight: 700; }
+                        CheckBox { text: "Launch Lekhani on Windows startup"; checked: root.set-autostart; toggled => { root.set-autostart = self.checked; } }
                     }
                 }
 
