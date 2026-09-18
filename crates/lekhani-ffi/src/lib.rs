@@ -637,11 +637,7 @@ mod tests {
         assert!(!engine_ptr.is_null());
         unsafe {
             (*engine_ptr).set_layout("Avro Phonetic");
-            (*engine_ptr)
-                .config_mgr
-                .config
-                .general
-                .active_layout = "Avro Phonetic".to_string();
+            (*engine_ptr).config_mgr.config.general.active_layout = "Avro Phonetic".to_string();
             (*engine_ptr)
                 .config_mgr
                 .config

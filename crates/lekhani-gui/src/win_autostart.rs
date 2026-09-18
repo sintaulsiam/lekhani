@@ -6,8 +6,8 @@
 use std::ptr;
 use windows_sys::Win32::Foundation::ERROR_SUCCESS;
 use windows_sys::Win32::System::Registry::{
-    RegCloseKey, RegDeleteValueW, RegOpenKeyExW, RegQueryValueExW, RegSetValueExW,
-    HKEY, HKEY_CURRENT_USER, KEY_READ, KEY_WRITE, REG_SZ,
+    RegCloseKey, RegDeleteValueW, RegOpenKeyExW, RegQueryValueExW, RegSetValueExW, HKEY,
+    HKEY_CURRENT_USER, KEY_READ, KEY_WRITE, REG_SZ,
 };
 
 pub fn is_autostart_enabled() -> bool {
@@ -18,13 +18,8 @@ pub fn is_autostart_enabled() -> bool {
         let value_name: Vec<u16> = "Lekhani\0".encode_utf16().collect();
         let mut hkey: HKEY = ptr::null_mut();
 
-        if RegOpenKeyExW(
-            HKEY_CURRENT_USER,
-            subkey.as_ptr(),
-            0,
-            KEY_READ,
-            &mut hkey,
-        ) == ERROR_SUCCESS
+        if RegOpenKeyExW(HKEY_CURRENT_USER, subkey.as_ptr(), 0, KEY_READ, &mut hkey)
+            == ERROR_SUCCESS
         {
             let mut data_type = 0;
             let mut data_len = 0;
@@ -52,13 +47,8 @@ pub fn set_autostart(enable: bool) -> bool {
         let value_name: Vec<u16> = "Lekhani\0".encode_utf16().collect();
         let mut hkey: HKEY = ptr::null_mut();
 
-        if RegOpenKeyExW(
-            HKEY_CURRENT_USER,
-            subkey.as_ptr(),
-            0,
-            KEY_WRITE,
-            &mut hkey,
-        ) == ERROR_SUCCESS
+        if RegOpenKeyExW(HKEY_CURRENT_USER, subkey.as_ptr(), 0, KEY_WRITE, &mut hkey)
+            == ERROR_SUCCESS
         {
             let res = if enable {
                 if let Ok(exe_path) = std::env::current_exe() {

@@ -9,13 +9,13 @@ use windows_sys::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     GetKeyState, SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP,
     KEYEVENTF_UNICODE, VK_BACK, VK_CAPITAL, VK_CONTROL, VK_DOWN, VK_ESCAPE, VK_F12, VK_LWIN,
-    VK_MENU, VK_NUMPAD1, VK_NUMPAD5, VK_OEM_1, VK_OEM_2, VK_OEM_3, VK_OEM_4, VK_OEM_5,
-    VK_OEM_6, VK_OEM_7, VK_OEM_COMMA, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS, VK_RETURN,
-    VK_RWIN, VK_SHIFT, VK_SPACE, VK_TAB, VK_UP,
+    VK_MENU, VK_NUMPAD1, VK_NUMPAD5, VK_OEM_1, VK_OEM_2, VK_OEM_3, VK_OEM_4, VK_OEM_5, VK_OEM_6,
+    VK_OEM_7, VK_OEM_COMMA, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS, VK_RETURN, VK_RWIN, VK_SHIFT,
+    VK_SPACE, VK_TAB, VK_UP,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CallNextHookEx, DispatchMessageW, GetMessageW, SetWindowsHookExW, UnhookWindowsHookEx,
-    HHOOK, KBDLLHOOKSTRUCT, MSG, WH_KEYBOARD_LL, WM_KEYDOWN, WM_SYSKEYDOWN,
+    CallNextHookEx, DispatchMessageW, GetMessageW, SetWindowsHookExW, UnhookWindowsHookEx, HHOOK,
+    KBDLLHOOKSTRUCT, MSG, WH_KEYBOARD_LL, WM_KEYDOWN, WM_SYSKEYDOWN,
 };
 
 use crate::win_candidate::CandidateWindow;
@@ -177,29 +177,27 @@ pub fn spawn_windows_hook(initial_layout: String, tray: Option<Arc<WindowsTray>>
         *guard = Some(state);
     }
 
-    std::thread::spawn(|| {
-        unsafe {
-            use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
-            let hmod = GetModuleHandleW(std::ptr::null());
-            let hook = SetWindowsHookExW(WH_KEYBOARD_LL, Some(low_level_keyboard_proc), hmod, 0);
-            if hook != 0 as _ {
-                *HOOK_HANDLE.lock().unwrap() = Some(hook as usize);
-                tracing::info!("Windows Low-Level Keyboard Hook installed successfully");
+    std::thread::spawn(|| unsafe {
+        use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
+        let hmod = GetModuleHandleW(std::ptr::null());
+        let hook = SetWindowsHookExW(WH_KEYBOARD_LL, Some(low_level_keyboard_proc), hmod, 0);
+        if hook != 0 as _ {
+            *HOOK_HANDLE.lock().unwrap() = Some(hook as usize);
+            tracing::info!("Windows Low-Level Keyboard Hook installed successfully");
 
-                let mut msg: MSG = std::mem::zeroed();
-                while GetMessageW(&mut msg, 0 as _, 0, 0) > 0 {
-                    DispatchMessageW(&msg);
-                }
-
-                if let Some(h) = *HOOK_HANDLE.lock().unwrap() {
-                    UnhookWindowsHookEx(h as HHOOK);
-                }
-            } else {
-                tracing::error!(
-                    "Failed to install Windows Low-Level Keyboard Hook: {}",
-                    windows_sys::Win32::Foundation::GetLastError()
-                );
+            let mut msg: MSG = std::mem::zeroed();
+            while GetMessageW(&mut msg, 0 as _, 0, 0) > 0 {
+                DispatchMessageW(&msg);
             }
+
+            if let Some(h) = *HOOK_HANDLE.lock().unwrap() {
+                UnhookWindowsHookEx(h as HHOOK);
+            }
+        } else {
+            tracing::error!(
+                "Failed to install Windows Low-Level Keyboard Hook: {}",
+                windows_sys::Win32::Foundation::GetLastError()
+            );
         }
     });
 }
@@ -230,9 +228,8 @@ unsafe extern "system" fn low_level_keyboard_proc(
     let ctrl_down = (GetKeyState(VK_CONTROL as i32) & 0x8000u16 as i16) != 0;
     let shift_down = (GetKeyState(VK_SHIFT as i32) & 0x8000u16 as i16) != 0;
     let alt_down = (GetKeyState(VK_MENU as i32) & 0x8000u16 as i16) != 0;
-    let win_down = ((GetKeyState(VK_LWIN as i32) | GetKeyState(VK_RWIN as i32))
-        & 0x8000u16 as i16)
-        != 0;
+    let win_down =
+        ((GetKeyState(VK_LWIN as i32) | GetKeyState(VK_RWIN as i32)) & 0x8000u16 as i16) != 0;
 
     // Check global toggle hotkeys (F12, Ctrl+Space, and configurable Shift+Space)
     let is_toggle = if vk == VK_F12 && !ctrl_down && !alt_down && !win_down {
@@ -289,7 +286,8 @@ unsafe extern "system" fn low_level_keyboard_proc(
     let caps_locked = (GetKeyState(VK_CAPITAL as i32) & 1) != 0;
 
     // Direct Selection via 1..5 and Candidate Navigation in Phonetic Mode
-    if state.session.active_layout_type == ActiveLayoutType::Phonetic && state.uncommitted_units > 0 {
+    if state.session.active_layout_type == ActiveLayoutType::Phonetic && state.uncommitted_units > 0
+    {
         let candidates = state.session.get_candidates();
         if !candidates.is_empty() {
             // Direct candidate selection with 1..5
@@ -322,7 +320,10 @@ unsafe extern "system" fn low_level_keyboard_proc(
                     state.uncommitted_units = inject_unicode_str(&candidate);
                 }
                 if let Some(ref win) = state.candidate_win {
-                    win.update(state.session.get_candidates(), state.session.get_selected_index());
+                    win.update(
+                        state.session.get_candidates(),
+                        state.session.get_selected_index(),
+                    );
                 }
                 return 1;
             }
@@ -335,7 +336,10 @@ unsafe extern "system" fn low_level_keyboard_proc(
                     state.uncommitted_units = inject_unicode_str(&candidate);
                 }
                 if let Some(ref win) = state.candidate_win {
-                    win.update(state.session.get_candidates(), state.session.get_selected_index());
+                    win.update(
+                        state.session.get_candidates(),
+                        state.session.get_selected_index(),
+                    );
                 }
                 return 1;
             }
@@ -352,7 +356,10 @@ unsafe extern "system" fn low_level_keyboard_proc(
                 state.uncommitted_units = inject_unicode_str(&candidate);
                 if state.session.active_layout_type == ActiveLayoutType::Phonetic {
                     if let Some(ref win) = state.candidate_win {
-                        win.update(state.session.get_candidates(), state.session.get_selected_index());
+                        win.update(
+                            state.session.get_candidates(),
+                            state.session.get_selected_index(),
+                        );
                     }
                 }
             } else {
@@ -419,7 +426,10 @@ unsafe extern "system" fn low_level_keyboard_proc(
                 state.uncommitted_units = inject_unicode_str(&candidate);
                 if state.session.active_layout_type == ActiveLayoutType::Phonetic {
                     if let Some(ref win) = state.candidate_win {
-                        win.update(state.session.get_candidates(), state.session.get_selected_index());
+                        win.update(
+                            state.session.get_candidates(),
+                            state.session.get_selected_index(),
+                        );
                     }
                 } else if let Some(ref win) = state.candidate_win {
                     win.hide();

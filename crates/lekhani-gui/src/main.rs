@@ -389,4 +389,3 @@ fn show_mode_osd(
         },
     );
 }
-

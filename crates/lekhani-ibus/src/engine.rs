@@ -94,7 +94,10 @@ impl LekhaniIBusEngine {
 #[interface(name = "org.freedesktop.IBus.Engine")]
 impl LekhaniIBusEngine {
     #[zbus(signal)]
-    async fn commit_text(emitter: &zbus::object_server::SignalContext<'_>, text: &str) -> zbus::Result<()>;
+    async fn commit_text(
+        emitter: &zbus::object_server::SignalContext<'_>,
+        text: &str,
+    ) -> zbus::Result<()>;
 
     #[zbus(signal)]
     async fn update_preedit_text(
@@ -105,7 +108,9 @@ impl LekhaniIBusEngine {
     ) -> zbus::Result<()>;
 
     #[zbus(signal)]
-    async fn hide_preedit_text(emitter: &zbus::object_server::SignalContext<'_>) -> zbus::Result<()>;
+    async fn hide_preedit_text(
+        emitter: &zbus::object_server::SignalContext<'_>,
+    ) -> zbus::Result<()>;
 
     #[zbus(signal)]
     async fn update_lookup_table(
@@ -116,7 +121,9 @@ impl LekhaniIBusEngine {
     ) -> zbus::Result<()>;
 
     #[zbus(signal)]
-    async fn hide_lookup_table(emitter: &zbus::object_server::SignalContext<'_>) -> zbus::Result<()>;
+    async fn hide_lookup_table(
+        emitter: &zbus::object_server::SignalContext<'_>,
+    ) -> zbus::Result<()>;
 
     async fn process_key_event(
         &mut self,
@@ -210,7 +217,13 @@ impl LekhaniIBusEngine {
                         let preedit = st.session.get_preedit_text();
                         let cands = st.session.get_candidates();
                         let sel = st.session.get_selected_index() as u32;
-                        let _ = Self::update_preedit_text(&emitter, &preedit, preedit.chars().count() as u32, true).await;
+                        let _ = Self::update_preedit_text(
+                            &emitter,
+                            &preedit,
+                            preedit.chars().count() as u32,
+                            true,
+                        )
+                        .await;
                         let _ = Self::update_lookup_table(&emitter, cands, sel, true).await;
                     } else {
                         let _ = Self::hide_preedit_text(&emitter).await;
@@ -399,7 +412,9 @@ impl LekhaniIBusEngine {
             let preedit = st.session.get_preedit_text();
             let cands = st.session.get_candidates();
             let sel = st.session.get_selected_index() as u32;
-            let _ = Self::update_preedit_text(&emitter, &preedit, preedit.chars().count() as u32, true).await;
+            let _ =
+                Self::update_preedit_text(&emitter, &preedit, preedit.chars().count() as u32, true)
+                    .await;
             if !cands.is_empty() {
                 let _ = Self::update_lookup_table(&emitter, cands, sel, true).await;
             } else {

@@ -11,10 +11,10 @@ use windows_sys::Win32::Graphics::Gdi::{
     DT_SINGLELINE, DT_VCENTER, HDC, PAINTSTRUCT, TRANSPARENT,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, GetCursorPos, GetGUIThreadInfo,
-    RegisterClassW, SetWindowPos, ShowWindow, CS_HREDRAW, CS_VREDRAW, GUITHREADINFO,
-    HWND_TOPMOST, SWP_NOACTIVATE, SWP_SHOWWINDOW, SW_HIDE, WNDCLASSW,
-    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
+    CreateWindowExW, DefWindowProcW, GetCursorPos, GetGUIThreadInfo, RegisterClassW, SetWindowPos,
+    ShowWindow, CS_HREDRAW, CS_VREDRAW, GUITHREADINFO, HWND_TOPMOST, SWP_NOACTIVATE,
+    SWP_SHOWWINDOW, SW_HIDE, WNDCLASSW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST,
+    WS_POPUP,
 };
 
 #[derive(Clone, Default)]
@@ -120,7 +120,9 @@ impl CandidateWindow {
             }
 
             // Screen boundary clamping
-            use windows_sys::Win32::UI::WindowsAndMessaging::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
+            use windows_sys::Win32::UI::WindowsAndMessaging::{
+                GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN,
+            };
             let screen_w = GetSystemMetrics(SM_CXSCREEN);
             let screen_h = GetSystemMetrics(SM_CYSCREEN);
 
@@ -221,7 +223,20 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
 
     let font_name: Vec<u16> = "Segoe UI\0".encode_utf16().collect();
     let font = CreateFontW(
-        -14, 0, 0, 0, 600, 0, 0, 0, 1, 0, 0, 0, 0, font_name.as_ptr(),
+        -14,
+        0,
+        0,
+        0,
+        600,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        font_name.as_ptr(),
     );
     let old_font = SelectObject(hdc, font as _);
 
@@ -240,7 +255,15 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
             // Highlight active pill: #89b4fa
             let active_brush = CreateSolidBrush(0x00FAB489);
             let old_brush = SelectObject(hdc, active_brush as _);
-            RoundRect(hdc, item_rect.left, item_rect.top, item_rect.right, item_rect.bottom, 8, 8);
+            RoundRect(
+                hdc,
+                item_rect.left,
+                item_rect.top,
+                item_rect.right,
+                item_rect.bottom,
+                8,
+                8,
+            );
             SelectObject(hdc, old_brush);
             DeleteObject(active_brush as _);
 

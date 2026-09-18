@@ -486,8 +486,14 @@ fn main() -> anyhow::Result<()> {
                     println!("╔══════════════════════════════════════════════════════╗");
                     println!("║      🚀 Lekhani Personal Pre-Training Complete       ║");
                     println!("╠══════════════════════════════════════════════════════╣");
-                    println!("║ Baseline Vocabulary:    {:>28} ║", learner.learned_words.len());
-                    println!("║ Baseline Bigram Pairs:  {:>28} ║", learner.user_bigrams.len());
+                    println!(
+                        "║ Baseline Vocabulary:    {:>28} ║",
+                        learner.learned_words.len()
+                    );
+                    println!(
+                        "║ Baseline Bigram Pairs:  {:>28} ║",
+                        learner.user_bigrams.len()
+                    );
                     println!("║ Stored Path:            {:<28} ║", learned_path.display());
                     println!("╚══════════════════════════════════════════════════════╝");
                 }

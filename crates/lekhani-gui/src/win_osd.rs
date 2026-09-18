@@ -6,16 +6,15 @@
 use std::sync::Mutex;
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, RECT, WPARAM};
 use windows_sys::Win32::Graphics::Gdi::{
-    BeginPaint, CreateFontW, CreateSolidBrush, DeleteObject, DrawTextW, EndPaint,
-    FillRect, InvalidateRect, RoundRect, SelectObject, SetBkMode, SetTextColor,
-    DT_CENTER, DT_SINGLELINE, DT_VCENTER, HDC, PAINTSTRUCT, TRANSPARENT,
+    BeginPaint, CreateFontW, CreateSolidBrush, DeleteObject, DrawTextW, EndPaint, FillRect,
+    InvalidateRect, RoundRect, SelectObject, SetBkMode, SetTextColor, DT_CENTER, DT_SINGLELINE,
+    DT_VCENTER, HDC, PAINTSTRUCT, TRANSPARENT,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, GetSystemMetrics, KillTimer, RegisterClassW,
-    SetTimer, SetWindowPos, ShowWindow, CS_HREDRAW, CS_VREDRAW, HWND_TOPMOST,
-    SM_CXSCREEN, SM_CYSCREEN, SWP_NOACTIVATE, SWP_SHOWWINDOW, SW_HIDE, WNDCLASSW,
+    CreateWindowExW, DefWindowProcW, GetSystemMetrics, KillTimer, RegisterClassW, SetTimer,
+    SetWindowPos, ShowWindow, CS_HREDRAW, CS_VREDRAW, HWND_TOPMOST, SM_CXSCREEN, SM_CYSCREEN,
+    SWP_NOACTIVATE, SWP_SHOWWINDOW, SW_HIDE, WM_ERASEBKGND, WM_PAINT, WM_TIMER, WNDCLASSW,
     WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
-    WM_ERASEBKGND, WM_PAINT, WM_TIMER,
 };
 
 const OSD_TIMER_ID: usize = 0x105D;
@@ -232,7 +231,20 @@ unsafe fn paint_osd(hwnd: HWND, hdc: HDC) {
     // Primary Title (e.g. "বাংলা" or "English")
     let font_name: Vec<u16> = "Segoe UI\0".encode_utf16().collect();
     let title_font = CreateFontW(
-        -18, 0, 0, 0, 700, 0, 0, 0, 1, 0, 0, 0, 0, font_name.as_ptr(),
+        -18,
+        0,
+        0,
+        0,
+        700,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        font_name.as_ptr(),
     );
     let old_font = SelectObject(hdc, title_font as _);
 
@@ -259,7 +271,20 @@ unsafe fn paint_osd(hwnd: HWND, hdc: HDC) {
 
     // Subtitle (e.g. "Avro Phonetic" or "Standard US")
     let sub_font = CreateFontW(
-        -11, 0, 0, 0, 400, 0, 0, 0, 1, 0, 0, 0, 0, font_name.as_ptr(),
+        -11,
+        0,
+        0,
+        0,
+        400,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        font_name.as_ptr(),
     );
     SelectObject(hdc, sub_font as _);
     SetTextColor(hdc, 0x00A6ADC8); // Muted subtext
