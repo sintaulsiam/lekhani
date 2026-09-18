@@ -303,7 +303,16 @@ unsafe extern "system" fn low_level_keyboard_proc(
                         inject_backspaces(state.uncommitted_units);
                         inject_unicode_str(&committed);
                         state.uncommitted_units = 0;
-                        if let Some(ref win) = state.candidate_win {
+                        if state.config_mgr.config.phonetic.enable_predictive_next_words {
+                            if state.session.populate_predictions() {
+                                let preds = state.session.get_candidates();
+                                if let Some(ref win) = state.candidate_win {
+                                    win.update(preds, 0);
+                                }
+                            } else if let Some(ref win) = state.candidate_win {
+                                win.hide();
+                            }
+                        } else if let Some(ref win) = state.candidate_win {
                             win.hide();
                         }
                         return 1;
@@ -346,6 +355,41 @@ unsafe extern "system" fn low_level_keyboard_proc(
         }
     }
 
+    // Direct Selection via 1..5 in Zero-Preedit Prediction Mode
+    if state.session.active_layout_type == ActiveLayoutType::Phonetic
+        && state.uncommitted_units == 0
+        && state.session.is_prediction_mode()
+    {
+        let candidates = state.session.get_candidates();
+        let sel_num = match vk {
+            0x31..=0x35 if !shift_down => Some((vk - 0x31) as usize),
+            VK_NUMPAD1..=VK_NUMPAD5 => Some((vk - VK_NUMPAD1) as usize),
+            _ => None,
+        };
+
+        if let Some(idx) = sel_num {
+            if idx < candidates.len() {
+                if let Some(committed) = state.session.commit(idx) {
+                    inject_unicode_str(&committed);
+                    inject_unicode_str(" ");
+                    if state.config_mgr.config.phonetic.enable_predictive_next_words {
+                        if state.session.populate_predictions() {
+                            let preds = state.session.get_candidates();
+                            if let Some(ref win) = state.candidate_win {
+                                win.update(preds, 0);
+                            }
+                        } else if let Some(ref win) = state.candidate_win {
+                            win.hide();
+                        }
+                    } else if let Some(ref win) = state.candidate_win {
+                        win.hide();
+                    }
+                    return 1;
+                }
+            }
+        }
+    }
+
     // Handle Backspace
     if vk == VK_BACK {
         if state.uncommitted_units > 0 {
@@ -369,6 +413,11 @@ unsafe extern "system" fn low_level_keyboard_proc(
                 }
             }
             return 1;
+        } else if state.session.is_prediction_mode() {
+            state.session.reset();
+            if let Some(ref win) = state.candidate_win {
+                win.hide();
+            }
         }
         return CallNextHookEx(0 as _, n_code, w_param, l_param);
     }
@@ -378,11 +427,25 @@ unsafe extern "system" fn low_level_keyboard_proc(
         if state.uncommitted_units > 0 {
             state.session.commit(state.session.get_selected_index());
             state.uncommitted_units = 0;
+            inject_unicode_str(" ");
+            if state.config_mgr.config.phonetic.enable_predictive_next_words {
+                if state.session.populate_predictions() {
+                    let preds = state.session.get_candidates();
+                    if let Some(ref win) = state.candidate_win {
+                        win.update(preds, 0);
+                    }
+                } else if let Some(ref win) = state.candidate_win {
+                    win.hide();
+                }
+            } else if let Some(ref win) = state.candidate_win {
+                win.hide();
+            }
+            return 1;
+        } else if state.session.is_prediction_mode() {
+            state.session.reset();
             if let Some(ref win) = state.candidate_win {
                 win.hide();
             }
-            inject_unicode_str(" ");
-            return 1;
         }
         return CallNextHookEx(0 as _, n_code, w_param, l_param);
     }
@@ -395,14 +458,21 @@ unsafe extern "system" fn low_level_keyboard_proc(
             if let Some(ref win) = state.candidate_win {
                 win.hide();
             }
+        } else if state.session.is_prediction_mode() {
+            state.session.reset();
+            if let Some(ref win) = state.candidate_win {
+                win.hide();
+            }
         }
         return CallNextHookEx(0 as _, n_code, w_param, l_param);
     }
 
     // Handle Escape
     if vk == VK_ESCAPE {
-        if state.uncommitted_units > 0 {
-            inject_backspaces(state.uncommitted_units);
+        if state.uncommitted_units > 0 || state.session.is_prediction_mode() {
+            if state.uncommitted_units > 0 {
+                inject_backspaces(state.uncommitted_units);
+            }
             state.session.clear_context();
             state.uncommitted_units = 0;
             if let Some(ref win) = state.candidate_win {
@@ -415,6 +485,12 @@ unsafe extern "system" fn low_level_keyboard_proc(
 
     // Translate Virtual Key to character
     if let Some(ch) = vk_to_char(vk, shift_down, caps_locked) {
+        if state.session.is_prediction_mode() && state.uncommitted_units == 0 {
+            state.session.reset();
+            if let Some(ref win) = state.candidate_win {
+                win.hide();
+            }
+        }
         let keycode = state.mapper.map_keyval(ch as u32);
         let modifier_mask = if shift_down { MODIFIER_SHIFT } else { 0 };
 
