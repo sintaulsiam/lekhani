@@ -164,19 +164,22 @@ jobs:
         run: |
           $ver = "3.0.0"
           $portable = "target/portable/lekhani-v$ver-windows-x64"
+          if (Test-Path $portable) {
+            Remove-Item -Recurse -Force $portable
+          }
           New-Item -ItemType Directory -Force -Path "$portable/data"
-          Copy-Item "target/release/lekhani-gui.exe" -Destination "$portable/"
-          Copy-Item "target/release/lekhani.exe" -Destination "$portable/"
+          Copy-Item -Force "target/release/lekhani-gui.exe" -Destination "$portable/"
+          Copy-Item -Force "target/release/lekhani.exe" -Destination "$portable/"
           if (Test-Path "target/release/lekhani.dll") {
-            Copy-Item "target/release/lekhani.dll" -Destination "$portable/"
+            Copy-Item -Force "target/release/lekhani.dll" -Destination "$portable/"
           }
           if (Test-Path "target/release/lekhani_ffi.dll") {
-            Copy-Item "target/release/lekhani_ffi.dll" -Destination "$portable/"
+            Copy-Item -Force "target/release/lekhani_ffi.dll" -Destination "$portable/"
           }
-          Copy-Item -Recurse "data/layouts" -Destination "$portable/data/"
-          Copy-Item -Recurse "data/dictionaries" -Destination "$portable/data/"
-          Copy-Item -Recurse "data/icons" -Destination "$portable/data/"
-          Copy-Item "README.md" -Destination "$portable/README.txt"
+          Copy-Item -Recurse -Force "data/layouts" -Destination "$portable/data/"
+          Copy-Item -Recurse -Force "data/dictionaries" -Destination "$portable/data/"
+          Copy-Item -Recurse -Force "data/icons" -Destination "$portable/data/"
+          Copy-Item -Force "README.md" -Destination "$portable/README.txt"
           New-Item -ItemType Directory -Force -Path "dist"
           Compress-Archive -Path "$portable/*" -DestinationPath "dist/lekhani-v$ver-windows-x64.zip" -Force
 
