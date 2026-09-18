@@ -201,7 +201,7 @@ impl LekhaniIBusEngine {
 
             if let Some(idx) = cand_idx {
                 if idx < st.session.get_candidates().len() {
-                    if let Some(committed) = st.session.commit(idx) {
+                    if let Some(committed) = st.commit(idx) {
                         let _ = Self::commit_text(&emitter, &committed).await;
                         if st.config_mgr.config.phonetic.enable_predictive_next_words {
                             st.session.populate_predictions();
