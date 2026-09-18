@@ -25,21 +25,21 @@ export struct HeatmapEntry {
 // Reusable Custom Modern UI Components
 // -----------------------------------------------------------------------------
 
-component IconButton inherits Rectangle {
-    in property <string> icon;
+component VectorIconButton inherits Rectangle {
+    in property <image> icon;
     in property <bool> active: false;
-    in property <color> icon-color: #cdd6f4;
+    in property <color> icon-color: #a6adc8;
     in property <color> active-color: #89b4fa;
     in property <color> active-bg: #89b4fa28;
     out property <bool> has-hover: ta.has-hover;
     callback clicked;
 
-    width: 28px;
-    height: 28px;
-    border-radius: 14px;
+    width: 26px;
+    height: 26px;
+    border-radius: 13px;
     border-width: 1px;
-    border-color: root.active ? root.active-color : (ta.has-hover ? #585b70 : transparent);
-    background: root.active ? root.active-bg : (ta.has-hover ? #31324499 : transparent);
+    border-color: root.active ? root.active-color : (ta.has-hover ? #585b7088 : transparent);
+    background: root.active ? root.active-bg : (ta.has-hover ? #31324488 : transparent);
     animate background, border-color { duration: 120ms; }
 
     ta := TouchArea {
@@ -47,12 +47,13 @@ component IconButton inherits Rectangle {
         clicked => { root.clicked(); }
     }
 
-    Text {
-        text: root.icon;
-        font-size: 13px;
-        color: root.active ? root.active-color : (ta.has-hover ? #ffffff : root.icon-color);
-        horizontal-alignment: center;
-        vertical-alignment: center;
+    Image {
+        source: root.icon;
+        width: 14px;
+        height: 14px;
+        colorize: root.active ? root.active-color : (ta.has-hover ? #ffffff : root.icon-color);
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
     }
 }
 
@@ -61,34 +62,38 @@ component CloseButton inherits Rectangle {
     width: 24px;
     height: 24px;
     border-radius: 12px;
-    background: ta.has-hover ? #f38ba833 : transparent;
-    animate background { duration: 120ms; }
+    background: ta.has-hover ? #f38ba828 : transparent;
+    border-width: 1px;
+    border-color: ta.has-hover ? #f38ba855 : transparent;
+    animate background, border-color { duration: 120ms; }
 
     ta := TouchArea {
         mouse-cursor: pointer;
         clicked => { root.clicked(); }
     }
 
-    Text {
-        text: "✕";
-        font-size: 11px;
-        font-weight: 700;
-        color: #f38ba8;
-        horizontal-alignment: center;
-        vertical-alignment: center;
+    Image {
+        source: @image-url("../../../data/icons/ui/close.svg");
+        width: 11px;
+        height: 11px;
+        colorize: ta.has-hover ? #f38ba8 : #6c7086;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
     }
 }
 
-component ModeButton inherits Rectangle {
+component SegmentButton inherits Rectangle {
     in property <string> label;
     in property <bool> active: false;
     in property <color> active-color: #89b4fa;
     callback clicked;
 
-    height: 26px;
+    height: 24px;
     border-radius: 6px;
-    background: root.active ? root.active-color : (ta.has-hover ? #45475a : #24253a);
-    animate background { duration: 120ms; }
+    background: root.active ? #313244 : (ta.has-hover ? #1e1e2e : transparent);
+    border-width: 1px;
+    border-color: root.active ? root.active-color : transparent;
+    animate background, border-color { duration: 100ms; }
 
     ta := TouchArea {
         mouse-cursor: pointer;
@@ -101,9 +106,9 @@ component ModeButton inherits Rectangle {
         alignment: center;
         Text {
             text: root.label;
-            color: root.active ? #11111b : #cdd6f4;
+            color: root.active ? #ffffff : (ta.has-hover ? #cdd6f4 : #a6adc8);
             font-size: 11px;
-            font-weight: 700;
+            font-weight: root.active ? 700 : 500;
             vertical-alignment: center;
         }
     }
@@ -113,13 +118,13 @@ component KeyCapButton inherits Rectangle {
     in property <string> key-char;
     in property <color> text-color: #cdd6f4;
 
-    width: 36px;
+    width: 32px;
     height: 30px;
-    border-radius: 5px;
-    background: ta.has-hover ? #45475a : #24253a;
+    border-radius: 6px;
+    background: ta.has-hover ? #313244 : #1e1e2e;
     border-width: 1px;
-    border-color: ta.has-hover ? #89b4fa : transparent;
-    animate background { duration: 100ms; }
+    border-color: ta.has-hover ? #89b4fa88 : #31324466;
+    animate background, border-color { duration: 100ms; }
 
     ta := TouchArea {
         mouse-cursor: pointer;
@@ -128,7 +133,7 @@ component KeyCapButton inherits Rectangle {
     Text {
         text: root.key-char;
         color: root.text-color;
-        font-size: 12.5px;
+        font-size: 12px;
         font-weight: 600;
         horizontal-alignment: center;
         vertical-alignment: center;
@@ -144,7 +149,7 @@ export component TopBarWindow inherits Window {
     always-on-top: true;
     no-frame: true;
     background: transparent;
-    default-font-family: "Inter, Ubuntu, sans-serif";
+    default-font-family: "Inter, Noto Sans Bengali, Kalpurush, Ubuntu, sans-serif";
     
     in-out property <string> active-layout-name: "Avro Phonetic";
     in-out property <[string]> available-layouts: ["Avro Phonetic", "Probhat", "National (Jatiya)", "Unijoy", "Munir Optima", "Borno", "Avro Easy"];
@@ -249,14 +254,14 @@ export component TopBarWindow inherits Window {
     out property <string> hover-tooltip:
         btn_logo_ta.has-hover ? "About Lekhani (লেখনী)" :
         (btn_layout_ta.has-hover ? "Switch Bengali Keyboard Layout" :
-        (btn_viewer.has-hover ? "Keyboard Layout Viewer & Virtual Keys (⌨)" :
-        (btn_ac.has-hover ? "AutoCorrect & Custom Dictionary Manager (✎)" :
-        (btn_conv.has-hover ? "Bijoy (ANSI) ⇄ Unicode Converter (⇄)" :
-        (btn_conjunct.has-hover ? "যুক্তবর্ণ সহায়িকা (Conjunct Assistant) (🧩)" :
-        (btn_stats.has-hover ? "Personal Typing Telemetry & Speed (📊)" :
-        (btn_settings.has-hover ? "Settings & Typing Preferences (⚙)" :
-        (drag_ta.has-hover ? "Click & Drag to Move Floating Bar (⠿)" :
-        (btn_close.has-hover ? "Exit Lekhani Desktop Suite (✕)" : "")))))))));
+        (btn_viewer.has-hover ? "Keyboard Layout Viewer" :
+        (btn_ac.has-hover ? "AutoCorrect & Custom Dictionary" :
+        (btn_conv.has-hover ? "Bijoy (ANSI) ⇄ Unicode Converter" :
+        (btn_conjunct.has-hover ? "Conjunct Assistant (যুক্তবর্ণ)" :
+        (btn_stats.has-hover ? "Typing Telemetry & Speed" :
+        (btn_settings.has-hover ? "Settings & Preferences" :
+        (drag_ta.has-hover ? "Drag to Move Floating Ribbon" :
+        (btn_close.has-hover ? "Exit Lekhani" : "")))))))));
 
     VerticalLayout {
         alignment: start;
@@ -266,7 +271,7 @@ export component TopBarWindow inherits Window {
         // Main Floating TopBar (Sleek Compact Dynamic Island Ribbon)
         // ---------------------------------------------------------------------
         Rectangle {
-            width: 430px;
+            width: 480px;
             height: 40px;
             background: #11111bf4;
             border-radius: 20px;
@@ -278,15 +283,15 @@ export component TopBarWindow inherits Window {
             HorizontalLayout {
                 padding-left: 8px;
                 padding-right: 8px;
-                spacing: 3px;
+                spacing: 4px;
                 alignment: center;
 
                 // 1. Drag Handle Grip
                 Rectangle {
-                    width: 18px;
-                    height: 28px;
-                    border-radius: 9px;
-                    background: drag_ta.has-hover ? #45475a88 : transparent;
+                    width: 16px;
+                    height: 26px;
+                    border-radius: 8px;
+                    background: drag_ta.has-hover ? #45475a66 : transparent;
                     animate background { duration: 120ms; }
 
                     drag_ta := TouchArea {
@@ -301,23 +306,23 @@ export component TopBarWindow inherits Window {
                         }
                     }
 
-                    Text {
-                        text: "⠿";
-                        font-size: 13px;
-                        color: drag_ta.has-hover ? #89b4fa : #585b70;
-                        horizontal-alignment: center;
-                        vertical-alignment: center;
+                    Image {
+                        source: @image-url("../../../data/icons/ui/grip.svg");
+                        width: 12px;
+                        height: 12px;
+                        colorize: drag_ta.has-hover ? #89b4fa : #585b70;
+                        x: (parent.width - self.width) / 2;
+                        y: (parent.height - self.height) / 2;
                     }
                 }
 
                 // 2. Brand Logo / About Button
                 Rectangle {
-                    width: 28px;
-                    height: 28px;
-                    border-radius: 14px;
-                    background: root.active-dialog == 6 ? #89b4fa33 : (btn_logo_ta.has-hover ? #89b4fa22 : #1e1e2e88);
+                    height: 26px;
+                    border-radius: 13px;
+                    background: root.active-dialog == 6 ? #89b4fa28 : (btn_logo_ta.has-hover ? #31324466 : transparent);
                     border-width: 1px;
-                    border-color: root.active-dialog == 6 ? #89b4fa : (btn_logo_ta.has-hover ? #89b4fa55 : #313244);
+                    border-color: root.active-dialog == 6 ? #89b4fa : (btn_logo_ta.has-hover ? #45475a : transparent);
                     animate background, border-color { duration: 120ms; }
 
                     btn_logo_ta := TouchArea {
@@ -327,20 +332,41 @@ export component TopBarWindow inherits Window {
                         }
                     }
 
-                    Image {
-                        source: @image-url("../../../data/icons/64.png");
-                        width: 18px;
-                        height: 18px;
-                        x: 5px;
-                        y: 5px;
+                    HorizontalLayout {
+                        padding-left: 5px;
+                        padding-right: 8px;
+                        spacing: 5px;
+                        alignment: center;
+
+                        Image {
+                            source: @image-url("../../../data/icons/64.png");
+                            width: 16px;
+                            height: 16px;
+                            vertical-alignment: center;
+                        }
+
+                        Text {
+                            text: "Lekhani";
+                            color: root.active-dialog == 6 ? #89b4fa : #cdd6f4;
+                            font-size: 12px;
+                            font-weight: 700;
+                            vertical-alignment: center;
+                        }
                     }
+                }
+
+                // Vertical Divider
+                Rectangle {
+                    width: 1px;
+                    height: 16px;
+                    background: #31324488;
                 }
 
                 // 3. Active Layout Selector Pill Button
                 Rectangle {
-                    height: 28px;
-                    background: root.active-dialog == 1 ? #89b4fa25 : (btn_layout_ta.has-hover ? #45475a88 : #24253acc);
-                    border-radius: 14px;
+                    height: 26px;
+                    background: root.active-dialog == 1 ? #89b4fa25 : (btn_layout_ta.has-hover ? #31324488 : #1e1e2ecc);
+                    border-radius: 13px;
                     border-width: 1px;
                     border-color: root.active-dialog == 1 ? #89b4fa : (btn_layout_ta.has-hover ? #585b70 : #313244);
                     animate background, border-color { duration: 120ms; }
@@ -353,29 +379,37 @@ export component TopBarWindow inherits Window {
                     }
 
                     HorizontalLayout {
-                        padding-left: 10px;
-                        padding-right: 10px;
-                        spacing: 4px;
+                        padding-left: 9px;
+                        padding-right: 8px;
+                        spacing: 5px;
                         alignment: center;
                         Text {
                             text: root.active-layout-name;
                             color: root.active-dialog == 1 ? #89b4fa : #cdd6f4;
-                            font-size: 12px;
-                            font-weight: 700;
+                            font-size: 11.5px;
+                            font-weight: 600;
                             vertical-alignment: center;
                         }
-                        Text {
-                            text: root.active-dialog == 1 ? "▴" : "▾";
-                            color: #89b4fa;
-                            font-size: 10px;
+                        Image {
+                            source: @image-url("../../../data/icons/ui/chevron_down.svg");
+                            width: 9px;
+                            height: 9px;
+                            colorize: root.active-dialog == 1 ? #89b4fa : #6c7086;
                             vertical-alignment: center;
                         }
                     }
                 }
 
-                // 4. Layout Viewer Button (Keyboard Icon)
-                btn_viewer := IconButton {
-                    icon: "⌨";
+                // Vertical Divider
+                Rectangle {
+                    width: 1px;
+                    height: 16px;
+                    background: #31324488;
+                }
+
+                // 4. Layout Viewer Button (Keyboard Vector Icon)
+                btn_viewer := VectorIconButton {
+                    icon: @image-url("../../../data/icons/ui/keyboard.svg");
                     active: root.active-dialog == 2;
                     active-color: #89b4fa;
                     active-bg: #89b4fa25;
@@ -384,9 +418,9 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                // 5. AutoCorrect Manager Button (Pen Icon)
-                btn_ac := IconButton {
-                    icon: "✎";
+                // 5. AutoCorrect Manager Button (Pen Vector Icon)
+                btn_ac := VectorIconButton {
+                    icon: @image-url("../../../data/icons/ui/pen.svg");
                     active: root.active-dialog == 3;
                     active-color: #a6e3a1;
                     active-bg: #a6e3a125;
@@ -395,9 +429,9 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                // 6. Bijoy ⇄ Unicode Converter Button (Exchange Icon)
-                btn_conv := IconButton {
-                    icon: "⇄";
+                // 6. Bijoy ⇄ Unicode Converter Button (Exchange Vector Icon)
+                btn_conv := VectorIconButton {
+                    icon: @image-url("../../../data/icons/ui/exchange.svg");
                     active: root.active-dialog == 4;
                     active-color: #fab387;
                     active-bg: #fab38725;
@@ -406,9 +440,9 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                // 7. Conjunct Assistant Button (Puzzle Icon)
-                btn_conjunct := IconButton {
-                    icon: "🧩";
+                // 7. Conjunct Assistant Button (Puzzle Vector Icon)
+                btn_conjunct := VectorIconButton {
+                    icon: @image-url("../../../data/icons/ui/puzzle.svg");
                     active: root.active-dialog == 7;
                     active-color: #89dceb;
                     active-bg: #89dceb25;
@@ -417,9 +451,9 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                // 8. Personal Typing Telemetry & Speed (Chart Icon)
-                btn_stats := IconButton {
-                    icon: "📊";
+                // 8. Personal Typing Telemetry & Speed (Chart Vector Icon)
+                btn_stats := VectorIconButton {
+                    icon: @image-url("../../../data/icons/ui/chart.svg");
                     active: root.active-dialog == 8;
                     active-color: #f9e2af;
                     active-bg: #f9e2af25;
@@ -431,9 +465,9 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                // 9. Settings Button (Gear Icon)
-                btn_settings := IconButton {
-                    icon: "⚙";
+                // 9. Settings Button (Gear Vector Icon)
+                btn_settings := VectorIconButton {
+                    icon: @image-url("../../../data/icons/ui/settings.svg");
                     active: root.active-dialog == 5;
                     active-color: #cba6f7;
                     active-bg: #cba6f725;
@@ -442,9 +476,16 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                // 10. Exit TopBar Button
-                btn_close := IconButton {
-                    icon: "✕";
+                // Vertical Divider
+                Rectangle {
+                    width: 1px;
+                    height: 16px;
+                    background: #31324488;
+                }
+
+                // 10. Exit TopBar Button (Close Vector Icon)
+                btn_close := VectorIconButton {
+                    icon: @image-url("../../../data/icons/ui/close.svg");
                     icon-color: #f38ba8;
                     active: false;
                     clicked => { root.trigger-quit(); }
@@ -471,7 +512,7 @@ export component TopBarWindow inherits Window {
                 Text {
                     text: root.hover-tooltip;
                     color: #cdd6f4;
-                    font-size: 10.5px;
+                    font-size: 11px;
                     font-weight: 600;
                     vertical-alignment: center;
                 }
@@ -500,7 +541,7 @@ export component TopBarWindow inherits Window {
                     padding-top: 2px;
                     padding-bottom: 2px;
                     Text {
-                        text: "SELECT KEYBOARD LAYOUT";
+                        text: "KEYBOARD LAYOUTS";
                         color: #89b4fa;
                         font-size: 9.5px;
                         font-weight: 800;
@@ -553,7 +594,7 @@ export component TopBarWindow inherits Window {
         // 2. Visual Keyboard Layout Viewer Dialog
         // ---------------------------------------------------------------------
         if (root.active-dialog == 2) : Rectangle {
-            width: 500px;
+            width: 480px;
             background: #11111bf8;
             border-radius: 16px;
             border-width: 1px;
@@ -569,13 +610,20 @@ export component TopBarWindow inherits Window {
                 HorizontalLayout {
                     alignment: space-between;
                     HorizontalLayout {
-                        spacing: 6px;
-                        Text { text: "⌨"; color: #89b4fa; font-size: 16px; }
+                        spacing: 8px;
+                        Image {
+                            source: @image-url("../../../data/icons/ui/keyboard.svg");
+                            width: 16px;
+                            height: 16px;
+                            colorize: #89b4fa;
+                            vertical-alignment: center;
+                        }
                         Text {
-                            text: "Keyboard Layout Viewer — " + root.active-layout-name;
+                            text: "Layout Viewer — " + root.active-layout-name;
                             color: #cdd6f4;
-                            font-size: 14px;
+                            font-size: 13.5px;
                             font-weight: 700;
+                            vertical-alignment: center;
                         }
                     }
                     CloseButton {
@@ -583,26 +631,34 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                // Mode Tabs (Normal / Shift / AltGr)
-                HorizontalLayout {
-                    spacing: 6px;
-                    ModeButton {
-                        label: "Normal View";
-                        active: root.viewer-mode == 0;
-                        active-color: #89b4fa;
-                        clicked => { root.viewer-mode = 0; }
-                    }
-                    ModeButton {
-                        label: "Shift View";
-                        active: root.viewer-mode == 1;
-                        active-color: #a6e3a1;
-                        clicked => { root.viewer-mode = 1; }
-                    }
-                    ModeButton {
-                        label: "AltGr (Level 3) View";
-                        active: root.viewer-mode == 2;
-                        active-color: #fab387;
-                        clicked => { root.viewer-mode = 2; }
+                // Mode Segmented Pill Control (Normal / Shift / AltGr)
+                Rectangle {
+                    height: 28px;
+                    background: #0d0e15;
+                    border-radius: 7px;
+                    border-width: 1px;
+                    border-color: #24253a;
+                    HorizontalLayout {
+                        padding: 2px;
+                        spacing: 3px;
+                        SegmentButton {
+                            label: "Normal";
+                            active: root.viewer-mode == 0;
+                            active-color: #89b4fa;
+                            clicked => { root.viewer-mode = 0; }
+                        }
+                        SegmentButton {
+                            label: "Shift";
+                            active: root.viewer-mode == 1;
+                            active-color: #a6e3a1;
+                            clicked => { root.viewer-mode = 1; }
+                        }
+                        SegmentButton {
+                            label: "AltGr";
+                            active: root.viewer-mode == 2;
+                            active-color: #fab387;
+                            clicked => { root.viewer-mode = 2; }
+                        }
                     }
                 }
 
@@ -615,7 +671,7 @@ export component TopBarWindow inherits Window {
 
                     VerticalLayout {
                         padding: 10px;
-                        spacing: 6px;
+                        spacing: 5px;
 
                         // Row 1: Numbers
                         HorizontalLayout {
@@ -677,7 +733,7 @@ export component TopBarWindow inherits Window {
         // 3. AutoCorrect & Custom Word Dictionary Dialog
         // ---------------------------------------------------------------------
         if (root.active-dialog == 3) : Rectangle {
-            width: 460px;
+            width: 480px;
             background: #11111bf8;
             border-radius: 16px;
             border-width: 1px;
@@ -693,9 +749,15 @@ export component TopBarWindow inherits Window {
                 HorizontalLayout {
                     alignment: space-between;
                     HorizontalLayout {
-                        spacing: 6px;
-                        Text { text: "✎"; color: #a6e3a1; font-size: 16px; }
-                        Text { text: "AutoCorrect & Custom Dictionary Manager"; color: #cdd6f4; font-size: 14px; font-weight: 700; }
+                        spacing: 8px;
+                        Image {
+                            source: @image-url("../../../data/icons/ui/pen.svg");
+                            width: 16px;
+                            height: 16px;
+                            colorize: #a6e3a1;
+                            vertical-alignment: center;
+                        }
+                        Text { text: "AutoCorrect & Custom Dictionary"; color: #cdd6f4; font-size: 13.5px; font-weight: 700; vertical-alignment: center; }
                     }
                     CloseButton {
                         clicked => { root.active-dialog = 0; }
@@ -705,7 +767,7 @@ export component TopBarWindow inherits Window {
                 // Search Bar
                 search_input := LineEdit {
                     text: root.ac-search-query;
-                    placeholder-text: "🔍 Search custom words and autocorrect triggers...";
+                    placeholder-text: "Search custom words and autocorrect triggers...";
                     edited(t) => {
                         root.ac-search-query = t;
                         root.ac-search-changed(t);
@@ -722,7 +784,7 @@ export component TopBarWindow inherits Window {
                     VerticalLayout {
                         padding: 10px;
                         spacing: 6px;
-                        Text { text: "➕ ADD OR UPDATE WORD"; color: #89b4fa; font-size: 10px; font-weight: 700; }
+                        Text { text: "ADD OR UPDATE WORD"; color: #89b4fa; font-size: 9.5px; font-weight: 700; }
                         HorizontalLayout {
                             spacing: 6px;
                             in_replace := LineEdit {
@@ -766,7 +828,7 @@ export component TopBarWindow inherits Window {
         // 4. Bijoy ⇄ Unicode Converter Dialog
         // ---------------------------------------------------------------------
         if (root.active-dialog == 4) : Rectangle {
-            width: 460px;
+            width: 480px;
             background: #11111bf8;
             border-radius: 16px;
             border-width: 1px;
@@ -782,9 +844,15 @@ export component TopBarWindow inherits Window {
                 HorizontalLayout {
                     alignment: space-between;
                     HorizontalLayout {
-                        spacing: 6px;
-                        Text { text: "⇄"; color: #fab387; font-size: 16px; }
-                        Text { text: "Bijoy (ANSI) ⇄ Unicode Converter"; color: #cdd6f4; font-size: 14px; font-weight: 700; }
+                        spacing: 8px;
+                        Image {
+                            source: @image-url("../../../data/icons/ui/exchange.svg");
+                            width: 16px;
+                            height: 16px;
+                            colorize: #fab387;
+                            vertical-alignment: center;
+                        }
+                        Text { text: "Bijoy (ANSI) ⇄ Unicode Converter"; color: #cdd6f4; font-size: 13.5px; font-weight: 700; vertical-alignment: center; }
                     }
                     CloseButton {
                         clicked => { root.active-dialog = 0; }
@@ -832,7 +900,7 @@ export component TopBarWindow inherits Window {
         // 5. Settings Dialog Window
         // ---------------------------------------------------------------------
         if (root.active-dialog == 5) : Rectangle {
-            width: 460px;
+            width: 480px;
             background: #11111bf8;
             border-radius: 16px;
             border-width: 1px;
@@ -848,9 +916,15 @@ export component TopBarWindow inherits Window {
                 HorizontalLayout {
                     alignment: space-between;
                     HorizontalLayout {
-                        spacing: 6px;
-                        Text { text: "⚙"; color: #cba6f7; font-size: 16px; }
-                        Text { text: "Lekhani Preferences & Settings"; color: #cdd6f4; font-size: 14px; font-weight: 700; }
+                        spacing: 8px;
+                        Image {
+                            source: @image-url("../../../data/icons/ui/settings.svg");
+                            width: 16px;
+                            height: 16px;
+                            colorize: #cba6f7;
+                            vertical-alignment: center;
+                        }
+                        Text { text: "Preferences & Settings"; color: #cdd6f4; font-size: 13.5px; font-weight: 700; vertical-alignment: center; }
                     }
                     CloseButton {
                         clicked => { root.active-dialog = 0; }
@@ -867,7 +941,7 @@ export component TopBarWindow inherits Window {
                     VerticalLayout {
                         padding: 10px;
                         spacing: 5px;
-                        Text { text: "🎙️ PHONETIC TYPING OPTIONS"; color: #89b4fa; font-size: 10px; font-weight: 700; }
+                        Text { text: "PHONETIC TYPING OPTIONS"; color: #89b4fa; font-size: 9.5px; font-weight: 700; }
                         CheckBox { text: "Enable Prefix Trie Dictionary Suggestions"; checked: root.set-use-dict; toggled => { root.set-use-dict = self.checked; } }
                         CheckBox { text: "Include Original English in Candidate List"; checked: root.set-include-eng; toggled => { root.set-include-eng = self.checked; } }
                         CheckBox { text: "Enter Key Closes Candidate Window"; checked: root.set-enter-closes; toggled => { root.set-enter-closes = self.checked; } }
@@ -878,19 +952,22 @@ export component TopBarWindow inherits Window {
                         HorizontalLayout {
                             spacing: 6px;
                             Text { text: "Global Toggle Hotkey:"; color: #cdd6f4; font-size: 11px; vertical-alignment: center; }
-                            ModeButton {
+                            SegmentButton {
                                 label: "F12";
                                 active: root.set-toggle-key == "F12";
+                                active-color: #89b4fa;
                                 clicked => { root.set-toggle-key = "F12"; }
                             }
-                            ModeButton {
+                            SegmentButton {
                                 label: "Ctrl+Space";
                                 active: root.set-toggle-key == "Ctrl+Space";
+                                active-color: #89b4fa;
                                 clicked => { root.set-toggle-key = "Ctrl+Space"; }
                             }
-                            ModeButton {
+                            SegmentButton {
                                 label: "Shift+Space";
                                 active: root.set-toggle-key == "Shift+Space";
+                                active-color: #89b4fa;
                                 clicked => { root.set-toggle-key = "Shift+Space"; }
                             }
                         }
@@ -907,7 +984,7 @@ export component TopBarWindow inherits Window {
                     VerticalLayout {
                         padding: 10px;
                         spacing: 5px;
-                        Text { text: "⌨️ FIXED LAYOUT AUTOMATIONS"; color: #a6e3a1; font-size: 10px; font-weight: 700; }
+                        Text { text: "FIXED LAYOUT AUTOMATIONS"; color: #a6e3a1; font-size: 9.5px; font-weight: 700; }
                         CheckBox { text: "Automatic Vowel Forming (অ + া ➔ আ)"; checked: root.set-auto-vowel; toggled => { root.set-auto-vowel = self.checked; } }
                         CheckBox { text: "Automatic Chandra Position Fixing (কঁ + া ➔ কাঁ)"; checked: root.set-auto-chandra; toggled => { root.set-auto-chandra = self.checked; } }
                         CheckBox { text: "Traditional Kar Joining & Ligature ZWNJ Blocking"; checked: root.set-traditional-kar; toggled => { root.set-traditional-kar = self.checked; } }
@@ -926,7 +1003,7 @@ export component TopBarWindow inherits Window {
                     VerticalLayout {
                         padding: 10px;
                         spacing: 5px;
-                        Text { text: "🚀 SYSTEM & STARTUP"; color: #f9e2af; font-size: 10px; font-weight: 700; }
+                        Text { text: "SYSTEM & STARTUP"; color: #f9e2af; font-size: 9.5px; font-weight: 700; }
                         CheckBox { text: "Launch Lekhani on Windows startup"; checked: root.set-autostart; toggled => { root.set-autostart = self.checked; } }
                     }
                 }
@@ -945,7 +1022,7 @@ export component TopBarWindow inherits Window {
         // 6. About Dialog Window
         // ---------------------------------------------------------------------
         if (root.active-dialog == 6) : Rectangle {
-            width: 400px;
+            width: 420px;
             background: #11111bf8;
             border-radius: 16px;
             border-width: 1px;
@@ -959,8 +1036,8 @@ export component TopBarWindow inherits Window {
                 alignment: center;
 
                 Rectangle {
-                    width: 56px;
-                    height: 56px;
+                    width: 52px;
+                    height: 52px;
                     background: #0d0e15;
                     border-radius: 14px;
                     border-width: 1px;
@@ -970,14 +1047,14 @@ export component TopBarWindow inherits Window {
                     
                     Image {
                         source: @image-url("../../../data/icons/128.png");
-                        width: 44px;
-                        height: 44px;
+                        width: 40px;
+                        height: 40px;
                         horizontal-alignment: center;
                         vertical-alignment: center;
                     }
                 }
 
-                Text { text: "Lekhani (লেখনী)"; color: #cdd6f4; font-size: 18px; font-weight: 800; horizontal-alignment: center; }
+                Text { text: "Lekhani (লেখনী)"; color: #cdd6f4; font-size: 17px; font-weight: 800; horizontal-alignment: center; }
                 Text { text: "Version 1.0.0 • Pure Rust Architecture"; color: #89b4fa; font-size: 12px; font-weight: 600; horizontal-alignment: center; }
                 Text { text: "Author: Sintaul Mahdi Siam • Syntenieum (2026)"; color: #a6e3a1; font-size: 11px; font-weight: 600; horizontal-alignment: center; }
                 Text { text: "© 2026 Syntenieum. All rights reserved."; color: #89dceb; font-size: 10.5px; font-weight: 500; horizontal-alignment: center; }
@@ -1029,9 +1106,15 @@ export component TopBarWindow inherits Window {
                 HorizontalLayout {
                     alignment: space-between;
                     HorizontalLayout {
-                        spacing: 6px;
-                        Text { text: "🧩"; color: #89dceb; font-size: 16px; }
-                        Text { text: "যুক্তবর্ণ সহায়িকা (Bengali Conjunct Assistant)"; color: #cdd6f4; font-size: 14px; font-weight: 700; }
+                        spacing: 8px;
+                        Image {
+                            source: @image-url("../../../data/icons/ui/puzzle.svg");
+                            width: 16px;
+                            height: 16px;
+                            colorize: #89dceb;
+                            vertical-alignment: center;
+                        }
+                        Text { text: "যুক্তবর্ণ সহায়িকা (Conjunct Assistant)"; color: #cdd6f4; font-size: 13.5px; font-weight: 700; vertical-alignment: center; }
                     }
                     CloseButton {
                         clicked => { root.active-dialog = 0; }
@@ -1041,7 +1124,7 @@ export component TopBarWindow inherits Window {
                 // Search Bar
                 LineEdit {
                     text: root.conjunct-search-query;
-                    placeholder-text: "🔍 Search conjunct, breakdown, or phonetic keys (e.g. ক্ষ, kkh, হ + ্ + ম)...";
+                    placeholder-text: "Search conjunct, breakdown, or phonetic keys (e.g. ক্ষ, kkh, হ + ্ + ম)...";
                     edited(t) => {
                         root.conjunct-search-query = t;
                         root.conjunct-search-changed(t);
@@ -1143,7 +1226,7 @@ export component TopBarWindow inherits Window {
                 // Tip footer
                 HorizontalLayout {
                     alignment: space-between;
-                    Text { text: "💡 Tip: Search by Latin sequence (e.g. 'kkh' or 'ggy')."; color: #585b70; font-size: 10.5px; }
+                    Text { text: "Tip: Search by Latin sequence (e.g. 'kkh' or 'ggy')."; color: #585b70; font-size: 10.5px; }
                 }
             }
         }
@@ -1168,9 +1251,15 @@ export component TopBarWindow inherits Window {
                 HorizontalLayout {
                     alignment: space-between;
                     HorizontalLayout {
-                        spacing: 6px;
-                        Text { text: "📊"; color: #f9e2af; font-size: 16px; }
-                        Text { text: "Personal Typing Telemetry & Analytics"; color: #cdd6f4; font-size: 14px; font-weight: 700; }
+                        spacing: 8px;
+                        Image {
+                            source: @image-url("../../../data/icons/ui/chart.svg");
+                            width: 16px;
+                            height: 16px;
+                            colorize: #f9e2af;
+                            vertical-alignment: center;
+                        }
+                        Text { text: "Typing Telemetry & Analytics"; color: #cdd6f4; font-size: 13.5px; font-weight: 700; vertical-alignment: center; }
                     }
                     HorizontalLayout {
                         spacing: 6px;
@@ -1178,16 +1267,20 @@ export component TopBarWindow inherits Window {
                             width: 24px;
                             height: 24px;
                             border-radius: 12px;
-                            background: ta_ref.has-hover ? #313244 : transparent;
+                            background: ta_ref.has-hover ? #31324488 : transparent;
+                            border-width: 1px;
+                            border-color: ta_ref.has-hover ? #45475a : transparent;
                             ta_ref := TouchArea {
                                 mouse-cursor: pointer;
                                 clicked => { root.refresh-stats(); }
                             }
-                            Text {
-                                text: "🔄";
-                                font-size: 11px;
-                                horizontal-alignment: center;
-                                vertical-alignment: center;
+                            Image {
+                                source: @image-url("../../../data/icons/ui/refresh.svg");
+                                width: 12px;
+                                height: 12px;
+                                colorize: ta_ref.has-hover ? #f9e2af : #a6adc8;
+                                x: (parent.width - self.width) / 2;
+                                y: (parent.height - self.height) / 2;
                             }
                         }
                         CloseButton {
@@ -1261,7 +1354,7 @@ export component TopBarWindow inherits Window {
                     VerticalLayout {
                         padding: 8px;
                         spacing: 4px;
-                        Text { text: "🔥 MOST FREQUENTLY TYPED BENGALI CHARACTERS"; color: #f9e2af; font-size: 10px; font-weight: 700; }
+                        Text { text: "MOST FREQUENTLY TYPED BENGALI CHARACTERS"; color: #f9e2af; font-size: 9.5px; font-weight: 700; }
                         ListView {
                             for char_entry in root.stats-top-chars : HorizontalLayout {
                                 padding-top: 2px;
