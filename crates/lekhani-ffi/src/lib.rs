@@ -53,7 +53,7 @@ fn get_global_resources() -> &'static RwLock<GlobalSharedResources> {
         let system_data = ConfigManager::get_system_data_dir();
         let user_ac = config_mgr.get_user_autocorrect_path();
         let user_learned = config_mgr.get_user_learned_path();
-        let stats_path = config_mgr.get_data_dir().join("stats.json");
+        let stats_path = config_mgr.get_user_stats_path();
         session_template.load_database(&system_data);
         session_template.load_user_autocorrect(&user_ac);
         session_template.load_user_learned(&user_learned);
@@ -126,16 +126,14 @@ impl LekhaniEngineContext {
         }
     }
 
-    /// Commit candidate and periodically flush learning & stats to disk
+    /// Commit candidate and flush learning & stats to disk for real-time telemetry
     pub fn commit(&mut self, idx: usize) -> Option<String> {
         let committed = self.session.commit(idx)?;
         self.commit_count += 1;
-        if self.commit_count.is_multiple_of(3) {
-            let user_learned = self.config_mgr.get_user_learned_path();
-            let stats_path = self.config_mgr.get_data_dir().join("stats.json");
-            let _ = self.session.save_user_learned(&user_learned);
-            let _ = self.session.save_stats(&stats_path);
-        }
+        let user_learned = self.config_mgr.get_user_learned_path();
+        let stats_path = self.config_mgr.get_user_stats_path();
+        let _ = self.session.save_user_learned(&user_learned);
+        let _ = self.session.save_stats(&stats_path);
         Some(committed)
     }
 
@@ -198,7 +196,7 @@ pub extern "C" fn lekhani_engine_free(ctx: *mut LekhaniEngineContext) {
         unsafe {
             let engine = &mut *ctx;
             let user_learned = engine.config_mgr.get_user_learned_path();
-            let stats_path = engine.config_mgr.get_data_dir().join("stats.json");
+            let stats_path = engine.config_mgr.get_user_stats_path();
             let _ = engine.session.save_user_learned(&user_learned);
             let _ = engine.session.save_stats(&stats_path);
             drop(Box::from_raw(ctx));

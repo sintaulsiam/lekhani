@@ -300,6 +300,9 @@ unsafe extern "system" fn low_level_keyboard_proc(
             if let Some(idx) = sel_num {
                 if idx < candidates.len() {
                     if let Some(committed) = state.session.commit(idx) {
+                        let _ = state
+                            .session
+                            .save_stats(&state.config_mgr.get_user_stats_path());
                         inject_backspaces(state.uncommitted_units);
                         inject_unicode_str(&committed);
                         state.uncommitted_units = 0;
@@ -375,6 +378,9 @@ unsafe extern "system" fn low_level_keyboard_proc(
         if let Some(idx) = sel_num {
             if idx < candidates.len() {
                 if let Some(committed) = state.session.commit(idx) {
+                    let _ = state
+                        .session
+                        .save_stats(&state.config_mgr.get_user_stats_path());
                     inject_unicode_str(&committed);
                     inject_unicode_str(" ");
                     if state
@@ -436,6 +442,9 @@ unsafe extern "system" fn low_level_keyboard_proc(
     if vk == VK_SPACE {
         if state.uncommitted_units > 0 {
             state.session.commit(state.session.get_selected_index());
+            let _ = state
+                .session
+                .save_stats(&state.config_mgr.get_user_stats_path());
             state.uncommitted_units = 0;
             inject_unicode_str(" ");
             if state
@@ -469,6 +478,9 @@ unsafe extern "system" fn low_level_keyboard_proc(
     if vk == VK_RETURN {
         if state.uncommitted_units > 0 {
             state.session.commit(state.session.get_selected_index());
+            let _ = state
+                .session
+                .save_stats(&state.config_mgr.get_user_stats_path());
             state.uncommitted_units = 0;
             if let Some(ref win) = state.candidate_win {
                 win.hide();

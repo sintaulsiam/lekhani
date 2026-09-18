@@ -99,26 +99,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     app.set_conjunct_list(Rc::new(slint::VecModel::from(slint_conjuncts)).into());
 
     // Initialize Typing Telemetry & Analytics state
-    let user_stats_path = config_mgr.get_user_stats_path();
-    let stats = UserStats::load_from_path(&user_stats_path);
-    app.set_stats_total_words(stats.total_words_typed as i32);
-    app.set_stats_keystrokes_saved(stats.keystrokes_saved as i32);
-    app.set_stats_efficiency_ratio(format!("{:.1}%", stats.savings_percentage()).into());
+    refresh_stats_ui(&app, &config_mgr);
 
-    let top_chars = stats.get_top_characters(10);
-    let slint_top_chars: Vec<HeatmapEntry> = top_chars
-        .into_iter()
-        .map(|(ch, count, pct)| HeatmapEntry {
-            character: ch.to_string().into(),
-            count: count as i32,
-            percentage: format!("{:.1}%", pct).into(),
-        })
-        .collect();
-    app.set_stats_top_chars(Rc::new(slint::VecModel::from(slint_top_chars)).into());
-
-    // Initialize Desktop System Tray (ksni on Linux, Shell_NotifyIconW on Windows)
+    // Initialize Desktop System Tray (StatusNotifierItem on Linux, Shell_NotifyIconW on Windows)
     #[cfg(unix)]
-    let _tray_handle = tray::spawn_tray(current_layout.clone());
+    let tray_handle = tray::spawn_tray(current_layout.clone(), app_weak.clone());
 
     #[cfg(windows)]
     let win_tray_handle = win_tray::spawn_windows_tray(current_layout.clone());
@@ -215,6 +200,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cm_clone = config_mgr_rc.clone();
     let app_weak_layout = app_weak.clone();
     let osd_timer_layout = osd_timer.clone();
+    #[cfg(unix)]
+    let tray_handle_layout = tray_handle.clone();
     app.on_select_layout(move |name| {
         let mut cm = cm_clone.borrow_mut();
         cm.config.general.active_layout = name.to_string();
@@ -223,6 +210,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         {
             win_hook::update_active_layout(&name);
             win_hook::set_bengali_mode(true);
+        }
+        #[cfg(unix)]
+        if let Some(ref th) = tray_handle_layout {
+            th.update_layout(&name);
         }
         if let Some(app) = app_weak_layout.upgrade() {
             app.set_active_layout_name(name.clone());
@@ -458,6 +449,32 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    // Callbacks: Typing Stats Live Refresh
+    let app_weak_stats = app_weak.clone();
+    let cm_stats = config_mgr_rc.clone();
+    app.on_refresh_stats(move || {
+        if let Some(app) = app_weak_stats.upgrade() {
+            let cm = cm_stats.borrow();
+            refresh_stats_ui(&app, &cm);
+        }
+    });
+
+    let app_weak_stats_timer = app_weak.clone();
+    let cm_stats_timer = config_mgr_rc.clone();
+    let stats_poll_timer = Rc::new(std::cell::RefCell::new(slint::Timer::default()));
+    stats_poll_timer.borrow_mut().start(
+        slint::TimerMode::Repeated,
+        std::time::Duration::from_millis(1000),
+        move || {
+            if let Some(app) = app_weak_stats_timer.upgrade() {
+                if app.get_active_dialog() == 8 {
+                    let cm = cm_stats_timer.borrow();
+                    refresh_stats_ui(&app, &cm);
+                }
+            }
+        },
+    );
+
     // Callbacks: Quit
     app.on_trigger_quit(move || {
         let _ = slint::quit_event_loop();
@@ -465,6 +482,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     app.run()?;
     Ok(())
+}
+
+fn refresh_stats_ui(app: &TopBarWindow, config_mgr: &ConfigManager) {
+    let user_stats_path = config_mgr.get_user_stats_path();
+    let stats = UserStats::load_from_path(&user_stats_path);
+    app.set_stats_total_words(stats.total_words_typed as i32);
+    app.set_stats_keystrokes_saved(stats.keystrokes_saved as i32);
+    app.set_stats_efficiency_ratio(format!("{:.1}%", stats.savings_percentage()).into());
+
+    let top_chars = stats.get_top_characters(10);
+    let slint_top_chars: Vec<HeatmapEntry> = top_chars
+        .into_iter()
+        .map(|(ch, count, pct)| HeatmapEntry {
+            character: ch.to_string().into(),
+            count: count as i32,
+            percentage: format!("{:.1}%", pct).into(),
+        })
+        .collect();
+    app.set_stats_top_chars(Rc::new(slint::VecModel::from(slint_top_chars)).into());
 }
 
 fn show_mode_osd(

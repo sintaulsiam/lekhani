@@ -38,6 +38,15 @@ pub struct IBusEngineState {
     pub active_layout_name: String,
 }
 
+impl IBusEngineState {
+    pub fn commit(&mut self, idx: usize) -> Option<String> {
+        let committed = self.session.commit(idx)?;
+        let stats_path = self.config_mgr.get_user_stats_path();
+        let _ = self.session.save_stats(&stats_path);
+        Some(committed)
+    }
+}
+
 pub struct LekhaniIBusEngine {
     pub state: Arc<Mutex<IBusEngineState>>,
 }
@@ -55,7 +64,7 @@ impl LekhaniIBusEngine {
         let system_data = ConfigManager::get_system_data_dir();
         let user_ac = config_mgr.get_user_autocorrect_path();
         let user_learned = config_mgr.get_user_learned_path();
-        let stats_path = config_mgr.get_data_dir().join("stats.json");
+        let stats_path = config_mgr.get_user_stats_path();
         session.load_database(&system_data);
         session.load_user_autocorrect(&user_ac);
         session.load_user_learned(&user_learned);
@@ -246,7 +255,7 @@ impl LekhaniIBusEngine {
                 if st.session.is_prediction_mode() {
                     if st.session.is_prediction_navigated() {
                         let idx = st.session.get_selected_index();
-                        if let Some(committed) = st.session.commit(idx) {
+                        if let Some(committed) = st.commit(idx) {
                             let _ = Self::commit_text(&emitter, &committed).await;
                             if st.config_mgr.config.phonetic.enable_predictive_next_words {
                                 st.session.populate_predictions();
@@ -267,7 +276,7 @@ impl LekhaniIBusEngine {
                 }
                 if st.session.is_active() {
                     let idx = st.session.get_selected_index();
-                    if let Some(committed) = st.session.commit(idx) {
+                    if let Some(committed) = st.commit(idx) {
                         let _ = Self::commit_text(&emitter, &committed).await;
                         if st.config_mgr.config.phonetic.enable_predictive_next_words {
                             st.session.populate_predictions();
@@ -290,7 +299,7 @@ impl LekhaniIBusEngine {
                 if st.session.is_prediction_mode() {
                     if st.session.is_prediction_navigated() {
                         let idx = st.session.get_selected_index();
-                        if let Some(committed) = st.session.commit(idx) {
+                        if let Some(committed) = st.commit(idx) {
                             let _ = Self::commit_text(&emitter, &committed).await;
                             if st.config_mgr.config.phonetic.enable_predictive_next_words {
                                 st.session.populate_predictions();
@@ -311,7 +320,7 @@ impl LekhaniIBusEngine {
                 }
                 if st.session.is_active() {
                     let idx = st.session.get_selected_index();
-                    if let Some(committed) = st.session.commit(idx) {
+                    if let Some(committed) = st.commit(idx) {
                         let _ = Self::commit_text(&emitter, &committed).await;
                         if st.config_mgr.config.phonetic.enable_predictive_next_words {
                             st.session.populate_predictions();
@@ -368,7 +377,7 @@ impl LekhaniIBusEngine {
         if is_ctrl || (is_alt && !st.alt_gr) {
             if st.session.is_active() {
                 let idx = st.session.get_selected_index();
-                if let Some(committed) = st.session.commit(idx) {
+                if let Some(committed) = st.commit(idx) {
                     let _ = Self::commit_text(&emitter, &committed).await;
                 }
                 let _ = Self::hide_preedit_text(&emitter).await;
@@ -390,7 +399,7 @@ impl LekhaniIBusEngine {
         if vc == VC_UNKNOWN {
             if st.session.is_active() {
                 let idx = st.session.get_selected_index();
-                if let Some(committed) = st.session.commit(idx) {
+                if let Some(committed) = st.commit(idx) {
                     let _ = Self::commit_text(&emitter, &committed).await;
                     if st.config_mgr.config.phonetic.enable_predictive_next_words {
                         st.session.populate_predictions();
@@ -471,7 +480,7 @@ impl LekhaniIBusEngine {
         info!("IBus Engine Disabled");
         let mut st = self.state.lock().await;
         let user_learned = st.config_mgr.get_user_learned_path();
-        let stats_path = st.config_mgr.get_data_dir().join("stats.json");
+        let stats_path = st.config_mgr.get_user_stats_path();
         let _ = st.session.save_user_learned(&user_learned);
         let _ = st.session.save_stats(&stats_path);
         st.session.reset();

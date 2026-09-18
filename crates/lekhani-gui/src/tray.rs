@@ -1,10 +1,16 @@
 //! Native Linux System Tray Icon (StatusNotifierItem via pure Rust zbus)
 
+use std::sync::{Arc, RwLock};
 use zbus::connection::Builder;
 use zbus::interface;
 
+pub enum TrayCommand {
+    UpdateLayout(String),
+}
+
 pub struct LekhaniTray {
-    pub active_layout: String,
+    pub active_layout: Arc<RwLock<String>>,
+    pub app_weak: slint::Weak<crate::TopBarWindow>,
 }
 
 #[interface(name = "org.kde.StatusNotifierItem")]
@@ -21,7 +27,8 @@ impl LekhaniTray {
 
     #[zbus(property)]
     fn title(&self) -> String {
-        format!("Lekhani ({})", self.active_layout)
+        let layout = self.active_layout.read().unwrap();
+        format!("Lekhani ({})", *layout)
     }
 
     #[zbus(property)]
@@ -55,24 +62,71 @@ impl LekhaniTray {
     }
 
     fn activate(&self, _x: i32, _y: i32) {
-        tracing::info!("Tray: Activate triggered");
+        tracing::info!("Tray: Activate triggered - toggling layout menu");
+        let app_weak = self.app_weak.clone();
+        let _ = slint::invoke_from_event_loop(move || {
+            if let Some(app) = app_weak.upgrade() {
+                let cur = app.get_active_dialog();
+                if cur == 0 {
+                    app.set_active_dialog(1);
+                } else {
+                    app.set_active_dialog(0);
+                }
+            }
+        });
     }
 
     fn secondary_activate(&self, _x: i32, _y: i32) {
-        tracing::info!("Tray: SecondaryActivate triggered");
+        tracing::info!("Tray: SecondaryActivate triggered - toggling layout mode");
+        let app_weak = self.app_weak.clone();
+        let _ = slint::invoke_from_event_loop(move || {
+            if let Some(app) = app_weak.upgrade() {
+                app.invoke_toggle_layout_mode();
+            }
+        });
     }
 
-    fn scroll(&self, _delta: i32, _orientation: &str) {
-        tracing::info!("Tray: Scroll triggered");
+    fn scroll(&self, delta: i32, _orientation: &str) {
+        tracing::info!("Tray: Scroll triggered: {}", delta);
     }
 
     fn context_menu(&self, _x: i32, _y: i32) {
-        tracing::info!("Tray: ContextMenu triggered");
+        tracing::info!("Tray: ContextMenu triggered - toggling layout mode");
+        let app_weak = self.app_weak.clone();
+        let _ = slint::invoke_from_event_loop(move || {
+            if let Some(app) = app_weak.upgrade() {
+                app.invoke_toggle_layout_mode();
+            }
+        });
+    }
+
+    #[zbus(signal)]
+    pub async fn new_title(emitter: &zbus::object_server::SignalContext<'_>) -> zbus::Result<()>;
+
+    #[zbus(signal)]
+    pub async fn new_icon(emitter: &zbus::object_server::SignalContext<'_>) -> zbus::Result<()>;
+}
+
+#[derive(Clone)]
+pub struct TrayHandle {
+    pub tx: tokio::sync::mpsc::UnboundedSender<TrayCommand>,
+}
+
+impl TrayHandle {
+    pub fn update_layout(&self, layout: &str) {
+        let _ = self.tx.send(TrayCommand::UpdateLayout(layout.to_string()));
     }
 }
 
-pub fn spawn_tray(active_layout: String) -> Option<std::thread::JoinHandle<()>> {
-    let handle = std::thread::spawn(move || {
+pub fn spawn_tray(
+    active_layout: String,
+    app_weak: slint::Weak<crate::TopBarWindow>,
+) -> Option<TrayHandle> {
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<TrayCommand>();
+    let layout_arc = Arc::new(RwLock::new(active_layout));
+    let layout_for_thread = layout_arc.clone();
+
+    std::thread::spawn(move || {
         let rt = match tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
@@ -85,7 +139,10 @@ pub fn spawn_tray(active_layout: String) -> Option<std::thread::JoinHandle<()>> 
         };
 
         rt.block_on(async move {
-            let item = LekhaniTray { active_layout };
+            let item = LekhaniTray {
+                active_layout: layout_for_thread.clone(),
+                app_weak,
+            };
             let pid = std::process::id();
             let service_name = format!("org.kde.StatusNotifierItem-{}-1", pid);
 
@@ -135,9 +192,27 @@ pub fn spawn_tray(active_layout: String) -> Option<std::thread::JoinHandle<()>> 
                 "Lekhani StatusNotifierItem tray running on DBus: {}",
                 service_name
             );
-            futures_util::future::pending::<()>().await;
+
+            // Listen for layout change commands from the GUI
+            while let Some(cmd) = rx.recv().await {
+                match cmd {
+                    TrayCommand::UpdateLayout(new_name) => {
+                        {
+                            let mut w = layout_for_thread.write().unwrap();
+                            *w = new_name;
+                        }
+                        if let Ok(iface_ref) = conn
+                            .object_server()
+                            .interface::<_, LekhaniTray>("/StatusNotifierItem")
+                            .await
+                        {
+                            let _ = LekhaniTray::new_title(iface_ref.signal_context()).await;
+                        }
+                    }
+                }
+            }
         });
     });
 
-    Some(handle)
+    Some(TrayHandle { tx })
 }

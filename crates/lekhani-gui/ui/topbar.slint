@@ -239,6 +239,9 @@ export component TopBarWindow inherits Window {
     callback conjunct-search-changed(string);
     callback copy-conjunct(string);
 
+    // Stats Callbacks
+    callback refresh-stats();
+
     // Settings Callbacks
     callback save-settings();
 
@@ -424,6 +427,9 @@ export component TopBarWindow inherits Window {
                     active-bg: #f9e2af22;
                     clicked => {
                         root.active-dialog = root.active-dialog == 8 ? 0 : 8;
+                        if (root.active-dialog == 8) {
+                            root.refresh-stats();
+                        }
                     }
                 }
 
@@ -1175,8 +1181,27 @@ export component TopBarWindow inherits Window {
                         Text { text: "📊"; color: #f9e2af; font-size: 18px; }
                         Text { text: "Personal Typing Telemetry & Analytics"; color: #cdd6f4; font-size: 16px; font-weight: 700; }
                     }
-                    CloseButton {
-                        clicked => { root.active-dialog = 0; }
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Rectangle {
+                            width: 28px;
+                            height: 28px;
+                            border-radius: 14px;
+                            background: ta_ref.has-hover ? #45475a : transparent;
+                            ta_ref := TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => { root.refresh-stats(); }
+                            }
+                            Text {
+                                text: "🔄";
+                                font-size: 13px;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                        }
+                        CloseButton {
+                            clicked => { root.active-dialog = 0; }
+                        }
                     }
                 }
 
