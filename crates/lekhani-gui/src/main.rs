@@ -32,6 +32,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = TopBarWindow::new()?;
     let app_weak = app.as_weak();
 
+    let standalone = StandaloneDialogWindow::new()?;
+    let standalone_weak = standalone.as_weak();
+
     let config_mgr = ConfigManager::new();
     let mut layout_mgr = LayoutManager::new();
     let mut db = PhoneticDatabase::new();
@@ -48,6 +51,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize UI state
     let current_layout = config_mgr.config.general.active_layout.clone();
     app.set_active_layout_name(current_layout.clone().into());
+    standalone.set_active_layout_name(current_layout.clone().into());
     #[cfg(windows)]
     app.set_is_bengali_mode(false);
     #[cfg(not(windows))]
@@ -65,14 +69,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     app.set_available_layouts(model.into());
 
     let args: Vec<String> = std::env::args().collect();
+    let is_standalone = args.contains(&"--standalone".to_string());
     if args.contains(&"--converter".to_string()) {
-        app.set_active_dialog(4);
+        if is_standalone {
+            standalone.set_dialog_type(4);
+            let _ = standalone.show();
+        } else {
+            app.set_active_dialog(4);
+        }
     } else if args.contains(&"--settings".to_string()) {
-        app.set_active_dialog(5);
+        if is_standalone {
+            standalone.set_dialog_type(5);
+            let _ = standalone.show();
+        } else {
+            app.set_active_dialog(5);
+        }
     } else if args.contains(&"--autocorrect".to_string()) {
-        app.set_active_dialog(3);
+        if is_standalone {
+            standalone.set_dialog_type(3);
+            let _ = standalone.show();
+        } else {
+            app.set_active_dialog(3);
+        }
     } else if args.contains(&"--viewer".to_string()) {
-        app.set_active_dialog(2);
+        if is_standalone {
+            standalone.set_dialog_type(2);
+            let _ = standalone.show();
+        } else {
+            app.set_active_dialog(2);
+        }
     } else if args.contains(&"--layout-menu".to_string()) {
         app.set_active_dialog(1);
     }
@@ -106,6 +131,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     app.set_set_show_osd(config_mgr.config.general.show_osd);
     app.set_set_auto_dari(config_mgr.config.general.auto_dari);
 
+    standalone.set_set_auto_vowel(config_mgr.config.fixed.auto_vowel_forming);
+    standalone.set_set_auto_chandra(config_mgr.config.fixed.auto_chandra_position);
+    standalone.set_set_traditional_kar(config_mgr.config.fixed.traditional_kar);
+    standalone.set_set_old_reph(config_mgr.config.fixed.old_reph);
+    standalone.set_set_numberpad(config_mgr.config.fixed.numberpad);
+    standalone.set_set_toggle_key(config_mgr.config.general.toggle_key.clone().into());
+    standalone.set_set_show_osd(config_mgr.config.general.show_osd);
+    standalone.set_set_auto_dari(config_mgr.config.general.auto_dari);
+
     // Initialize Conjunct Assistant state
     let all_conjuncts = ConjunctCatalog::all();
     let slint_conjuncts: Vec<ConjunctEntry> = all_conjuncts
@@ -117,10 +151,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             examples: c.examples.clone().into(),
         })
         .collect();
-    app.set_conjunct_list(Rc::new(slint::VecModel::from(slint_conjuncts)).into());
+    let conjunct_model = Rc::new(slint::VecModel::from(slint_conjuncts));
+    app.set_conjunct_list(conjunct_model.clone().into());
+    standalone.set_conjunct_list(conjunct_model.into());
 
     // Initialize Typing Telemetry & Analytics state
     refresh_stats_ui(&app, &config_mgr);
+    refresh_standalone_stats_ui(&standalone, &config_mgr);
 
     // Initialize Desktop System Tray (StatusNotifierItem on Linux, Shell_NotifyIconW on Windows)
     #[cfg(unix)]
@@ -418,7 +455,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    let copy_text = |text: &str| {
+    let copy_text = Rc::new(|text: &str| {
         #[cfg(windows)]
         {
             use windows_sys::Win32::System::DataExchange::{
@@ -462,19 +499,202 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
         }
-    };
+    });
 
-    let copy_fn1 = copy_text;
+    let copy_fn1 = copy_text.clone();
     app.on_copy_conjunct(move |conjunct| {
         copy_fn1(conjunct.as_str());
     });
 
     let app_weak_conv = app_weak.clone();
-    let copy_fn2 = copy_text;
+    let copy_fn2 = copy_text.clone();
     app.on_copy_to_clipboard(move |text| {
         copy_fn2(text.as_str());
         if let Some(app) = app_weak_conv.upgrade() {
             app.set_conv_copied(true);
+        }
+    });
+
+    // Detach Dialog Callback on TopBarWindow
+    let standalone_weak_detach = standalone_weak.clone();
+    let app_weak_detach = app_weak.clone();
+    let cm_detach = config_mgr_rc.clone();
+    app.on_detach_dialog(move |dialog_id| {
+        if let Some(app) = app_weak_detach.upgrade() {
+            app.set_active_dialog(0);
+        }
+        if let Some(standalone) = standalone_weak_detach.upgrade() {
+            standalone.set_dialog_type(dialog_id);
+            if dialog_id == 8 {
+                let cm = cm_detach.borrow();
+                refresh_standalone_stats_ui(&standalone, &cm);
+            }
+            let _ = standalone.show();
+        }
+    });
+
+    // Close Callback on StandaloneDialogWindow
+    let standalone_weak_close = standalone_weak.clone();
+    standalone.on_close_window(move || {
+        if let Some(s) = standalone_weak_close.upgrade() {
+            let _ = s.hide();
+        }
+    });
+
+    // Standalone Converter Callbacks
+    let s_weak_c1 = standalone_weak.clone();
+    standalone.on_convert_bijoy_to_unicode(move |text| {
+        let converted = bijoy_to_unicode(&text);
+        if let Some(s) = s_weak_c1.upgrade() {
+            s.set_conv_output_text(converted.into());
+        }
+    });
+
+    let s_weak_c2 = standalone_weak.clone();
+    standalone.on_convert_unicode_to_bijoy(move |text| {
+        let converted = unicode_to_bijoy(&text);
+        if let Some(s) = s_weak_c2.upgrade() {
+            s.set_conv_output_text(converted.into());
+        }
+    });
+
+    let s_weak_copy = standalone_weak.clone();
+    let copy_fn_sa = copy_text.clone();
+    standalone.on_copy_to_clipboard(move |text| {
+        copy_fn_sa(text.as_str());
+        if let Some(s) = s_weak_copy.upgrade() {
+            s.set_conv_copied(true);
+        }
+    });
+
+    let copy_fn_sa_conj = copy_text.clone();
+    standalone.on_copy_conjunct(move |conjunct| {
+        copy_fn_sa_conj(conjunct.as_str());
+    });
+
+    let s_weak_conj = standalone_weak.clone();
+    standalone.on_conjunct_search_changed(move |query| {
+        let results = if query.is_empty() {
+            ConjunctCatalog::all()
+        } else {
+            ConjunctCatalog::search(query.as_str())
+        };
+        let slint_results: Vec<ConjunctEntry> = results
+            .into_iter()
+            .map(|c| ConjunctEntry {
+                conjunct: c.conjunct.into(),
+                breakdown: c.breakdown.into(),
+                phonetic: c.phonetic.into(),
+                examples: c.examples.into(),
+            })
+            .collect();
+        if let Some(s) = s_weak_conj.upgrade() {
+            s.set_conjunct_list(Rc::new(slint::VecModel::from(slint_results)).into());
+        }
+    });
+
+    let s_weak_ac_search = standalone_weak.clone();
+    let db_search_clone2 = db_rc.clone();
+    standalone.on_ac_search_changed(move |query| {
+        let db = db_search_clone2.borrow();
+        let user_matches = db
+            .get_user_autocorrect()
+            .iter()
+            .filter(|(k, v)| k.contains(query.as_str()) || v.contains(query.as_str()))
+            .count();
+        let sys_matches = db
+            .get_system_autocorrect()
+            .iter()
+            .filter(|(k, v)| k.contains(query.as_str()) || v.contains(query.as_str()))
+            .count();
+        if let Some(s) = s_weak_ac_search.upgrade() {
+            s.set_ac_status_text(
+                format!(
+                    "Found {} matching entries (User: {}, System: {})",
+                    user_matches + sys_matches,
+                    user_matches,
+                    sys_matches
+                )
+                .into(),
+            );
+        }
+    });
+
+    let db_add_clone2 = db_rc.clone();
+    let cm_ac_clone2 = config_mgr_rc.clone();
+    let s_weak_add = standalone_weak.clone();
+    let app_weak_add2 = app_weak.clone();
+    standalone.on_ac_add_or_update(move |trigger, replacement| {
+        if trigger.is_empty() || replacement.is_empty() {
+            return;
+        }
+        let mut db = db_add_clone2.borrow_mut();
+        db.insert_user_autocorrect(trigger.to_string(), replacement.to_string());
+        let cm = cm_ac_clone2.borrow();
+        let user_ac_path = cm.get_user_autocorrect_path();
+        let _ = db.save_user_autocorrect(&user_ac_path);
+        let total = db.get_user_autocorrect().len() + db.get_system_autocorrect().len();
+        let status = format!(
+            "Saved! Total entries: {} (User: {})",
+            total,
+            db.get_user_autocorrect().len()
+        );
+        if let Some(s) = s_weak_add.upgrade() {
+            s.set_ac_status_text(status.clone().into());
+        }
+        if let Some(app) = app_weak_add2.upgrade() {
+            app.set_ac_status_text(status.into());
+        }
+    });
+
+    let db_del_clone2 = db_rc.clone();
+    let cm_del_clone2 = config_mgr_rc.clone();
+    let s_weak_del = standalone_weak.clone();
+    let app_weak_del2 = app_weak.clone();
+    standalone.on_ac_delete_entry(move |trigger| {
+        let mut db = db_del_clone2.borrow_mut();
+        db.remove_user_autocorrect(&trigger);
+        let cm = cm_del_clone2.borrow();
+        let user_ac_path = cm.get_user_autocorrect_path();
+        let _ = db.save_user_autocorrect(&user_ac_path);
+        let total = db.get_user_autocorrect().len() + db.get_system_autocorrect().len();
+        let status = format!(
+            "Removed. Total entries: {} (User: {})",
+            total,
+            db.get_user_autocorrect().len()
+        );
+        if let Some(s) = s_weak_del.upgrade() {
+            s.set_ac_status_text(status.clone().into());
+        }
+        if let Some(app) = app_weak_del2.upgrade() {
+            app.set_ac_status_text(status.into());
+        }
+    });
+
+    let cm_save2 = config_mgr_rc.clone();
+    let s_weak_set = standalone_weak.clone();
+    standalone.on_save_settings(move || {
+        if let Some(s) = s_weak_set.upgrade() {
+            let mut cm = cm_save2.borrow_mut();
+            cm.config.fixed.auto_vowel_forming = s.get_set_auto_vowel();
+            cm.config.fixed.auto_chandra_position = s.get_set_auto_chandra();
+            cm.config.fixed.traditional_kar = s.get_set_traditional_kar();
+            cm.config.fixed.old_reph = s.get_set_old_reph();
+            cm.config.fixed.numberpad = s.get_set_numberpad();
+            cm.config.general.toggle_key = s.get_set_toggle_key().to_string();
+            cm.config.general.show_osd = s.get_set_show_osd();
+            cm.config.general.auto_dari = s.get_set_auto_dari();
+            cm.save();
+            let _ = s.hide();
+        }
+    });
+
+    let s_weak_stats = standalone_weak.clone();
+    let cm_stats2 = config_mgr_rc.clone();
+    standalone.on_refresh_stats(move || {
+        if let Some(s) = s_weak_stats.upgrade() {
+            let cm = cm_stats2.borrow();
+            refresh_standalone_stats_ui(&s, &cm);
         }
     });
 
@@ -575,6 +795,24 @@ fn refresh_stats_ui(app: &TopBarWindow, config_mgr: &ConfigManager) {
         })
         .collect();
     app.set_stats_top_chars(Rc::new(slint::VecModel::from(slint_top_chars)).into());
+}
+
+fn refresh_standalone_stats_ui(standalone: &StandaloneDialogWindow, config_mgr: &ConfigManager) {
+    let user_stats_path = config_mgr.get_user_stats_path();
+    let stats = UserStats::load_from_path(&user_stats_path);
+    standalone.set_stats_total_words(stats.total_words_typed as i32);
+    standalone.set_stats_keystrokes_saved(stats.keystrokes_saved as i32);
+
+    let top_chars = stats.get_top_characters(10);
+    let slint_top_chars: Vec<HeatmapEntry> = top_chars
+        .into_iter()
+        .map(|(ch, count, pct)| HeatmapEntry {
+            character: ch.to_string().into(),
+            count: count as i32,
+            percentage: format!("{:.1}%", pct).into(),
+        })
+        .collect();
+    standalone.set_stats_top_characters(Rc::new(slint::VecModel::from(slint_top_chars)).into());
 }
 
 fn show_mode_osd(

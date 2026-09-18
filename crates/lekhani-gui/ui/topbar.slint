@@ -1,4 +1,4 @@
-import { Button, LineEdit, CheckBox, ListView, ScrollView } from "std-widgets.slint";
+import { Button, LineEdit, TextEdit, CheckBox, ListView, ScrollView } from "std-widgets.slint";
 
 // Struct for AutoCorrect list display
 export struct AcEntry {
@@ -80,6 +80,31 @@ component CloseButton inherits Rectangle {
         width: 12px;
         height: 12px;
         colorize: ta.has-hover ? #f38ba8 : #6c7086;
+    }
+}
+
+component PopoutButton inherits Rectangle {
+    callback clicked;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    background: ta.has-hover ? #89b4fa28 : transparent;
+    border-width: 1px;
+    border-color: ta.has-hover ? #89b4fa55 : transparent;
+    animate background, border-color { duration: 100ms; }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+
+    Image {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: @image-url("../../../data/icons/ui/popout.svg");
+        width: 12px;
+        height: 12px;
+        colorize: ta.has-hover ? #89b4fa : #6c7086;
     }
 }
 
@@ -443,6 +468,7 @@ export component TopBarWindow inherits Window {
     callback trigger-quit();
     callback start-drag-window();
     callback end-drag-window();
+    callback detach-dialog(int);
     
     // AutoCorrect Callbacks
     callback ac-search-changed(string);
@@ -741,8 +767,17 @@ export component TopBarWindow inherits Window {
                             vertical-alignment: center;
                         }
                     }
-                    CloseButton {
-                        clicked => { root.active-dialog = 0; }
+                    HorizontalLayout {
+                        spacing: 4px;
+                        PopoutButton {
+                            clicked => {
+                                root.active-dialog = 0;
+                                root.detach-dialog(2);
+                            }
+                        }
+                        CloseButton {
+                            clicked => { root.active-dialog = 0; }
+                        }
                     }
                 }
 
@@ -867,8 +902,17 @@ export component TopBarWindow inherits Window {
                         }
                         Text { text: "AutoCorrect"; color: #f1f5f9; font-size: 13.5px; font-weight: 700; vertical-alignment: center; }
                     }
-                    CloseButton {
-                        clicked => { root.active-dialog = 0; }
+                    HorizontalLayout {
+                        spacing: 4px;
+                        PopoutButton {
+                            clicked => {
+                                root.active-dialog = 0;
+                                root.detach-dialog(3);
+                            }
+                        }
+                        CloseButton {
+                            clicked => { root.active-dialog = 0; }
+                        }
                     }
                 }
 
@@ -962,8 +1006,17 @@ export component TopBarWindow inherits Window {
                         }
                         Text { text: "Bijoy ⇄ Unicode Converter"; color: #f1f5f9; font-size: 13.5px; font-weight: 700; vertical-alignment: center; }
                     }
-                    CloseButton {
-                        clicked => { root.active-dialog = 0; }
+                    HorizontalLayout {
+                        spacing: 4px;
+                        PopoutButton {
+                            clicked => {
+                                root.active-dialog = 0;
+                                root.detach-dialog(4);
+                            }
+                        }
+                        CloseButton {
+                            clicked => { root.active-dialog = 0; }
+                        }
                     }
                 }
 
@@ -1160,8 +1213,17 @@ export component TopBarWindow inherits Window {
                         }
                         Text { text: "Settings"; color: #f1f5f9; font-size: 13.5px; font-weight: 700; vertical-alignment: center; }
                     }
-                    CloseButton {
-                        clicked => { root.active-dialog = 0; }
+                    HorizontalLayout {
+                        spacing: 4px;
+                        PopoutButton {
+                            clicked => {
+                                root.active-dialog = 0;
+                                root.detach-dialog(5);
+                            }
+                        }
+                        CloseButton {
+                            clicked => { root.active-dialog = 0; }
+                        }
                     }
                 }
 
@@ -1351,8 +1413,17 @@ export component TopBarWindow inherits Window {
                         }
                         Text { text: "যুক্তবর্ণ সহায়িকা"; color: #f1f5f9; font-size: 13.5px; font-weight: 700; vertical-alignment: center; }
                     }
-                    CloseButton {
-                        clicked => { root.active-dialog = 0; }
+                    HorizontalLayout {
+                        spacing: 4px;
+                        PopoutButton {
+                            clicked => {
+                                root.active-dialog = 0;
+                                root.detach-dialog(7);
+                            }
+                        }
+                        CloseButton {
+                            clicked => { root.active-dialog = 0; }
+                        }
                     }
                 }
 
@@ -1509,6 +1580,12 @@ export component TopBarWindow inherits Window {
                                 colorize: ta_ref.has-hover ? #f9e2af : #a6adc8;
                                 x: (parent.width - self.width) / 2;
                                 y: (parent.height - self.height) / 2;
+                            }
+                        }
+                        PopoutButton {
+                            clicked => {
+                                root.active-dialog = 0;
+                                root.detach-dialog(8);
                             }
                         }
                         CloseButton {
@@ -1679,6 +1756,718 @@ export component TopBarWindow inherits Window {
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Standalone Resizable Desktop Dialog Window
+// -----------------------------------------------------------------------------
+
+export component StandaloneDialogWindow inherits Window {
+    title: root.dialog-title;
+    icon: @image-url("../../../data/icons/128.png");
+    min-width: 540px;
+    min-height: 480px;
+    background: #11121dfa;
+
+    in-out property <int> dialog-type: 4; // 2=Viewer, 3=AutoCorrect, 4=Converter, 5=Settings, 7=Conjuncts, 8=Stats
+    in property <string> active-layout-name: "Avro Phonetic";
+
+    // AutoCorrect State
+    in property <[AcEntry]> ac-entries: [];
+    in-out property <string> ac-search-query: "";
+    in-out property <string> ac-replace-input: "";
+    in-out property <string> ac-with-input: "";
+    in property <string> ac-status-text: "";
+
+    // Converter State
+    in-out property <string> conv-input-text: "";
+    in-out property <string> conv-output-text: "";
+    in-out property <int> conv-direction: 0;
+    in-out property <bool> conv-copied: false;
+
+    // Conjunct State
+    in property <[ConjunctEntry]> conjunct-list: [];
+    in-out property <string> conjunct-search-query: "";
+
+    // Stats State
+    in property <int> stats-total-words: 0;
+    in property <int> stats-keystrokes-saved: 0;
+    in property <[HeatmapEntry]> stats-top-characters: [];
+
+    // Settings State
+    in-out property <bool> set-auto-vowel: true;
+    in-out property <bool> set-auto-chandra: true;
+    in-out property <bool> set-traditional-kar: false;
+    in-out property <bool> set-old-reph: false;
+    in-out property <bool> set-numberpad: false;
+    in-out property <string> set-toggle-key: "F12";
+    in-out property <bool> set-show-osd: true;
+    in-out property <bool> set-auto-dari: false;
+
+    // Layout Viewer State
+    in-out property <int> viewer-mode: 0;
+
+    property <string> dialog-title: root.dialog-type == 2 ? "Lekhani - Keyboard Layout Viewer (" + root.active-layout-name + ")" :
+                                   root.dialog-type == 3 ? "Lekhani - AutoCorrect Manager" :
+                                   root.dialog-type == 4 ? "Lekhani - Bijoy ⇄ Unicode Converter" :
+                                   root.dialog-type == 5 ? "Lekhani - Settings" :
+                                   root.dialog-type == 7 ? "Lekhani - যুক্তবর্ণ সহায়িকা (Conjunct Assistant)" :
+                                   root.dialog-type == 8 ? "Lekhani - Typing Telemetry & Speed" : "Lekhani Desktop Suite";
+
+    // Callbacks
+    callback close-window();
+    callback convert-bijoy-to-unicode(string);
+    callback convert-unicode-to-bijoy(string);
+    callback copy-to-clipboard(string);
+    callback ac-search-changed(string);
+    callback ac-add-or-update(string, string);
+    callback ac-delete-entry(string);
+    callback ac-save();
+    callback conjunct-search-changed(string);
+    callback copy-conjunct(string);
+    callback refresh-stats();
+    callback save-settings();
+
+    VerticalLayout {
+        padding: 16px;
+        spacing: 12px;
+
+        // Clean Header Bar
+        HorizontalLayout {
+            alignment: space-between;
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: center;
+                Image {
+                    source: root.dialog-type == 2 ? @image-url("../../../data/icons/ui/keyboard.svg") :
+                            root.dialog-type == 3 ? @image-url("../../../data/icons/ui/pen.svg") :
+                            root.dialog-type == 4 ? @image-url("../../../data/icons/ui/exchange.svg") :
+                            root.dialog-type == 5 ? @image-url("../../../data/icons/ui/settings.svg") :
+                            root.dialog-type == 7 ? @image-url("../../../data/icons/ui/puzzle.svg") :
+                            root.dialog-type == 8 ? @image-url("../../../data/icons/ui/chart.svg") :
+                            @image-url("../../../data/icons/ui/logo.svg");
+                    width: 18px;
+                    height: 18px;
+                    colorize: root.dialog-type == 2 ? #89b4fa :
+                              root.dialog-type == 3 ? #a6e3a1 :
+                              root.dialog-type == 4 ? #fab387 :
+                              root.dialog-type == 5 ? #cba6f7 :
+                              root.dialog-type == 7 ? #89dceb :
+                              root.dialog-type == 8 ? #f9e2af : #89b4fa;
+                    vertical-alignment: center;
+                }
+                Text {
+                    text: root.dialog-title;
+                    color: #f1f5f9;
+                    font-size: 14px;
+                    font-weight: 700;
+                    vertical-alignment: center;
+                }
+            }
+
+            CloseButton {
+                clicked => { root.close-window(); }
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // 4. BIJOY ⇄ UNICODE CONVERTER (Standalone Multi-line Resizable)
+        // ---------------------------------------------------------------------
+        if root.dialog-type == 4: VerticalLayout {
+            spacing: 10px;
+            vertical-stretch: 1;
+
+            // Mode Selector
+            HorizontalLayout {
+                spacing: 8px;
+                SegmentButton {
+                    label: "Bijoy (ANSI) ➔ Unicode Bengali";
+                    active: root.conv-direction == 0;
+                    active-color: #fab387;
+                    clicked => {
+                        root.conv-direction = 0;
+                        if (root.conv-input-text != "") {
+                            root.convert-bijoy-to-unicode(root.conv-input-text);
+                        }
+                    }
+                }
+                SegmentButton {
+                    label: "Unicode Bengali ➔ Bijoy (ANSI)";
+                    active: root.conv-direction == 1;
+                    active-color: #fab387;
+                    clicked => {
+                        root.conv-direction = 1;
+                        if (root.conv-input-text != "") {
+                            root.convert-unicode-to-bijoy(root.conv-input-text);
+                        }
+                    }
+                }
+            }
+
+            // Input Section
+            VerticalLayout {
+                spacing: 6px;
+                vertical-stretch: 1;
+                HorizontalLayout {
+                    alignment: space-between;
+                    Text {
+                        text: root.conv-direction == 0 ? "Bijoy (ANSI) Source Text:" : "Unicode Bengali Source Text:";
+                        color: #89b4fa;
+                        font-size: 12px;
+                        font-weight: 700;
+                    }
+                    ModernButton {
+                        text: "Clear";
+                        clicked => {
+                            root.conv-input-text = "";
+                            root.conv-output-text = "";
+                            root.conv-copied = false;
+                        }
+                    }
+                }
+
+                Rectangle {
+                    background: #0b0c14;
+                    border-radius: 8px;
+                    border-width: 1px;
+                    border-color: #2a2d42;
+                    vertical-stretch: 1;
+
+                    VerticalLayout {
+                        padding: 8px;
+                        TextEdit {
+                            text <=> root.conv-input-text;
+                            vertical-stretch: 1;
+                            edited => {
+                                root.conv-copied = false;
+                                if (root.conv-direction == 0) {
+                                    root.convert-bijoy-to-unicode(root.conv-input-text);
+                                } else {
+                                    root.convert-unicode-to-bijoy(root.conv-input-text);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Action Row
+            HorizontalLayout {
+                alignment: space-between;
+                ModernButton {
+                    text: "Convert Now ➔";
+                    primary: true;
+                    clicked => {
+                        if (root.conv-direction == 0) {
+                            root.convert-bijoy-to-unicode(root.conv-input-text);
+                        } else {
+                            root.convert-unicode-to-bijoy(root.conv-input-text);
+                        }
+                    }
+                }
+
+                if (root.conv-output-text != ""): CopyButton {
+                    copied: root.conv-copied;
+                    clicked => {
+                        root.copy-to-clipboard(root.conv-output-text);
+                    }
+                }
+            }
+
+            // Output Section
+            VerticalLayout {
+                spacing: 6px;
+                vertical-stretch: 1;
+                HorizontalLayout {
+                    alignment: space-between;
+                    Text {
+                        text: root.conv-direction == 0 ? "Unicode Bengali Result:" : "Bijoy (ANSI) Result:";
+                        color: #a6e3a1;
+                        font-size: 12px;
+                        font-weight: 700;
+                    }
+                    if (root.conv-output-text != ""): Text {
+                        text: root.conv-copied ? "Copied to Clipboard! ✓" : "Converted successfully ✓";
+                        color: #a6e3a1;
+                        font-size: 11px;
+                        font-weight: 600;
+                    }
+                }
+
+                Rectangle {
+                    background: #0b0c14;
+                    border-radius: 8px;
+                    border-width: 1px;
+                    border-color: #2a2d42;
+                    vertical-stretch: 1;
+
+                    VerticalLayout {
+                        padding: 8px;
+                        TextEdit {
+                            text: root.conv-output-text;
+                            read-only: true;
+                            vertical-stretch: 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // 3. AUTOCORRECT MANAGER (Standalone Resizable)
+        // ---------------------------------------------------------------------
+        if root.dialog-type == 3: VerticalLayout {
+            spacing: 10px;
+            vertical-stretch: 1;
+
+            // Search Bar
+            search_input_standalone := LineEdit {
+                text: root.ac-search-query;
+                placeholder-text: "Search words or triggers...";
+                edited(t) => {
+                    root.ac-search-query = t;
+                    root.ac-search-changed(t);
+                }
+            }
+
+            // Add Entry Form
+            Rectangle {
+                background: #0c0d14;
+                border-radius: 10px;
+                border-width: 1px;
+                border-color: #242638;
+
+                VerticalLayout {
+                    padding: 10px;
+                    spacing: 6px;
+                    Text { text: "ADD OR UPDATE WORD"; color: #89b4fa; font-size: 9.5px; font-weight: 700; }
+                    HorizontalLayout {
+                        spacing: 6px;
+                        in_replace_sa := LineEdit {
+                            text: root.ac-replace-input;
+                            placeholder-text: "Trigger (e.g. kothaa)";
+                            edited(t) => { root.ac-replace-input = t; }
+                        }
+                        Text { text: "➔"; color: #89b4fa; vertical-alignment: center; }
+                        in_with_sa := LineEdit {
+                            text: root.ac-with-input;
+                            placeholder-text: "Bengali (e.g. কথা)";
+                            edited(t) => { root.ac-with-input = t; }
+                        }
+                        ModernButton {
+                            text: "Save";
+                            primary: true;
+                            clicked => {
+                                if (in_replace_sa.text != "" && in_with_sa.text != "") {
+                                    root.ac-add-or-update(in_replace_sa.text, in_with_sa.text);
+                                    in_replace_sa.text = "";
+                                    in_with_sa.text = "";
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Word List Table
+            Rectangle {
+                background: #0c0d14;
+                border-radius: 10px;
+                border-width: 1px;
+                border-color: #242638;
+                vertical-stretch: 1;
+
+                VerticalLayout {
+                    padding: 6px;
+                    ScrollView {
+                        vertical-stretch: 1;
+                        VerticalLayout {
+                            spacing: 4px;
+                            for entry in root.ac-entries: Rectangle {
+                                height: 32px;
+                                border-radius: 6px;
+                                background: #13141f;
+                                border-width: 1px;
+                                border-color: #1e2030;
+
+                                HorizontalLayout {
+                                    padding-left: 12px;
+                                    padding-right: 8px;
+                                    alignment: space-between;
+
+                                    HorizontalLayout {
+                                        spacing: 12px;
+                                        alignment: center;
+                                        Text { text: entry.trigger; color: #89b4fa; font-weight: 600; font-size: 12px; }
+                                        Text { text: "➔"; color: #585b70; font-size: 11px; }
+                                        Text { text: entry.replacement; color: #f1f5f9; font-weight: 600; font-size: 12px; }
+                                    }
+
+                                    Rectangle {
+                                        width: 22px;
+                                        height: 22px;
+                                        border-radius: 5px;
+                                        background: del_ta_sa.has-hover ? #f38ba833 : transparent;
+                                        del_ta_sa := TouchArea {
+                                            mouse-cursor: pointer;
+                                            clicked => { root.ac-delete-entry(entry.trigger); }
+                                        }
+                                        Image {
+                                            x: (parent.width - self.width) / 2;
+                                            y: (parent.height - self.height) / 2;
+                                            source: @image-url("../../../data/icons/ui/trash.svg");
+                                            width: 12px;
+                                            height: 12px;
+                                            colorize: del_ta_sa.has-hover ? #f38ba8 : #6c7086;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Status Bar
+            Text {
+                text: root.ac-status-text;
+                color: #6c7086;
+                font-size: 10.5px;
+                horizontal-alignment: center;
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // 5. SETTINGS (Standalone Resizable)
+        // ---------------------------------------------------------------------
+        if root.dialog-type == 5: VerticalLayout {
+            spacing: 10px;
+            vertical-stretch: 1;
+
+            ScrollView {
+                vertical-stretch: 1;
+                VerticalLayout {
+                    spacing: 10px;
+
+                    // Section 1: Phonetic Options
+                    Rectangle {
+                        background: #0c0d14;
+                        border-radius: 10px;
+                        border-width: 1px;
+                        border-color: #242638;
+
+                        VerticalLayout {
+                            padding: 12px;
+                            spacing: 8px;
+                            Text { text: "PHONETIC ENGINE"; color: #89b4fa; font-size: 10px; font-weight: 700; }
+                            ModernToggleSwitch {
+                                label: "Auto Vowel Forming (o / i / u)";
+                                checked <=> root.set-auto-vowel;
+                            }
+                            ModernToggleSwitch {
+                                label: "Auto Chandra Position Adjustment";
+                                checked <=> root.set-auto-chandra;
+                            }
+                        }
+                    }
+
+                    // Section 2: Fixed Layout Options
+                    Rectangle {
+                        background: #0c0d14;
+                        border-radius: 10px;
+                        border-width: 1px;
+                        border-color: #242638;
+
+                        VerticalLayout {
+                            padding: 12px;
+                            spacing: 8px;
+                            Text { text: "FIXED LAYOUTS (PROBHAT / JATIYA / UNIBIJOY)"; color: #a6e3a1; font-size: 10px; font-weight: 700; }
+                            ModernToggleSwitch {
+                                label: "Traditional Kar Placement (ী / ূ)";
+                                checked <=> root.set-traditional-kar;
+                            }
+                            ModernToggleSwitch {
+                                label: "Old Reph Placement (র্)";
+                                checked <=> root.set-old-reph;
+                            }
+                            ModernToggleSwitch {
+                                label: "Bengali Number Pad Mapping";
+                                checked <=> root.set-numberpad;
+                            }
+                        }
+                    }
+
+                    // Section 3: General & Hotkey Options
+                    Rectangle {
+                        background: #0c0d14;
+                        border-radius: 10px;
+                        border-width: 1px;
+                        border-color: #242638;
+
+                        VerticalLayout {
+                            padding: 12px;
+                            spacing: 8px;
+                            Text { text: "BEHAVIOR & SHORTCUTS"; color: #f9e2af; font-size: 10px; font-weight: 700; }
+                            ModernToggleSwitch {
+                                label: "Show On-Screen Display (OSD) Overlay";
+                                checked <=> root.set-show-osd;
+                            }
+                            ModernToggleSwitch {
+                                label: "Auto Dari Substitution (. ➔ ।)";
+                                checked <=> root.set-auto-dari;
+                            }
+                        }
+                    }
+                }
+            }
+
+            ModernButton {
+                text: "Save Settings";
+                primary: true;
+                clicked => { root.save-settings(); }
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // 2. KEYBOARD LAYOUT VIEWER (Standalone Resizable)
+        // ---------------------------------------------------------------------
+        if root.dialog-type == 2: VerticalLayout {
+            spacing: 12px;
+            vertical-stretch: 1;
+
+            // Mode Selector
+            Rectangle {
+                height: 32px;
+                background: #0c0d14;
+                border-radius: 8px;
+                border-width: 1px;
+                border-color: #242638;
+                HorizontalLayout {
+                    padding: 3px;
+                    spacing: 6px;
+                    SegmentButton {
+                        label: "Normal";
+                        active: root.viewer-mode == 0;
+                        active-color: #89b4fa;
+                        clicked => { root.viewer-mode = 0; }
+                    }
+                    SegmentButton {
+                        label: "Shift";
+                        active: root.viewer-mode == 1;
+                        active-color: #a6e3a1;
+                        clicked => { root.viewer-mode = 1; }
+                    }
+                    SegmentButton {
+                        label: "AltGr";
+                        active: root.viewer-mode == 2;
+                        active-color: #fab387;
+                        clicked => { root.viewer-mode = 2; }
+                    }
+                }
+            }
+
+            // Keycap Grid
+            Rectangle {
+                background: #0c0d14;
+                border-radius: 10px;
+                border-width: 1px;
+                border-color: #242638;
+                vertical-stretch: 1;
+
+                VerticalLayout {
+                    padding: 16px;
+                    spacing: 6px;
+                    alignment: center;
+
+                    HorizontalLayout {
+                        spacing: 4px;
+                        alignment: center;
+                        for key in (root.viewer-mode == 0 ? ["১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০", "-", "="] :
+                                   (root.viewer-mode == 1 ? ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "+"] :
+                                                            ["১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০", "–", "≠"])): KeyCapButton {
+                            key-char: key;
+                            text-color: #89b4fa;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 4px;
+                        alignment: center;
+                        for key in (root.viewer-mode == 0 ? ["ধ", "ঘ", "ঙ", "ঋ", "ট", "ঠ", "ণ", "থ", "ধ", "ঝ", "চ"] :
+                                   (root.viewer-mode == 1 ? ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "{", "}"] :
+                                                            ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]"])): KeyCapButton {
+                            key-char: key;
+                            text-color: #f1f5f9;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 4px;
+                        alignment: center;
+                        for key in (root.viewer-mode == 0 ? ["া", "ি", "ী", "ু", "ূ", "ৃ", "ে", "ৈ", "ো", "ৌ"] :
+                                   (root.viewer-mode == 1 ? ["A", "S", "D", "F", "G", "H", "J", "K", "L", ":", "\""] :
+                                                            ["a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'"])): KeyCapButton {
+                            key-char: key;
+                            text-color: #a6e3a1;
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 4px;
+                        alignment: center;
+                        for key in (root.viewer-mode == 0 ? ["য", "র", "ল", "শ", "ষ", "স", "হ", "ড়", "ঢ়", "য়"] :
+                                   (root.viewer-mode == 1 ? ["Z", "X", "C", "V", "B", "N", "M", "<", ">", "?"] :
+                                                            ["z", "x", "c", "v", "b", "n", "m", ",", ".", "/"])): KeyCapButton {
+                            key-char: key;
+                            text-color: #fab387;
+                        }
+                    }
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // 7. CONJUNCT ASSISTANT (Standalone Resizable)
+        // ---------------------------------------------------------------------
+        if root.dialog-type == 7: VerticalLayout {
+            spacing: 10px;
+            vertical-stretch: 1;
+
+            LineEdit {
+                text: root.conjunct-search-query;
+                placeholder-text: "Search conjunct, breakdown, or phonetic keys (e.g. ক্ষ, kkh, হ + ্ + ম)...";
+                edited(t) => {
+                    root.conjunct-search-query = t;
+                    root.conjunct-search-changed(t);
+                }
+            }
+
+            Rectangle {
+                background: #0c0d14;
+                border-radius: 10px;
+                border-width: 1px;
+                border-color: #242638;
+                vertical-stretch: 1;
+
+                VerticalLayout {
+                    padding: 8px;
+                    ScrollView {
+                        vertical-stretch: 1;
+                        VerticalLayout {
+                            spacing: 4px;
+                            for c in root.conjunct-list: Rectangle {
+                                height: 38px;
+                                border-radius: 6px;
+                                background: #13141f;
+                                border-width: 1px;
+                                border-color: #1e2030;
+
+                                HorizontalLayout {
+                                    padding-left: 12px;
+                                    padding-right: 8px;
+                                    alignment: space-between;
+
+                                    HorizontalLayout {
+                                        spacing: 14px;
+                                        alignment: center;
+                                        Text { text: c.conjunct; color: #89dceb; font-size: 15px; font-weight: 700; }
+                                        Text { text: c.breakdown; color: #cdd6f4; font-size: 12px; }
+                                        Text { text: "Phonetic: " + c.phonetic; color: #89b4fa; font-size: 11px; }
+                                    }
+
+                                    ModernButton {
+                                        text: "Copy";
+                                        clicked => { root.copy-conjunct(c.conjunct); }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // 8. TYPING TELEMETRY & STATS (Standalone Resizable)
+        // ---------------------------------------------------------------------
+        if root.dialog-type == 8: VerticalLayout {
+            spacing: 12px;
+            vertical-stretch: 1;
+
+            HorizontalLayout {
+                spacing: 10px;
+                Rectangle {
+                    height: 70px;
+                    border-radius: 8px;
+                    background: #181926bb;
+                    border-width: 1px;
+                    border-color: #89b4fa44;
+                    vertical-stretch: 0;
+
+                    VerticalLayout {
+                        alignment: center;
+                        Text { text: "Total Words Typed"; color: #89b4fa; font-size: 10.5px; font-weight: 700; horizontal-alignment: center; }
+                        Text { text: root.stats-total-words; color: #f1f5f9; font-size: 22px; font-weight: 800; horizontal-alignment: center; }
+                    }
+                }
+
+                Rectangle {
+                    height: 70px;
+                    border-radius: 8px;
+                    background: #181926bb;
+                    border-width: 1px;
+                    border-color: #a6e3a144;
+                    vertical-stretch: 0;
+
+                    VerticalLayout {
+                        alignment: center;
+                        Text { text: "Keystrokes Saved"; color: #a6e3a1; font-size: 10.5px; font-weight: 700; horizontal-alignment: center; }
+                        Text { text: root.stats-keystrokes-saved; color: #a6e3a1; font-size: 22px; font-weight: 800; horizontal-alignment: center; }
+                    }
+                }
+            }
+
+            Rectangle {
+                background: #0c0d14;
+                border-radius: 10px;
+                border-width: 1px;
+                border-color: #242638;
+                vertical-stretch: 1;
+
+                VerticalLayout {
+                    padding: 10px;
+                    spacing: 6px;
+                    Text { text: "FREQUENTLY TYPED CHARACTERS"; color: #f9e2af; font-size: 10px; font-weight: 700; }
+
+                    ScrollView {
+                        vertical-stretch: 1;
+                        VerticalLayout {
+                            spacing: 4px;
+                            for row in root.stats-top-characters: Rectangle {
+                                height: 28px;
+                                border-radius: 5px;
+                                background: #13141f;
+
+                                HorizontalLayout {
+                                    padding-left: 10px;
+                                    padding-right: 10px;
+                                    alignment: space-between;
+
+                                    Text { text: row.character; color: #f1f5f9; font-size: 13px; font-weight: 700; vertical-alignment: center; }
+                                    Text { text: row.count + " times (" + row.percentage + ")"; color: #a6adc8; font-size: 11px; vertical-alignment: center; }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            ModernButton {
+                text: "Refresh Stats";
+                clicked => { root.refresh-stats(); }
             }
         }
     }
