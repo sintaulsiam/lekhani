@@ -16,10 +16,20 @@ pub struct AppConfig {
     pub ui: UiConfig,
 }
 
+fn default_toggle_key() -> String {
+    "F12".to_string()
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeneralConfig {
     pub active_layout: String,
     pub check_updates: bool,
+    #[serde(default = "default_toggle_key")]
+    pub toggle_key: String,
+    #[serde(default = "default_true")]
+    pub show_osd: bool,
+    #[serde(default = "default_true")]
+    pub auto_dari: bool,
 }
 
 fn default_true() -> bool {
@@ -58,6 +68,9 @@ impl Default for AppConfig {
             general: GeneralConfig {
                 active_layout: "Avro Phonetic".to_string(),
                 check_updates: true,
+                toggle_key: "F12".to_string(),
+                show_osd: true,
+                auto_dari: true,
             },
             phonetic: PhoneticConfig {
                 use_dictionary: true,
@@ -463,4 +476,41 @@ pub struct BackupBundle {
     pub user_learned: Option<serde_json::Value>,
     pub custom_layouts: std::collections::HashMap<String, String>,
     pub user_stats: Option<serde_json::Value>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_general_config_defaults_and_backward_compatibility() {
+        let legacy_toml = r#"
+            [general]
+            active_layout = "Avro Phonetic"
+            check_updates = true
+
+            [phonetic]
+            use_dictionary = true
+            include_english = true
+            enter_key_closes_candidate_window = false
+
+            [fixed]
+            auto_vowel_forming = true
+            auto_chandra_position = true
+            traditional_kar = false
+            old_reph = true
+            numberpad = true
+
+            [ui]
+            horizontal_candidates = true
+            topbar_x = 200
+            topbar_y = 50
+            dark_mode = true
+        "#;
+
+        let config: AppConfig = toml::from_str(legacy_toml).expect("Should parse legacy config");
+        assert_eq!(config.general.toggle_key, "F12");
+        assert!(config.general.show_osd);
+        assert!(config.general.auto_dari);
+    }
 }
