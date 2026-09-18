@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"]
 //! Lekhani Desktop GUI Application
 
 slint::include_modules!();
@@ -5,6 +6,10 @@ slint::include_modules!();
 #[cfg(unix)]
 mod tray;
 
+#[cfg(windows)]
+mod win_autostart;
+#[cfg(windows)]
+mod win_candidate;
 #[cfg(windows)]
 mod win_hook;
 #[cfg(windows)]
@@ -37,6 +42,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize UI state
     let current_layout = config_mgr.config.general.active_layout.clone();
+    #[cfg(windows)]
+    app.set_active_layout_name("English".into());
+    #[cfg(not(windows))]
     app.set_active_layout_name(current_layout.clone().into());
     let layouts = layout_mgr.get_layout_list();
     let slint_layouts: Vec<slint::SharedString> = layouts.into_iter().map(|s| s.into()).collect();
@@ -54,6 +62,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // Settings state
+    #[cfg(windows)]
+    {
+        app.set_is_windows(true);
+        app.set_set_autostart(win_autostart::is_autostart_enabled());
+    }
     app.set_set_use_dict(config_mgr.config.phonetic.use_dictionary);
     app.set_set_include_eng(config_mgr.config.phonetic.include_english);
     app.set_set_enter_closes(config_mgr.config.phonetic.enter_key_closes_candidate_window);
@@ -130,6 +143,34 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // OSD Toast Timer
     let osd_timer = Rc::new(std::cell::RefCell::new(slint::Timer::default()));
 
+    let app_weak_mode_notify = app_weak.clone();
+    let osd_timer_mode = osd_timer.clone();
+    app.on_notify_mode_change(move |active, layout| {
+        if let Some(app) = app_weak_mode_notify.upgrade() {
+            if active {
+                app.set_active_layout_name(layout.clone());
+                show_mode_osd(&app, &osd_timer_mode, layout.as_str(), true);
+            } else {
+                app.set_active_layout_name("English".into());
+                show_mode_osd(&app, &osd_timer_mode, "English", false);
+            }
+        }
+    });
+
+    #[cfg(windows)]
+    {
+        let app_weak_hook = app_weak.clone();
+        win_hook::set_mode_change_callback(std::sync::Arc::new(move |active, layout_name| {
+            let app_weak = app_weak_hook.clone();
+            let layout: slint::SharedString = layout_name.into();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(app) = app_weak.upgrade() {
+                    app.invoke_notify_mode_change(active, layout);
+                }
+            });
+        }));
+    }
+
     // Callbacks: Layout Switching & Mode OSD
     let config_mgr_rc = Rc::new(std::cell::RefCell::new(config_mgr));
     let cm_clone = config_mgr_rc.clone();
@@ -151,12 +192,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    #[cfg(not(windows))]
     let cm_toggle = config_mgr_rc.clone();
+    #[cfg(not(windows))]
     let app_weak_toggle = app_weak.clone();
+    #[cfg(not(windows))]
     let osd_timer_toggle = osd_timer.clone();
     app.on_toggle_layout_mode(move || {
         #[cfg(windows)]
         win_hook::toggle_bengali_mode();
+
+        #[cfg(not(windows))]
         if let Some(app) = app_weak_toggle.upgrade() {
             let current = app.get_active_layout_name();
             if current == "English" {
@@ -295,6 +341,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             cm.config.fixed.old_reph = app.get_set_old_reph();
             cm.config.fixed.numberpad = app.get_set_numberpad();
             cm.save();
+            #[cfg(windows)]
+            let _ = win_autostart::set_autostart(app.get_set_autostart());
             app.set_show_settings_dialog(false);
         }
     });
