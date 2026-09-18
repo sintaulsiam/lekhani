@@ -30,17 +30,17 @@ component IconButton inherits Rectangle {
     in property <bool> active: false;
     in property <color> icon-color: #cdd6f4;
     in property <color> active-color: #89b4fa;
-    in property <color> active-bg: #89b4fa22;
+    in property <color> active-bg: #89b4fa28;
     out property <bool> has-hover: ta.has-hover;
     callback clicked;
 
-    width: 36px;
-    height: 36px;
-    border-radius: 18px;
+    width: 28px;
+    height: 28px;
+    border-radius: 14px;
     border-width: 1px;
-    border-color: root.active ? root.active-color : (ta.has-hover ? #45475a : transparent);
-    background: root.active ? root.active-bg : (ta.has-hover ? #45475a : #313244);
-    animate background { duration: 150ms; }
+    border-color: root.active ? root.active-color : (ta.has-hover ? #585b70 : transparent);
+    background: root.active ? root.active-bg : (ta.has-hover ? #31324499 : transparent);
+    animate background, border-color { duration: 120ms; }
 
     ta := TouchArea {
         mouse-cursor: pointer;
@@ -49,8 +49,8 @@ component IconButton inherits Rectangle {
 
     Text {
         text: root.icon;
-        font-size: 16px;
-        color: root.active ? root.active-color : root.icon-color;
+        font-size: 13px;
+        color: root.active ? root.active-color : (ta.has-hover ? #ffffff : root.icon-color);
         horizontal-alignment: center;
         vertical-alignment: center;
     }
@@ -58,11 +58,11 @@ component IconButton inherits Rectangle {
 
 component CloseButton inherits Rectangle {
     callback clicked;
-    width: 28px;
-    height: 28px;
-    border-radius: 14px;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
     background: ta.has-hover ? #f38ba833 : transparent;
-    animate background { duration: 150ms; }
+    animate background { duration: 120ms; }
 
     ta := TouchArea {
         mouse-cursor: pointer;
@@ -71,7 +71,7 @@ component CloseButton inherits Rectangle {
 
     Text {
         text: "✕";
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 700;
         color: #f38ba8;
         horizontal-alignment: center;
@@ -85,10 +85,10 @@ component ModeButton inherits Rectangle {
     in property <color> active-color: #89b4fa;
     callback clicked;
 
-    height: 30px;
-    border-radius: 8px;
-    background: root.active ? root.active-color : (ta.has-hover ? #45475a : #313244);
-    animate background { duration: 150ms; }
+    height: 26px;
+    border-radius: 6px;
+    background: root.active ? root.active-color : (ta.has-hover ? #45475a : #24253a);
+    animate background { duration: 120ms; }
 
     ta := TouchArea {
         mouse-cursor: pointer;
@@ -96,13 +96,13 @@ component ModeButton inherits Rectangle {
     }
 
     HorizontalLayout {
-        padding-left: 12px;
-        padding-right: 12px;
+        padding-left: 10px;
+        padding-right: 10px;
         alignment: center;
         Text {
             text: root.label;
             color: root.active ? #11111b : #cdd6f4;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             vertical-alignment: center;
         }
@@ -113,10 +113,10 @@ component KeyCapButton inherits Rectangle {
     in property <string> key-char;
     in property <color> text-color: #cdd6f4;
 
-    width: 42px;
-    height: 38px;
-    border-radius: 6px;
-    background: ta.has-hover ? #45475a : #313244;
+    width: 36px;
+    height: 30px;
+    border-radius: 5px;
+    background: ta.has-hover ? #45475a : #24253a;
     border-width: 1px;
     border-color: ta.has-hover ? #89b4fa : transparent;
     animate background { duration: 100ms; }
@@ -128,7 +128,7 @@ component KeyCapButton inherits Rectangle {
     Text {
         text: root.key-char;
         color: root.text-color;
-        font-size: 14px;
+        font-size: 12.5px;
         font-weight: 600;
         horizontal-alignment: center;
         vertical-alignment: center;
@@ -260,34 +260,34 @@ export component TopBarWindow inherits Window {
 
     VerticalLayout {
         alignment: start;
-        spacing: 8px;
+        spacing: 6px;
 
         // ---------------------------------------------------------------------
-        // Main Floating TopBar
+        // Main Floating TopBar (Sleek Compact Dynamic Island Ribbon)
         // ---------------------------------------------------------------------
         Rectangle {
-            width: 550px;
-            height: 52px;
-            background: #181825ee;
-            border-radius: 26px;
-            border-width: 1.5px;
-            border-color: #313244;
-            drop-shadow-blur: 24px;
-            drop-shadow-color: #000000aa;
+            width: 430px;
+            height: 40px;
+            background: #11111bf4;
+            border-radius: 20px;
+            border-width: 1px;
+            border-color: #313244aa;
+            drop-shadow-blur: 16px;
+            drop-shadow-color: #00000088;
 
             HorizontalLayout {
-                padding-left: 10px;
-                padding-right: 10px;
-                spacing: 6px;
+                padding-left: 8px;
+                padding-right: 8px;
+                spacing: 3px;
                 alignment: center;
 
                 // 1. Drag Handle Grip
                 Rectangle {
-                    width: 24px;
-                    height: 36px;
-                    border-radius: 12px;
-                    background: drag_ta.has-hover ? #45475a : transparent;
-                    animate background { duration: 150ms; }
+                    width: 18px;
+                    height: 28px;
+                    border-radius: 9px;
+                    background: drag_ta.has-hover ? #45475a88 : transparent;
+                    animate background { duration: 120ms; }
 
                     drag_ta := TouchArea {
                         mouse-cursor: move;
@@ -303,8 +303,8 @@ export component TopBarWindow inherits Window {
 
                     Text {
                         text: "⠿";
-                        font-size: 16px;
-                        color: drag_ta.has-hover ? #89b4fa : #6c7086;
+                        font-size: 13px;
+                        color: drag_ta.has-hover ? #89b4fa : #585b70;
                         horizontal-alignment: center;
                         vertical-alignment: center;
                     }
@@ -312,15 +312,13 @@ export component TopBarWindow inherits Window {
 
                 // 2. Brand Logo / About Button
                 Rectangle {
-                    width: 36px;
-                    height: 36px;
-                    border-radius: 18px;
-                    background: root.active-dialog == 6 ? #89b4fa33 : (btn_logo_ta.has-hover ? #89b4fa22 : #1e1e2e);
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 14px;
+                    background: root.active-dialog == 6 ? #89b4fa33 : (btn_logo_ta.has-hover ? #89b4fa22 : #1e1e2e88);
                     border-width: 1px;
-                    border-color: root.active-dialog == 6 ? #89b4fa : (btn_logo_ta.has-hover ? #89b4fa66 : #45475a);
-                    drop-shadow-blur: 10px;
-                    drop-shadow-color: #89b4fa44;
-                    animate background { duration: 150ms; }
+                    border-color: root.active-dialog == 6 ? #89b4fa : (btn_logo_ta.has-hover ? #89b4fa55 : #313244);
+                    animate background, border-color { duration: 120ms; }
 
                     btn_logo_ta := TouchArea {
                         mouse-cursor: pointer;
@@ -331,21 +329,21 @@ export component TopBarWindow inherits Window {
 
                     Image {
                         source: @image-url("../../../data/icons/64.png");
-                        width: 22px;
-                        height: 22px;
-                        x: 7px;
-                        y: 7px;
+                        width: 18px;
+                        height: 18px;
+                        x: 5px;
+                        y: 5px;
                     }
                 }
 
                 // 3. Active Layout Selector Pill Button
                 Rectangle {
-                    height: 36px;
-                    background: root.active-dialog == 1 ? #89b4fa22 : (btn_layout_ta.has-hover ? #45475a : #313244);
-                    border-radius: 18px;
+                    height: 28px;
+                    background: root.active-dialog == 1 ? #89b4fa25 : (btn_layout_ta.has-hover ? #45475a88 : #24253acc);
+                    border-radius: 14px;
                     border-width: 1px;
-                    border-color: root.active-dialog == 1 ? #89b4fa : (btn_layout_ta.has-hover ? #585b70 : #45475a);
-                    animate background { duration: 150ms; }
+                    border-color: root.active-dialog == 1 ? #89b4fa : (btn_layout_ta.has-hover ? #585b70 : #313244);
+                    animate background, border-color { duration: 120ms; }
 
                     btn_layout_ta := TouchArea {
                         mouse-cursor: pointer;
@@ -355,21 +353,21 @@ export component TopBarWindow inherits Window {
                     }
 
                     HorizontalLayout {
-                        padding-left: 12px;
-                        padding-right: 12px;
-                        spacing: 6px;
+                        padding-left: 10px;
+                        padding-right: 10px;
+                        spacing: 4px;
                         alignment: center;
                         Text {
                             text: root.active-layout-name;
                             color: root.active-dialog == 1 ? #89b4fa : #cdd6f4;
-                            font-size: 13px;
+                            font-size: 12px;
                             font-weight: 700;
                             vertical-alignment: center;
                         }
                         Text {
                             text: root.active-dialog == 1 ? "▴" : "▾";
                             color: #89b4fa;
-                            font-size: 12px;
+                            font-size: 10px;
                             vertical-alignment: center;
                         }
                     }
@@ -380,7 +378,7 @@ export component TopBarWindow inherits Window {
                     icon: "⌨";
                     active: root.active-dialog == 2;
                     active-color: #89b4fa;
-                    active-bg: #89b4fa22;
+                    active-bg: #89b4fa25;
                     clicked => {
                         root.active-dialog = root.active-dialog == 2 ? 0 : 2;
                     }
@@ -391,7 +389,7 @@ export component TopBarWindow inherits Window {
                     icon: "✎";
                     active: root.active-dialog == 3;
                     active-color: #a6e3a1;
-                    active-bg: #a6e3a122;
+                    active-bg: #a6e3a125;
                     clicked => {
                         root.active-dialog = root.active-dialog == 3 ? 0 : 3;
                     }
@@ -402,7 +400,7 @@ export component TopBarWindow inherits Window {
                     icon: "⇄";
                     active: root.active-dialog == 4;
                     active-color: #fab387;
-                    active-bg: #fab38722;
+                    active-bg: #fab38725;
                     clicked => {
                         root.active-dialog = root.active-dialog == 4 ? 0 : 4;
                     }
@@ -413,7 +411,7 @@ export component TopBarWindow inherits Window {
                     icon: "🧩";
                     active: root.active-dialog == 7;
                     active-color: #89dceb;
-                    active-bg: #89dceb22;
+                    active-bg: #89dceb25;
                     clicked => {
                         root.active-dialog = root.active-dialog == 7 ? 0 : 7;
                     }
@@ -424,7 +422,7 @@ export component TopBarWindow inherits Window {
                     icon: "📊";
                     active: root.active-dialog == 8;
                     active-color: #f9e2af;
-                    active-bg: #f9e2af22;
+                    active-bg: #f9e2af25;
                     clicked => {
                         root.active-dialog = root.active-dialog == 8 ? 0 : 8;
                         if (root.active-dialog == 8) {
@@ -438,7 +436,7 @@ export component TopBarWindow inherits Window {
                     icon: "⚙";
                     active: root.active-dialog == 5;
                     active-color: #cba6f7;
-                    active-bg: #cba6f722;
+                    active-bg: #cba6f725;
                     clicked => {
                         root.active-dialog = root.active-dialog == 5 ? 0 : 5;
                     }
@@ -458,22 +456,22 @@ export component TopBarWindow inherits Window {
         // Dynamic Floating Tooltip Badge (Integrated into layout, never clipped)
         // ---------------------------------------------------------------------
         if (root.hover-tooltip != "" && root.active-dialog == 0) : Rectangle {
-            height: 28px;
-            background: #181825fa;
-            border-radius: 14px;
+            height: 24px;
+            background: #11111bf4;
+            border-radius: 12px;
             border-width: 1px;
-            border-color: #45475a;
-            drop-shadow-blur: 12px;
-            drop-shadow-color: #000000bb;
+            border-color: #45475a88;
+            drop-shadow-blur: 10px;
+            drop-shadow-color: #00000099;
 
             HorizontalLayout {
-                padding-left: 14px;
-                padding-right: 14px;
+                padding-left: 12px;
+                padding-right: 12px;
                 alignment: center;
                 Text {
                     text: root.hover-tooltip;
                     color: #cdd6f4;
-                    font-size: 11px;
+                    font-size: 10.5px;
                     font-weight: 600;
                     vertical-alignment: center;
                 }
@@ -484,27 +482,27 @@ export component TopBarWindow inherits Window {
         // 1. Layout Dropdown Popup Panel
         // ---------------------------------------------------------------------
         if (root.active-dialog == 1) : Rectangle {
-            width: 280px;
-            background: #181825fa;
-            border-radius: 16px;
-            border-width: 1.5px;
-            border-color: #45475a;
-            drop-shadow-blur: 20px;
-            drop-shadow-color: #000000bb;
+            width: 260px;
+            background: #11111bf8;
+            border-radius: 14px;
+            border-width: 1px;
+            border-color: #45475a88;
+            drop-shadow-blur: 18px;
+            drop-shadow-color: #000000aa;
 
             VerticalLayout {
-                padding: 10px;
-                spacing: 4px;
+                padding: 8px;
+                spacing: 3px;
                 HorizontalLayout {
                     alignment: space-between;
                     padding-left: 6px;
                     padding-right: 6px;
-                    padding-top: 4px;
-                    padding-bottom: 4px;
+                    padding-top: 2px;
+                    padding-bottom: 2px;
                     Text {
                         text: "SELECT KEYBOARD LAYOUT";
                         color: #89b4fa;
-                        font-size: 10px;
+                        font-size: 9.5px;
                         font-weight: 800;
                     }
                     CloseButton {
@@ -512,11 +510,11 @@ export component TopBarWindow inherits Window {
                     }
                 }
                 for layout[idx] in root.available-layouts: Rectangle {
-                    height: 34px;
-                    border-radius: 8px;
+                    height: 30px;
+                    border-radius: 7px;
                     border-width: 1px;
                     border-color: layout == root.active-layout-name ? #89b4fa55 : transparent;
-                    background: layout == root.active-layout-name ? #89b4fa22 : (layout_item_ta.has-hover ? #313244 : transparent);
+                    background: layout == root.active-layout-name ? #89b4fa20 : (layout_item_ta.has-hover ? #24253a : transparent);
                     animate background { duration: 100ms; }
 
                     layout_item_ta := TouchArea {
@@ -528,21 +526,21 @@ export component TopBarWindow inherits Window {
                     }
 
                     HorizontalLayout {
-                        padding-left: 12px;
-                        padding-right: 12px;
-                        spacing: 8px;
+                        padding-left: 10px;
+                        padding-right: 10px;
+                        spacing: 6px;
                         alignment: space-between;
                         Text {
                             text: layout;
                             color: layout == root.active-layout-name ? #89b4fa : #cdd6f4;
-                            font-size: 13px;
+                            font-size: 12px;
                             font-weight: layout == root.active-layout-name ? 700 : 500;
                             vertical-alignment: center;
                         }
                         if (layout == root.active-layout-name) : Text {
                             text: "✓";
                             color: #a6e3a1;
-                            font-size: 14px;
+                            font-size: 13px;
                             font-weight: 800;
                             vertical-alignment: center;
                         }
@@ -555,28 +553,28 @@ export component TopBarWindow inherits Window {
         // 2. Visual Keyboard Layout Viewer Dialog
         // ---------------------------------------------------------------------
         if (root.active-dialog == 2) : Rectangle {
-            width: 620px;
-            background: #181825fa;
-            border-radius: 20px;
-            border-width: 1.5px;
-            border-color: #45475a;
-            drop-shadow-blur: 24px;
+            width: 500px;
+            background: #11111bf8;
+            border-radius: 16px;
+            border-width: 1px;
+            border-color: #45475a88;
+            drop-shadow-blur: 20px;
             drop-shadow-color: #000000bb;
 
             VerticalLayout {
-                padding: 18px;
-                spacing: 14px;
+                padding: 14px;
+                spacing: 10px;
 
                 // Header
                 HorizontalLayout {
                     alignment: space-between;
                     HorizontalLayout {
-                        spacing: 8px;
-                        Text { text: "⌨"; color: #89b4fa; font-size: 18px; }
+                        spacing: 6px;
+                        Text { text: "⌨"; color: #89b4fa; font-size: 16px; }
                         Text {
                             text: "Keyboard Layout Viewer — " + root.active-layout-name;
                             color: #cdd6f4;
-                            font-size: 16px;
+                            font-size: 14px;
                             font-weight: 700;
                         }
                     }
@@ -587,7 +585,7 @@ export component TopBarWindow inherits Window {
 
                 // Mode Tabs (Normal / Shift / AltGr)
                 HorizontalLayout {
-                    spacing: 8px;
+                    spacing: 6px;
                     ModeButton {
                         label: "Normal View";
                         active: root.viewer-mode == 0;
@@ -610,18 +608,18 @@ export component TopBarWindow inherits Window {
 
                 // Virtual Keyboard Representation
                 Rectangle {
-                    background: #11111b;
-                    border-radius: 12px;
+                    background: #0d0e15;
+                    border-radius: 10px;
                     border-width: 1px;
-                    border-color: #313244;
+                    border-color: #24253a;
 
                     VerticalLayout {
-                        padding: 12px;
-                        spacing: 8px;
+                        padding: 10px;
+                        spacing: 6px;
 
                         // Row 1: Numbers
                         HorizontalLayout {
-                            spacing: 6px;
+                            spacing: 4px;
                             alignment: center;
                             for key in (root.viewer-mode == 0 ? ["১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০", "-", "="] :
                                        (root.viewer-mode == 1 ? ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "+"] :
@@ -632,7 +630,7 @@ export component TopBarWindow inherits Window {
                         }
                         // Row 2: QWERTY
                         HorizontalLayout {
-                            spacing: 6px;
+                            spacing: 4px;
                             alignment: center;
                             for key in (root.viewer-mode == 0 ? ["ট", "ঠ", "ড", "ঢ", "ণ", "ত", "থ", "দ", "ধ", "ন", "প", "ফ"] :
                                        (root.viewer-mode == 1 ? ["ৌ", "ৈ", "া", "ী", "ূ", "ভ", "ঙ", "ঘ", "ধ", "ঝ", "ঢ", "খ"] :
@@ -643,7 +641,7 @@ export component TopBarWindow inherits Window {
                         }
                         // Row 3: ASDF
                         HorizontalLayout {
-                            spacing: 6px;
+                            spacing: 4px;
                             alignment: center;
                             for key in (root.viewer-mode == 0 ? ["ব", "ভ", "ম", "য", "র", "ল", "শ", "ষ", "স", "হ", "ড়"] :
                                        (root.viewer-mode == 1 ? ["ো", "ে", "্", "ি", "ু", "র", "অ", "আ", "ই", "ঈ", "উ"] :
@@ -654,7 +652,7 @@ export component TopBarWindow inherits Window {
                         }
                         // Row 4: ZXCV
                         HorizontalLayout {
-                            spacing: 6px;
+                            spacing: 4px;
                             alignment: center;
                             for key in (root.viewer-mode == 0 ? ["অ", "আ", "ই", "ঈ", "উ", "ঊ", "ঋ", "এ", "ঐ", "ও", "ঔ"] :
                                        (root.viewer-mode == 1 ? ["য", "শ", "ষ", "স", "হ", "ড়", "ঢ়", "য়", "ৎ", "ং", "ঃ"] :
@@ -668,8 +666,8 @@ export component TopBarWindow inherits Window {
 
                 Text {
                     text: "Tip: In Phonetic mode, type English letters matching sound (e.g. 'ami' ➔ আমি, 'kotha' ➔ কথা).";
-                    color: #6c7086;
-                    font-size: 11px;
+                    color: #585b70;
+                    font-size: 10.5px;
                     horizontal-alignment: center;
                 }
             }
@@ -679,25 +677,25 @@ export component TopBarWindow inherits Window {
         // 3. AutoCorrect & Custom Word Dictionary Dialog
         // ---------------------------------------------------------------------
         if (root.active-dialog == 3) : Rectangle {
-            width: 520px;
-            background: #181825fa;
-            border-radius: 20px;
-            border-width: 1.5px;
-            border-color: #45475a;
-            drop-shadow-blur: 24px;
+            width: 460px;
+            background: #11111bf8;
+            border-radius: 16px;
+            border-width: 1px;
+            border-color: #45475a88;
+            drop-shadow-blur: 20px;
             drop-shadow-color: #000000bb;
 
             VerticalLayout {
-                padding: 18px;
-                spacing: 12px;
+                padding: 14px;
+                spacing: 10px;
 
                 // Header
                 HorizontalLayout {
                     alignment: space-between;
                     HorizontalLayout {
-                        spacing: 8px;
-                        Text { text: "✎"; color: #a6e3a1; font-size: 18px; }
-                        Text { text: "AutoCorrect & Custom Dictionary Manager"; color: #cdd6f4; font-size: 16px; font-weight: 700; }
+                        spacing: 6px;
+                        Text { text: "✎"; color: #a6e3a1; font-size: 16px; }
+                        Text { text: "AutoCorrect & Custom Dictionary Manager"; color: #cdd6f4; font-size: 14px; font-weight: 700; }
                     }
                     CloseButton {
                         clicked => { root.active-dialog = 0; }
@@ -716,20 +714,20 @@ export component TopBarWindow inherits Window {
 
                 // Add New Entry Form
                 Rectangle {
-                    background: #11111b;
-                    border-radius: 12px;
+                    background: #0d0e15;
+                    border-radius: 10px;
                     border-width: 1px;
-                    border-color: #313244;
+                    border-color: #24253a;
 
                     VerticalLayout {
-                        padding: 12px;
-                        spacing: 8px;
-                        Text { text: "➕ ADD OR UPDATE WORD"; color: #89b4fa; font-size: 11px; font-weight: 700; }
+                        padding: 10px;
+                        spacing: 6px;
+                        Text { text: "➕ ADD OR UPDATE WORD"; color: #89b4fa; font-size: 10px; font-weight: 700; }
                         HorizontalLayout {
-                            spacing: 8px;
+                            spacing: 6px;
                             in_replace := LineEdit {
                                 text: root.ac-replace-input;
-                                placeholder-text: "Type trigger (e.g. kothaa)";
+                                placeholder-text: "Trigger (e.g. kothaa)";
                                 edited(t) => {
                                     root.ac-replace-input = t;
                                     root.ac-input-changed(t, in_with.text);
@@ -737,14 +735,14 @@ export component TopBarWindow inherits Window {
                             }
                             in_with := LineEdit {
                                 text: root.ac-with-input;
-                                placeholder-text: "Bengali output (e.g. কথা)";
+                                placeholder-text: "Bengali (e.g. কথা)";
                                 edited(t) => {
                                     root.ac-with-input = t;
                                     root.ac-input-changed(in_replace.text, t);
                                 }
                             }
                             Button {
-                                text: "Add Rule";
+                                text: "Add";
                                 clicked => {
                                     root.ac-add-or-update(in_replace.text, in_with.text);
                                     root.ac-replace-input = "";
@@ -758,8 +756,8 @@ export component TopBarWindow inherits Window {
                 // Status bar
                 HorizontalLayout {
                     alignment: space-between;
-                    Text { text: root.ac-status-text; color: #6c7086; font-size: 11px; }
-                    Text { text: "Changes are automatically saved and synced live."; color: #a6e3a1; font-size: 11px; }
+                    Text { text: root.ac-status-text; color: #585b70; font-size: 10.5px; }
+                    Text { text: "Syncs live with input engine."; color: #a6e3a1; font-size: 10.5px; }
                 }
             }
         }
@@ -768,40 +766,40 @@ export component TopBarWindow inherits Window {
         // 4. Bijoy ⇄ Unicode Converter Dialog
         // ---------------------------------------------------------------------
         if (root.active-dialog == 4) : Rectangle {
-            width: 520px;
-            background: #181825fa;
-            border-radius: 20px;
-            border-width: 1.5px;
-            border-color: #45475a;
-            drop-shadow-blur: 24px;
+            width: 460px;
+            background: #11111bf8;
+            border-radius: 16px;
+            border-width: 1px;
+            border-color: #45475a88;
+            drop-shadow-blur: 20px;
             drop-shadow-color: #000000bb;
 
             VerticalLayout {
-                padding: 18px;
-                spacing: 12px;
+                padding: 14px;
+                spacing: 10px;
 
                 // Header
                 HorizontalLayout {
                     alignment: space-between;
                     HorizontalLayout {
-                        spacing: 8px;
-                        Text { text: "⇄"; color: #fab387; font-size: 18px; }
-                        Text { text: "Bijoy (ANSI) ⇄ Unicode Converter"; color: #cdd6f4; font-size: 16px; font-weight: 700; }
+                        spacing: 6px;
+                        Text { text: "⇄"; color: #fab387; font-size: 16px; }
+                        Text { text: "Bijoy (ANSI) ⇄ Unicode Converter"; color: #cdd6f4; font-size: 14px; font-weight: 700; }
                     }
                     CloseButton {
                         clicked => { root.active-dialog = 0; }
                     }
                 }
 
-                Text { text: "Input Text (Bijoy or Unicode):"; color: #a6adc8; font-size: 12px; font-weight: 600; }
+                Text { text: "Input Text (Bijoy or Unicode):"; color: #a6adc8; font-size: 11px; font-weight: 600; }
                 in_conv_edit := LineEdit {
                     text: root.conv-input-text;
-                    placeholder-text: "Type or paste text to convert (e.g. Avwg evsjvq Mvb MvB)...";
+                    placeholder-text: "Type or paste text (e.g. Avwg evsjvq Mvb MvB)...";
                     edited(t) => { root.conv-input-text = t; }
                 }
 
                 HorizontalLayout {
-                    spacing: 12px;
+                    spacing: 8px;
                     Button {
                         text: "Bijoy (ANSI) ➔ Unicode";
                         clicked => { root.convert-bijoy-to-unicode(in_conv_edit.text); }
@@ -812,18 +810,18 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                Text { text: "Converted Output:"; color: #a6adc8; font-size: 12px; font-weight: 600; }
+                Text { text: "Converted Output:"; color: #a6adc8; font-size: 11px; font-weight: 600; }
                 Rectangle {
-                    height: 70px;
-                    background: #11111b;
-                    border-radius: 10px;
+                    height: 56px;
+                    background: #0d0e15;
+                    border-radius: 8px;
                     border-width: 1px;
-                    border-color: #313244;
+                    border-color: #24253a;
                     Text {
                         text: root.conv-output-text != "" ? root.conv-output-text : "Converted text will appear here...";
-                        color: root.conv-output-text != "" ? #a6e3a1 : #585b70;
-                        font-size: 14px;
-                        x: 12px;
+                        color: root.conv-output-text != "" ? #a6e3a1 : #45475a;
+                        font-size: 13px;
+                        x: 10px;
                         vertical-alignment: center;
                     }
                 }
@@ -834,25 +832,25 @@ export component TopBarWindow inherits Window {
         // 5. Settings Dialog Window
         // ---------------------------------------------------------------------
         if (root.active-dialog == 5) : Rectangle {
-            width: 480px;
-            background: #181825fa;
-            border-radius: 20px;
-            border-width: 1.5px;
-            border-color: #45475a;
-            drop-shadow-blur: 24px;
+            width: 460px;
+            background: #11111bf8;
+            border-radius: 16px;
+            border-width: 1px;
+            border-color: #45475a88;
+            drop-shadow-blur: 20px;
             drop-shadow-color: #000000bb;
 
             VerticalLayout {
-                padding: 18px;
-                spacing: 12px;
+                padding: 14px;
+                spacing: 10px;
 
                 // Header
                 HorizontalLayout {
                     alignment: space-between;
                     HorizontalLayout {
-                        spacing: 8px;
-                        Text { text: "⚙"; color: #cba6f7; font-size: 18px; }
-                        Text { text: "Lekhani Preferences & Settings"; color: #cdd6f4; font-size: 16px; font-weight: 700; }
+                        spacing: 6px;
+                        Text { text: "⚙"; color: #cba6f7; font-size: 16px; }
+                        Text { text: "Lekhani Preferences & Settings"; color: #cdd6f4; font-size: 14px; font-weight: 700; }
                     }
                     CloseButton {
                         clicked => { root.active-dialog = 0; }
@@ -861,15 +859,15 @@ export component TopBarWindow inherits Window {
 
                 // Section 1: Phonetic Options
                 Rectangle {
-                    background: #11111b;
-                    border-radius: 12px;
+                    background: #0d0e15;
+                    border-radius: 10px;
                     border-width: 1px;
-                    border-color: #313244;
+                    border-color: #24253a;
 
                     VerticalLayout {
-                        padding: 12px;
-                        spacing: 6px;
-                        Text { text: "🎙️ PHONETIC TYPING OPTIONS"; color: #89b4fa; font-size: 11px; font-weight: 700; }
+                        padding: 10px;
+                        spacing: 5px;
+                        Text { text: "🎙️ PHONETIC TYPING OPTIONS"; color: #89b4fa; font-size: 10px; font-weight: 700; }
                         CheckBox { text: "Enable Prefix Trie Dictionary Suggestions"; checked: root.set-use-dict; toggled => { root.set-use-dict = self.checked; } }
                         CheckBox { text: "Include Original English in Candidate List"; checked: root.set-include-eng; toggled => { root.set-include-eng = self.checked; } }
                         CheckBox { text: "Enter Key Closes Candidate Window"; checked: root.set-enter-closes; toggled => { root.set-enter-closes = self.checked; } }
@@ -878,8 +876,8 @@ export component TopBarWindow inherits Window {
                         CheckBox { text: "Show Mode-Switch OSD HUD Overlay on Toggle"; checked: root.set-show-osd; toggled => { root.set-show-osd = self.checked; } }
 
                         HorizontalLayout {
-                            spacing: 8px;
-                            Text { text: "Global Toggle Hotkey:"; color: #cdd6f4; font-size: 12px; vertical-alignment: center; }
+                            spacing: 6px;
+                            Text { text: "Global Toggle Hotkey:"; color: #cdd6f4; font-size: 11px; vertical-alignment: center; }
                             ModeButton {
                                 label: "F12";
                                 active: root.set-toggle-key == "F12";
@@ -901,15 +899,15 @@ export component TopBarWindow inherits Window {
 
                 // Section 2: Fixed Layout Automations
                 Rectangle {
-                    background: #11111b;
-                    border-radius: 12px;
+                    background: #0d0e15;
+                    border-radius: 10px;
                     border-width: 1px;
-                    border-color: #313244;
+                    border-color: #24253a;
 
                     VerticalLayout {
-                        padding: 12px;
-                        spacing: 6px;
-                        Text { text: "⌨️ FIXED LAYOUT AUTOMATIONS"; color: #a6e3a1; font-size: 11px; font-weight: 700; }
+                        padding: 10px;
+                        spacing: 5px;
+                        Text { text: "⌨️ FIXED LAYOUT AUTOMATIONS"; color: #a6e3a1; font-size: 10px; font-weight: 700; }
                         CheckBox { text: "Automatic Vowel Forming (অ + া ➔ আ)"; checked: root.set-auto-vowel; toggled => { root.set-auto-vowel = self.checked; } }
                         CheckBox { text: "Automatic Chandra Position Fixing (কঁ + া ➔ কাঁ)"; checked: root.set-auto-chandra; toggled => { root.set-auto-chandra = self.checked; } }
                         CheckBox { text: "Traditional Kar Joining & Ligature ZWNJ Blocking"; checked: root.set-traditional-kar; toggled => { root.set-traditional-kar = self.checked; } }
@@ -920,15 +918,15 @@ export component TopBarWindow inherits Window {
 
                 // Section 3: System & Startup (Windows)
                 if root.is-windows : Rectangle {
-                    background: #11111b;
-                    border-radius: 12px;
+                    background: #0d0e15;
+                    border-radius: 10px;
                     border-width: 1px;
-                    border-color: #313244;
+                    border-color: #24253a;
 
                     VerticalLayout {
-                        padding: 12px;
-                        spacing: 6px;
-                        Text { text: "🚀 SYSTEM & STARTUP"; color: #f9e2af; font-size: 11px; font-weight: 700; }
+                        padding: 10px;
+                        spacing: 5px;
+                        Text { text: "🚀 SYSTEM & STARTUP"; color: #f9e2af; font-size: 10px; font-weight: 700; }
                         CheckBox { text: "Launch Lekhani on Windows startup"; checked: root.set-autostart; toggled => { root.set-autostart = self.checked; } }
                     }
                 }
@@ -947,68 +945,61 @@ export component TopBarWindow inherits Window {
         // 6. About Dialog Window
         // ---------------------------------------------------------------------
         if (root.active-dialog == 6) : Rectangle {
-            width: 440px;
-            background: #181825fa;
-            border-radius: 20px;
-            border-width: 1.5px;
-            border-color: #45475a;
-            drop-shadow-blur: 24px;
+            width: 400px;
+            background: #11111bf8;
+            border-radius: 16px;
+            border-width: 1px;
+            border-color: #45475a88;
+            drop-shadow-blur: 20px;
             drop-shadow-color: #000000bb;
 
             VerticalLayout {
-                padding: 24px;
-                spacing: 12px;
+                padding: 18px;
+                spacing: 10px;
                 alignment: center;
 
                 Rectangle {
-                    width: 72px;
-                    height: 72px;
-                    background: #11111b;
-                    border-radius: 20px;
-                    border-width: 1.5px;
+                    width: 56px;
+                    height: 56px;
+                    background: #0d0e15;
+                    border-radius: 14px;
+                    border-width: 1px;
                     border-color: #89b4fa55;
-                    drop-shadow-blur: 20px;
-                    drop-shadow-color: #89b4fa44;
+                    drop-shadow-blur: 14px;
+                    drop-shadow-color: #89b4fa33;
                     
                     Image {
                         source: @image-url("../../../data/icons/128.png");
-                        width: 56px;
-                        height: 56px;
+                        width: 44px;
+                        height: 44px;
                         horizontal-alignment: center;
                         vertical-alignment: center;
                     }
                 }
 
-                Text { text: "Lekhani (লেখনী)"; color: #cdd6f4; font-size: 20px; font-weight: 800; horizontal-alignment: center; }
-                Text { text: "Version 1.0.0 • Pure Rust Architecture"; color: #89b4fa; font-size: 13px; font-weight: 600; horizontal-alignment: center; }
-                Text { text: "Author: Sintaul Mahdi Siam • Syntenieum (2026)"; color: #a6e3a1; font-size: 12px; font-weight: 600; horizontal-alignment: center; }
-                Text { text: "© 2026 Syntenieum. All rights reserved."; color: #89dceb; font-size: 11px; font-weight: 500; horizontal-alignment: center; }
+                Text { text: "Lekhani (লেখনী)"; color: #cdd6f4; font-size: 18px; font-weight: 800; horizontal-alignment: center; }
+                Text { text: "Version 1.0.0 • Pure Rust Architecture"; color: #89b4fa; font-size: 12px; font-weight: 600; horizontal-alignment: center; }
+                Text { text: "Author: Sintaul Mahdi Siam • Syntenieum (2026)"; color: #a6e3a1; font-size: 11px; font-weight: 600; horizontal-alignment: center; }
+                Text { text: "© 2026 Syntenieum. All rights reserved."; color: #89dceb; font-size: 10.5px; font-weight: 500; horizontal-alignment: center; }
                 Text {
-                    text: "Modern, Ultra-Fast Bengali Input Method Framework & Desktop Suite for Linux";
+                    text: "Modern, Ultra-Fast Bengali Input Method Framework & Desktop Suite for Linux & Windows";
                     color: #a6adc8;
-                    font-size: 13px;
+                    font-size: 11.5px;
                     horizontal-alignment: center;
                     wrap: word-wrap;
                 }
 
                 Rectangle {
                     height: 1px;
-                    background: #313244;
+                    background: #24253a;
                 }
 
                 Text {
                     text: "Special thanks to Avro Project (OmicronLab) & OpenBangla Keyboard for their pioneering foundations in Bengali computing.";
                     color: #f9e2af;
-                    font-size: 11px;
+                    font-size: 10px;
                     horizontal-alignment: center;
                     wrap: word-wrap;
-                }
-
-                Text {
-                    text: "✓ Pure Rust Core (Zero C/C++ memory leaks)\n✓ Native Fcitx5 & IBus Daemons\n✓ Wayland & KDE Plasma 6 Compatible\n✓ Live AutoCorrect & Bijoy Converter";
-                    color: #6c7086;
-                    font-size: 11px;
-                    horizontal-alignment: center;
                 }
 
                 Button {
@@ -1022,25 +1013,25 @@ export component TopBarWindow inherits Window {
         // 7. Bengali Conjunct Assistant ("যুক্তবর্ণ সহায়িকা")
         // ---------------------------------------------------------------------
         if (root.active-dialog == 7) : Rectangle {
-            width: 540px;
-            background: #181825fa;
-            border-radius: 20px;
-            border-width: 1.5px;
-            border-color: #45475a;
-            drop-shadow-blur: 24px;
+            width: 480px;
+            background: #11111bf8;
+            border-radius: 16px;
+            border-width: 1px;
+            border-color: #45475a88;
+            drop-shadow-blur: 20px;
             drop-shadow-color: #000000bb;
 
             VerticalLayout {
-                padding: 18px;
-                spacing: 12px;
+                padding: 14px;
+                spacing: 10px;
 
                 // Header
                 HorizontalLayout {
                     alignment: space-between;
                     HorizontalLayout {
-                        spacing: 8px;
-                        Text { text: "🧩"; color: #89dceb; font-size: 18px; }
-                        Text { text: "যুক্তবর্ণ সহায়িকা (Bengali Conjunct Assistant)"; color: #cdd6f4; font-size: 16px; font-weight: 700; }
+                        spacing: 6px;
+                        Text { text: "🧩"; color: #89dceb; font-size: 16px; }
+                        Text { text: "যুক্তবর্ণ সহায়িকা (Bengali Conjunct Assistant)"; color: #cdd6f4; font-size: 14px; font-weight: 700; }
                     }
                     CloseButton {
                         clicked => { root.active-dialog = 0; }
@@ -1059,39 +1050,39 @@ export component TopBarWindow inherits Window {
 
                 // Scrollable Conjunct Grid/List
                 Rectangle {
-                    height: 240px;
-                    background: #11111b;
-                    border-radius: 12px;
+                    height: 200px;
+                    background: #0d0e15;
+                    border-radius: 10px;
                     border-width: 1px;
-                    border-color: #313244;
+                    border-color: #24253a;
                     clip: true;
 
                     ListView {
                         for item[idx] in root.conjunct-list : Rectangle {
-                            height: 56px;
-                            background: Math.mod(idx, 2) == 0 ? #18182588 : transparent;
+                            height: 48px;
+                            background: Math.mod(idx, 2) == 0 ? #14152288 : transparent;
 
                             HorizontalLayout {
-                                padding-left: 12px;
-                                padding-right: 12px;
-                                spacing: 12px;
+                                padding-left: 10px;
+                                padding-right: 10px;
+                                spacing: 10px;
                                 alignment: space-between;
 
                                 // Conjunct glyph & breakdown
                                 HorizontalLayout {
-                                    spacing: 12px;
+                                    spacing: 10px;
                                     alignment: start;
                                     Rectangle {
-                                        width: 36px;
-                                        height: 36px;
-                                        border-radius: 8px;
-                                        background: #89b4fa22;
+                                        width: 32px;
+                                        height: 32px;
+                                        border-radius: 7px;
+                                        background: #89b4fa20;
                                         border-width: 1px;
-                                        border-color: #89b4fa55;
+                                        border-color: #89b4fa44;
                                         Text {
                                             text: item.conjunct;
                                             color: #89b4fa;
-                                            font-size: 20px;
+                                            font-size: 17px;
                                             font-weight: 700;
                                             horizontal-alignment: center;
                                             vertical-alignment: center;
@@ -1100,38 +1091,38 @@ export component TopBarWindow inherits Window {
 
                                     VerticalLayout {
                                         alignment: center;
-                                        spacing: 2px;
+                                        spacing: 1px;
                                         Text {
                                             text: item.breakdown;
                                             color: #cdd6f4;
-                                            font-size: 13px;
+                                            font-size: 12px;
                                             font-weight: 600;
                                         }
                                         Text {
                                             text: "Examples: " + item.examples;
                                             color: #a6adc8;
-                                            font-size: 11px;
+                                            font-size: 10px;
                                         }
                                     }
                                 }
 
                                 // Phonetic key badge & copy button
                                 HorizontalLayout {
-                                    spacing: 8px;
+                                    spacing: 6px;
                                     alignment: end;
                                     Rectangle {
-                                        border-radius: 6px;
-                                        background: #a6e3a122;
+                                        border-radius: 5px;
+                                        background: #a6e3a120;
                                         border-width: 1px;
-                                        border-color: #a6e3a155;
+                                        border-color: #a6e3a144;
                                         HorizontalLayout {
-                                            padding-left: 8px;
-                                            padding-right: 8px;
+                                            padding-left: 6px;
+                                            padding-right: 6px;
                                             alignment: center;
                                             Text {
                                                 text: item.phonetic;
                                                 color: #a6e3a1;
-                                                font-size: 12px;
+                                                font-size: 11px;
                                                 font-weight: 700;
                                                 vertical-alignment: center;
                                             }
@@ -1152,7 +1143,7 @@ export component TopBarWindow inherits Window {
                 // Tip footer
                 HorizontalLayout {
                     alignment: space-between;
-                    Text { text: "💡 Tip: You can also search by Latin key sequence (e.g. 'kkh' or 'ggy')."; color: #6c7086; font-size: 11px; }
+                    Text { text: "💡 Tip: Search by Latin sequence (e.g. 'kkh' or 'ggy')."; color: #585b70; font-size: 10.5px; }
                 }
             }
         }
@@ -1161,40 +1152,40 @@ export component TopBarWindow inherits Window {
         // 8. Personal Typing Analytics & Speed Heatmap Dashboard
         // ---------------------------------------------------------------------
         if (root.active-dialog == 8) : Rectangle {
-            width: 520px;
-            background: #181825fa;
-            border-radius: 20px;
-            border-width: 1.5px;
-            border-color: #45475a;
-            drop-shadow-blur: 24px;
+            width: 480px;
+            background: #11111bf8;
+            border-radius: 16px;
+            border-width: 1px;
+            border-color: #45475a88;
+            drop-shadow-blur: 20px;
             drop-shadow-color: #000000bb;
 
             VerticalLayout {
-                padding: 18px;
-                spacing: 12px;
+                padding: 14px;
+                spacing: 10px;
 
                 // Header
                 HorizontalLayout {
                     alignment: space-between;
                     HorizontalLayout {
-                        spacing: 8px;
-                        Text { text: "📊"; color: #f9e2af; font-size: 18px; }
-                        Text { text: "Personal Typing Telemetry & Analytics"; color: #cdd6f4; font-size: 16px; font-weight: 700; }
+                        spacing: 6px;
+                        Text { text: "📊"; color: #f9e2af; font-size: 16px; }
+                        Text { text: "Personal Typing Telemetry & Analytics"; color: #cdd6f4; font-size: 14px; font-weight: 700; }
                     }
                     HorizontalLayout {
-                        spacing: 8px;
+                        spacing: 6px;
                         Rectangle {
-                            width: 28px;
-                            height: 28px;
-                            border-radius: 14px;
-                            background: ta_ref.has-hover ? #45475a : transparent;
+                            width: 24px;
+                            height: 24px;
+                            border-radius: 12px;
+                            background: ta_ref.has-hover ? #313244 : transparent;
                             ta_ref := TouchArea {
                                 mouse-cursor: pointer;
                                 clicked => { root.refresh-stats(); }
                             }
                             Text {
                                 text: "🔄";
-                                font-size: 13px;
+                                font-size: 11px;
                                 horizontal-alignment: center;
                                 vertical-alignment: center;
                             }
@@ -1207,81 +1198,81 @@ export component TopBarWindow inherits Window {
 
                 // Summary Metric Cards
                 HorizontalLayout {
-                    spacing: 10px;
+                    spacing: 8px;
 
                     // Card 1: Words Typed
                     Rectangle {
-                        background: #11111b;
-                        border-radius: 12px;
+                        background: #0d0e15;
+                        border-radius: 10px;
                         border-width: 1px;
                         border-color: #89b4fa44;
-                        height: 72px;
+                        height: 60px;
                         VerticalLayout {
                             alignment: center;
-                            spacing: 4px;
-                            padding: 8px;
-                            Text { text: "WORDS COMMITTED"; color: #89b4fa; font-size: 10px; font-weight: 700; horizontal-alignment: center; }
-                            Text { text: root.stats-total-words; color: #cdd6f4; font-size: 20px; font-weight: 700; horizontal-alignment: center; }
+                            spacing: 2px;
+                            padding: 6px;
+                            Text { text: "WORDS COMMITTED"; color: #89b4fa; font-size: 9px; font-weight: 700; horizontal-alignment: center; }
+                            Text { text: root.stats-total-words; color: #cdd6f4; font-size: 18px; font-weight: 700; horizontal-alignment: center; }
                         }
                     }
 
                     // Card 2: Keystrokes Saved
                     Rectangle {
-                        background: #11111b;
-                        border-radius: 12px;
+                        background: #0d0e15;
+                        border-radius: 10px;
                         border-width: 1px;
                         border-color: #a6e3a144;
-                        height: 72px;
+                        height: 60px;
                         VerticalLayout {
                             alignment: center;
-                            spacing: 4px;
-                            padding: 8px;
-                            Text { text: "KEYSTROKES SAVED"; color: #a6e3a1; font-size: 10px; font-weight: 700; horizontal-alignment: center; }
-                            Text { text: root.stats-keystrokes-saved; color: #cdd6f4; font-size: 20px; font-weight: 700; horizontal-alignment: center; }
+                            spacing: 2px;
+                            padding: 6px;
+                            Text { text: "KEYSTROKES SAVED"; color: #a6e3a1; font-size: 9px; font-weight: 700; horizontal-alignment: center; }
+                            Text { text: root.stats-keystrokes-saved; color: #cdd6f4; font-size: 18px; font-weight: 700; horizontal-alignment: center; }
                         }
                     }
 
                     // Card 3: Efficiency Gain
                     Rectangle {
-                        background: #11111b;
-                        border-radius: 12px;
+                        background: #0d0e15;
+                        border-radius: 10px;
                         border-width: 1px;
                         border-color: #fab38744;
-                        height: 72px;
+                        height: 60px;
                         VerticalLayout {
                             alignment: center;
-                            spacing: 4px;
-                            padding: 8px;
-                            Text { text: "EFFICIENCY GAIN"; color: #fab387; font-size: 10px; font-weight: 700; horizontal-alignment: center; }
-                            Text { text: root.stats-efficiency-ratio; color: #cdd6f4; font-size: 20px; font-weight: 700; horizontal-alignment: center; }
+                            spacing: 2px;
+                            padding: 6px;
+                            Text { text: "EFFICIENCY GAIN"; color: #fab387; font-size: 9px; font-weight: 700; horizontal-alignment: center; }
+                            Text { text: root.stats-efficiency-ratio; color: #cdd6f4; font-size: 18px; font-weight: 700; horizontal-alignment: center; }
                         }
                     }
                 }
 
                 // Character Frequency Table
                 Rectangle {
-                    height: 160px;
-                    background: #11111b;
-                    border-radius: 12px;
+                    height: 140px;
+                    background: #0d0e15;
+                    border-radius: 10px;
                     border-width: 1px;
-                    border-color: #313244;
+                    border-color: #24253a;
                     clip: true;
 
                     VerticalLayout {
-                        padding: 10px;
-                        spacing: 6px;
-                        Text { text: "🔥 MOST FREQUENTLY TYPED BENGALI CHARACTERS"; color: #f9e2af; font-size: 11px; font-weight: 700; }
+                        padding: 8px;
+                        spacing: 4px;
+                        Text { text: "🔥 MOST FREQUENTLY TYPED BENGALI CHARACTERS"; color: #f9e2af; font-size: 10px; font-weight: 700; }
                         ListView {
                             for char_entry in root.stats-top-chars : HorizontalLayout {
-                                padding-top: 3px;
-                                padding-bottom: 3px;
+                                padding-top: 2px;
+                                padding-bottom: 2px;
                                 alignment: space-between;
                                 HorizontalLayout {
-                                    spacing: 12px;
-                                    Text { text: char_entry.character; color: #89b4fa; font-size: 14px; font-weight: 700; width: 30px; }
-                                    Text { text: char_entry.count + " times"; color: #a6adc8; font-size: 12px; }
+                                    spacing: 10px;
+                                    Text { text: char_entry.character; color: #89b4fa; font-size: 13px; font-weight: 700; width: 28px; }
+                                    Text { text: char_entry.count + " times"; color: #a6adc8; font-size: 11px; }
                                 }
-                                Text { text: char_entry.percentage; color: #a6e3a1; font-size: 12px; font-weight: 600; }
+                                Text { text: char_entry.percentage; color: #a6e3a1; font-size: 11px; font-weight: 600; }
                             }
                         }
                     }
@@ -1290,7 +1281,7 @@ export component TopBarWindow inherits Window {
                 // Footer
                 HorizontalLayout {
                     alignment: space-between;
-                    Text { text: "Telemetry is stored 100% locally and never leaves your device."; color: #6c7086; font-size: 11px; }
+                    Text { text: "Telemetry is stored 100% locally and never leaves your device."; color: #585b70; font-size: 10px; }
                 }
             }
         }
@@ -1301,32 +1292,32 @@ export component TopBarWindow inherits Window {
         if (root.show-osd) : HorizontalLayout {
             alignment: center;
             Rectangle {
-                width: 340px;
-                height: 56px;
-                background: #11111bf5;
-                border-radius: 16px;
+                width: 320px;
+                height: 48px;
+                background: #11111bf4;
+                border-radius: 14px;
                 border-width: 1.5px;
                 border-color: root.osd-badge-color;
-                drop-shadow-blur: 24px;
+                drop-shadow-blur: 20px;
                 drop-shadow-color: #000000dd;
 
                 HorizontalLayout {
-                    padding-left: 14px;
-                    padding-right: 14px;
-                    spacing: 12px;
+                    padding-left: 12px;
+                    padding-right: 12px;
+                    spacing: 10px;
                     alignment: center;
 
                     Rectangle {
-                        width: 36px;
-                        height: 36px;
-                        border-radius: 10px;
+                        width: 32px;
+                        height: 32px;
+                        border-radius: 8px;
                         background: root.osd-badge-bg;
                         border-width: 1px;
                         border-color: root.osd-badge-color;
 
                         Text {
                             text: root.osd-icon;
-                            font-size: 18px;
+                            font-size: 16px;
                             horizontal-alignment: center;
                             vertical-alignment: center;
                         }
@@ -1334,16 +1325,16 @@ export component TopBarWindow inherits Window {
 
                     VerticalLayout {
                         alignment: center;
-                        spacing: 2px;
+                        spacing: 1px;
                         Text {
                             text: root.osd-title;
-                            font-size: 13px;
+                            font-size: 12px;
                             font-weight: 800;
                             color: #cdd6f4;
                         }
                         Text {
                             text: root.osd-subtitle;
-                            font-size: 11px;
+                            font-size: 10.5px;
                             font-weight: 600;
                             color: root.osd-badge-color;
                         }
@@ -1351,21 +1342,21 @@ export component TopBarWindow inherits Window {
 
                     Rectangle {
                         width: 1px;
-                        height: 24px;
+                        height: 20px;
                         background: #313244;
                     }
 
                     Rectangle {
-                        height: 24px;
-                        border-radius: 6px;
-                        background: #313244;
+                        height: 22px;
+                        border-radius: 5px;
+                        background: #24253a;
                         HorizontalLayout {
-                            padding-left: 8px;
-                            padding-right: 8px;
+                            padding-left: 7px;
+                            padding-right: 7px;
                             alignment: center;
                             Text {
                                 text: "F12";
-                                font-size: 11px;
+                                font-size: 10px;
                                 font-weight: 700;
                                 color: #89b4fa;
                                 vertical-alignment: center;
@@ -1377,4 +1368,3 @@ export component TopBarWindow inherits Window {
         }
     }
 }
-
