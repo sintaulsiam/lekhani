@@ -140,7 +140,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         cm.config.general.active_layout = name.to_string();
         cm.save();
         #[cfg(windows)]
-        win_hook::update_active_layout(&name);
+        {
+            win_hook::update_active_layout(&name);
+            win_hook::set_bengali_mode(true);
+        }
         if let Some(app) = app_weak_layout.upgrade() {
             app.set_active_layout_name(name.clone());
             app.set_show_layout_menu(false);

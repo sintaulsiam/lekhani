@@ -131,9 +131,10 @@ void LekhaniAddon::activate(const InputMethodEntry &entry, InputContextEvent &ev
             lekhani_engine_set_layout(state->engine(), "Unijoy");
         } else if (name.find("Borno") != std::string_view::npos) {
             lekhani_engine_set_layout(state->engine(), "Borno");
-        } else {
+        } else if (name.find("Avro") != std::string_view::npos) {
             lekhani_engine_set_layout(state->engine(), "Avro Phonetic");
         }
+        // If the entry is generic ("lekhani"), lekhani_engine_reload_config already applied active_layout from config.
         state->reset();
     }
 }

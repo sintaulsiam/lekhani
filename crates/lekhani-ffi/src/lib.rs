@@ -233,6 +233,8 @@ pub extern "C" fn lekhani_engine_reload_config(ctx: *mut LekhaniEngineContext) {
     let system_dir = ConfigManager::get_system_layout_dir();
     let user_dir = engine.config_mgr.get_user_layout_dir();
     engine.layout_mgr.discover_layouts(system_dir, user_dir);
+    let active_name = engine.config_mgr.config.general.active_layout.clone();
+    engine.set_layout(&active_name);
 }
 
 #[no_mangle]
@@ -280,6 +282,11 @@ pub extern "C" fn lekhani_engine_process_key(
     if engine.config_mgr.check_and_reload() {
         let user_ac = engine.config_mgr.get_user_autocorrect_path();
         engine.session.load_user_autocorrect(&user_ac);
+        let system_dir = ConfigManager::get_system_layout_dir();
+        let user_dir = engine.config_mgr.get_user_layout_dir();
+        engine.layout_mgr.discover_layouts(system_dir, user_dir);
+        let active_name = engine.config_mgr.config.general.active_layout.clone();
+        engine.set_layout(&active_name);
     }
 
     // Direct Selection via 1..5 in Prediction Mode
@@ -629,6 +636,12 @@ mod tests {
         let engine_ptr = lekhani_engine_new();
         assert!(!engine_ptr.is_null());
         unsafe {
+            (*engine_ptr).set_layout("Avro Phonetic");
+            (*engine_ptr)
+                .config_mgr
+                .config
+                .general
+                .active_layout = "Avro Phonetic".to_string();
             (*engine_ptr)
                 .config_mgr
                 .config
@@ -759,6 +772,39 @@ mod tests {
         assert!(!math_cand_ptr.is_null());
         let math_cand = unsafe { CStr::from_ptr(math_cand_ptr).to_str().unwrap() };
         assert_eq!(math_cand, "১,০০০");
+
+        // Clean up
+        lekhani_engine_free(engine_ptr);
+    }
+
+    #[test]
+    fn test_engine_layout_switching() {
+        let engine_ptr = lekhani_engine_new();
+        assert!(!engine_ptr.is_null());
+
+        // Switch to Probhat
+        let probhat = CString::new("Probhat").unwrap();
+        let switched = lekhani_engine_set_layout(engine_ptr, probhat.as_ptr());
+        assert!(switched, "Should switch to Probhat layout");
+
+        // Probhat: 'k' -> 'ক'
+        lekhani_engine_process_key(engine_ptr, 0x006b, 0, 0, false);
+        let preedit_ptr = lekhani_engine_get_preedit_text(engine_ptr);
+        assert!(!preedit_ptr.is_null());
+        let preedit = unsafe { CStr::from_ptr(preedit_ptr).to_str().unwrap() };
+        assert_eq!(preedit, "ক");
+
+        // Switch to Unijoy: 'k' -> 'ত', 'j' -> 'ক'
+        let unijoy = CString::new("Unijoy").unwrap();
+        let switched_unijoy = lekhani_engine_set_layout(engine_ptr, unijoy.as_ptr());
+        assert!(switched_unijoy, "Should switch to Unijoy layout");
+        lekhani_engine_reset(engine_ptr);
+
+        lekhani_engine_process_key(engine_ptr, 0x006a, 0, 0, false);
+        let preedit_ptr2 = lekhani_engine_get_preedit_text(engine_ptr);
+        assert!(!preedit_ptr2.is_null());
+        let preedit2 = unsafe { CStr::from_ptr(preedit_ptr2).to_str().unwrap() };
+        assert_eq!(preedit2, "ক");
 
         // Clean up
         lekhani_engine_free(engine_ptr);

@@ -107,6 +107,19 @@ pub fn toggle_bengali_mode() {
     }
 }
 
+pub fn set_bengali_mode(active: bool) {
+    BENGALI_ACTIVE.store(active, Ordering::SeqCst);
+
+    if let Ok(mut guard) = HOOK_STATE.lock() {
+        if let Some(ref mut state) = *guard {
+            state.reset();
+            if let Some(ref tray) = state.tray {
+                tray.set_bengali_active(active, &state.active_layout_name);
+            }
+        }
+    }
+}
+
 pub fn update_active_layout(name: &str) {
     if let Ok(mut guard) = HOOK_STATE.lock() {
         if let Some(ref mut state) = *guard {
@@ -262,28 +275,21 @@ unsafe extern "system" fn low_level_keyboard_proc(
         let keycode = state.mapper.map_keyval(ch as u32);
         let modifier_mask = if shift_down { MODIFIER_SHIFT } else { 0 };
 
-        match state.session.active_layout_type {
-            ActiveLayoutType::Phonetic => {
-                let consumed = state.session.process_key(keycode, modifier_mask);
-                if consumed {
-                    let candidate = state.session.get_preedit_text();
-                    if !candidate.is_empty() {
-                        inject_backspaces(state.uncommitted_units);
-                        state.uncommitted_units = inject_unicode_str(&candidate);
-                        return 1;
-                    }
-                }
+        let consumed = state.session.process_key(keycode, modifier_mask);
+        if consumed {
+            let candidate = state.session.get_preedit_text();
+            if !candidate.is_empty() {
+                inject_backspaces(state.uncommitted_units);
+                state.uncommitted_units = inject_unicode_str(&candidate);
+                return 1;
             }
-            ActiveLayoutType::Fixed => {
-                if state.session.process_key(keycode, modifier_mask) {
-                    let committed = state.session.fixed.commit();
-                    if !committed.is_empty() {
-                        inject_unicode_str(&committed);
-                        return 1;
-                    }
-                }
-            }
+        } else if state.uncommitted_units > 0 {
+            state.session.commit(state.session.get_selected_index());
+            state.uncommitted_units = 0;
         }
+    } else if state.uncommitted_units > 0 {
+        state.session.commit(state.session.get_selected_index());
+        state.uncommitted_units = 0;
     }
 
     CallNextHookEx(0 as _, n_code, w_param, l_param)
