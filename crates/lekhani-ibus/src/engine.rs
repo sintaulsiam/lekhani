@@ -32,8 +32,10 @@ const IBUS_RELEASE_MASK: u32 = 1 << 30;
 pub struct IBusEngineState {
     pub session: InputSession,
     pub config_mgr: ConfigManager,
+    pub layout_mgr: LayoutManager,
     pub mapper: KeycodeMapper,
     pub alt_gr: bool,
+    pub active_layout_name: String,
 }
 
 pub struct LekhaniIBusEngine {
@@ -60,10 +62,10 @@ impl LekhaniIBusEngine {
         session.load_stats(&stats_path);
 
         // Load active layout
-        let active_name = &config_mgr.config.general.active_layout;
-        if let Some(json) = layout_mgr.load_layout_json(active_name) {
+        let active_name = config_mgr.config.general.active_layout.clone();
+        if let Some(json) = layout_mgr.load_layout_json(&active_name) {
             let layout_type = if layout_mgr
-                .get_layout(active_name)
+                .get_layout(&active_name)
                 .map(|i| i.layout_type.as_str())
                 == Some("fixed")
             {
@@ -77,8 +79,10 @@ impl LekhaniIBusEngine {
         let state = IBusEngineState {
             session,
             config_mgr,
+            layout_mgr,
             mapper: KeycodeMapper::new(),
             alt_gr: false,
+            active_layout_name: active_name,
         };
 
         Self {
@@ -140,10 +144,33 @@ impl LekhaniIBusEngine {
             return Ok(false);
         }
 
-        // Auto-sync configuration and autocorrect if modified externally
+        // Auto-sync configuration, autocorrect, and layout if modified externally
         if st.config_mgr.check_and_reload() {
             let user_ac = st.config_mgr.get_user_autocorrect_path();
             st.session.load_user_autocorrect(&user_ac);
+
+            let new_layout = st.config_mgr.config.general.active_layout.clone();
+            if new_layout != st.active_layout_name {
+                let system_dir = ConfigManager::get_system_layout_dir();
+                let user_dir = st.config_mgr.get_user_layout_dir();
+                st.layout_mgr.discover_layouts(system_dir, user_dir);
+
+                if let Some(json) = st.layout_mgr.load_layout_json(&new_layout) {
+                    let layout_type = if st
+                        .layout_mgr
+                        .get_layout(&new_layout)
+                        .map(|i| i.layout_type.as_str())
+                        == Some("fixed")
+                    {
+                        ActiveLayoutType::Fixed
+                    } else {
+                        ActiveLayoutType::Phonetic
+                    };
+                    st.session.set_layout(layout_type, &json);
+                    st.active_layout_name = new_layout;
+                    st.session.reset();
+                }
+            }
         }
 
         // Direct Selection via 1..5 in Prediction Mode
