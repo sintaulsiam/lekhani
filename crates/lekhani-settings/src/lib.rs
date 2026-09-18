@@ -224,6 +224,10 @@ impl ConfigManager {
         self.data_dir.join("user_learned.json")
     }
 
+    pub fn get_user_stats_path(&self) -> PathBuf {
+        self.data_dir.join("stats.json")
+    }
+
     pub fn get_system_layout_dir() -> PathBuf {
         let mut candidates = Vec::new();
 

@@ -17,7 +17,10 @@ mod win_osd;
 #[cfg(windows)]
 mod win_tray;
 
-use lekhani_core::{bijoy_to_unicode, unicode_to_bijoy, PhoneticDatabase, PhoneticSuggestion};
+use lekhani_core::{
+    bijoy_to_unicode, unicode_to_bijoy, ConjunctCatalog, PhoneticDatabase, PhoneticSuggestion,
+    UserStats,
+};
 use lekhani_settings::{ConfigManager, LayoutManager};
 use std::rc::Rc;
 use tracing::info;
@@ -78,6 +81,40 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     app.set_set_traditional_kar(config_mgr.config.fixed.traditional_kar);
     app.set_set_old_reph(config_mgr.config.fixed.old_reph);
     app.set_set_numberpad(config_mgr.config.fixed.numberpad);
+    app.set_set_toggle_key(config_mgr.config.general.toggle_key.clone().into());
+    app.set_set_show_osd(config_mgr.config.general.show_osd);
+    app.set_set_auto_dari(config_mgr.config.general.auto_dari);
+
+    // Initialize Conjunct Assistant state
+    let all_conjuncts = ConjunctCatalog::all();
+    let slint_conjuncts: Vec<ConjunctEntry> = all_conjuncts
+        .iter()
+        .map(|c| ConjunctEntry {
+            conjunct: c.conjunct.clone().into(),
+            breakdown: c.breakdown.clone().into(),
+            phonetic: c.phonetic.clone().into(),
+            examples: c.examples.clone().into(),
+        })
+        .collect();
+    app.set_conjunct_list(Rc::new(slint::VecModel::from(slint_conjuncts)).into());
+
+    // Initialize Typing Telemetry & Analytics state
+    let user_stats_path = config_mgr.get_user_stats_path();
+    let stats = UserStats::load_from_path(&user_stats_path);
+    app.set_stats_total_words(stats.total_words_typed as i32);
+    app.set_stats_keystrokes_saved(stats.keystrokes_saved as i32);
+    app.set_stats_efficiency_ratio(format!("{:.1}%", stats.savings_percentage()).into());
+
+    let top_chars = stats.get_top_characters(10);
+    let slint_top_chars: Vec<HeatmapEntry> = top_chars
+        .into_iter()
+        .map(|(ch, count, pct)| HeatmapEntry {
+            character: ch.to_string().into(),
+            count: count as i32,
+            percentage: format!("{:.1}%", pct).into(),
+        })
+        .collect();
+    app.set_stats_top_chars(Rc::new(slint::VecModel::from(slint_top_chars)).into());
 
     // Initialize Desktop System Tray (ksni on Linux, Shell_NotifyIconW on Windows)
     #[cfg(unix)]
@@ -327,6 +364,75 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    // Callbacks: Conjunct Assistant
+    let app_weak_conj = app_weak.clone();
+    app.on_conjunct_search_changed(move |query| {
+        let results = if query.is_empty() {
+            ConjunctCatalog::all()
+        } else {
+            ConjunctCatalog::search(query.as_str())
+        };
+        let slint_results: Vec<ConjunctEntry> = results
+            .into_iter()
+            .map(|c| ConjunctEntry {
+                conjunct: c.conjunct.into(),
+                breakdown: c.breakdown.into(),
+                phonetic: c.phonetic.into(),
+                examples: c.examples.into(),
+            })
+            .collect();
+        if let Some(app) = app_weak_conj.upgrade() {
+            app.set_conjunct_list(Rc::new(slint::VecModel::from(slint_results)).into());
+        }
+    });
+
+    app.on_copy_conjunct(move |conjunct| {
+        #[cfg(windows)]
+        {
+            use windows_sys::Win32::System::DataExchange::{
+                CloseClipboard, EmptyClipboard, OpenClipboard, SetClipboardData,
+            };
+            use windows_sys::Win32::System::Memory::{
+                GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE,
+            };
+            unsafe {
+                if OpenClipboard(std::ptr::null_mut()) != 0 {
+                    EmptyClipboard();
+                    let wide: Vec<u16> = conjunct.as_str().encode_utf16().chain(Some(0)).collect();
+                    let bytes = wide.len() * 2;
+                    let h_mem = GlobalAlloc(GMEM_MOVEABLE, bytes);
+                    if !h_mem.is_null() {
+                        let ptr = GlobalLock(h_mem) as *mut u16;
+                        if !ptr.is_null() {
+                            std::ptr::copy_nonoverlapping(wide.as_ptr(), ptr, wide.len());
+                            GlobalUnlock(h_mem);
+                            SetClipboardData(13 /* CF_UNICODETEXT */, h_mem);
+                        }
+                    }
+                    CloseClipboard();
+                }
+            }
+        }
+        #[cfg(unix)]
+        {
+            let text = conjunct.to_string();
+            let res = std::process::Command::new("wl-copy").arg(&text).spawn();
+            if res.is_err() {
+                use std::io::Write;
+                if let Ok(mut child) = std::process::Command::new("xclip")
+                    .arg("-selection")
+                    .arg("clipboard")
+                    .stdin(std::process::Stdio::piped())
+                    .spawn()
+                {
+                    if let Some(mut stdin) = child.stdin.take() {
+                        let _ = stdin.write_all(text.as_bytes());
+                    }
+                }
+            }
+        }
+    });
+
     // Callbacks: Settings Save
     let cm_save = config_mgr_rc.clone();
     let app_weak_set = app_weak.clone();
@@ -342,6 +448,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             cm.config.fixed.traditional_kar = app.get_set_traditional_kar();
             cm.config.fixed.old_reph = app.get_set_old_reph();
             cm.config.fixed.numberpad = app.get_set_numberpad();
+            cm.config.general.toggle_key = app.get_set_toggle_key().to_string();
+            cm.config.general.show_osd = app.get_set_show_osd();
+            cm.config.general.auto_dari = app.get_set_auto_dari();
             cm.save();
             #[cfg(windows)]
             let _ = win_autostart::set_autostart(app.get_set_autostart());

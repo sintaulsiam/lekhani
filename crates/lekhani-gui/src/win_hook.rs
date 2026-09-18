@@ -303,7 +303,12 @@ unsafe extern "system" fn low_level_keyboard_proc(
                         inject_backspaces(state.uncommitted_units);
                         inject_unicode_str(&committed);
                         state.uncommitted_units = 0;
-                        if state.config_mgr.config.phonetic.enable_predictive_next_words {
+                        if state
+                            .config_mgr
+                            .config
+                            .phonetic
+                            .enable_predictive_next_words
+                        {
                             if state.session.populate_predictions() {
                                 let preds = state.session.get_candidates();
                                 if let Some(ref win) = state.candidate_win {
@@ -372,7 +377,12 @@ unsafe extern "system" fn low_level_keyboard_proc(
                 if let Some(committed) = state.session.commit(idx) {
                     inject_unicode_str(&committed);
                     inject_unicode_str(" ");
-                    if state.config_mgr.config.phonetic.enable_predictive_next_words {
+                    if state
+                        .config_mgr
+                        .config
+                        .phonetic
+                        .enable_predictive_next_words
+                    {
                         if state.session.populate_predictions() {
                             let preds = state.session.get_candidates();
                             if let Some(ref win) = state.candidate_win {
@@ -428,7 +438,12 @@ unsafe extern "system" fn low_level_keyboard_proc(
             state.session.commit(state.session.get_selected_index());
             state.uncommitted_units = 0;
             inject_unicode_str(" ");
-            if state.config_mgr.config.phonetic.enable_predictive_next_words {
+            if state
+                .config_mgr
+                .config
+                .phonetic
+                .enable_predictive_next_words
+            {
                 if state.session.populate_predictions() {
                     let preds = state.session.get_candidates();
                     if let Some(ref win) = state.candidate_win {
