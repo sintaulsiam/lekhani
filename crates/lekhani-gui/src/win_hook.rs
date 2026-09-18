@@ -19,6 +19,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 };
 
 use crate::win_candidate::CandidateWindow;
+use crate::win_osd::OsdWindow;
 use crate::win_tray::WindowsTray;
 use lekhani_core::{ActiveLayoutType, InputSession, KeycodeMapper, MODIFIER_SHIFT};
 use lekhani_settings::{ConfigManager, LayoutManager};
@@ -40,6 +41,8 @@ struct HookState {
     active_layout_name: String,
     layout_mgr: LayoutManager,
     candidate_win: Option<CandidateWindow>,
+    osd_win: Option<OsdWindow>,
+    config_mgr: ConfigManager,
 }
 
 impl HookState {
@@ -77,6 +80,8 @@ impl HookState {
             active_layout_name: initial_layout,
             layout_mgr,
             candidate_win: None,
+            osd_win: None,
+            config_mgr,
         }
     }
 
@@ -120,8 +125,18 @@ pub fn set_bengali_mode(active: bool) {
         if let Some(ref mut state) = *guard {
             state.reset();
             layout_name = state.active_layout_name.clone();
+            let show_osd = state.config_mgr.config.general.show_osd;
             if let Some(ref tray) = state.tray {
                 tray.set_bengali_active(active, &layout_name);
+            }
+            if show_osd {
+                if let Some(ref osd) = state.osd_win {
+                    if active {
+                        osd.show("বাংলা", &format!("Lekhani • {}", layout_name), true);
+                    } else {
+                        osd.show("English", "Standard Typing Mode", false);
+                    }
+                }
             }
         }
     }
@@ -137,8 +152,14 @@ pub fn update_active_layout(name: &str) {
     if let Ok(mut guard) = HOOK_STATE.lock() {
         if let Some(ref mut state) = *guard {
             state.set_layout(name);
+            let active = BENGALI_ACTIVE.load(Ordering::SeqCst);
             if let Some(ref tray) = state.tray {
-                tray.set_bengali_active(BENGALI_ACTIVE.load(Ordering::SeqCst), name);
+                tray.set_bengali_active(active, name);
+            }
+            if state.config_mgr.config.general.show_osd && active {
+                if let Some(ref osd) = state.osd_win {
+                    osd.show("বাংলা", &format!("Lekhani • {}", name), true);
+                }
             }
         }
     }
@@ -146,10 +167,12 @@ pub fn update_active_layout(name: &str) {
 
 pub fn spawn_windows_hook(initial_layout: String, tray: Option<Arc<WindowsTray>>) {
     let cand_win = CandidateWindow::new();
+    let osd_win = OsdWindow::new();
     {
         let mut state = HookState::new(initial_layout.clone());
         state.tray = tray;
         state.candidate_win = cand_win;
+        state.osd_win = osd_win;
         let mut guard = HOOK_STATE.lock().unwrap();
         *guard = Some(state);
     }
@@ -204,20 +227,36 @@ unsafe extern "system" fn low_level_keyboard_proc(
 
     let vk = kbd.vkCode as u16;
 
-    // F12 Global Hotkey toggles Bengali/English mode
-    if vk == VK_F12 {
-        toggle_bengali_mode();
-        return 1;
-    }
-
     let ctrl_down = (GetKeyState(VK_CONTROL as i32) & 0x8000u16 as i16) != 0;
+    let shift_down = (GetKeyState(VK_SHIFT as i32) & 0x8000u16 as i16) != 0;
     let alt_down = (GetKeyState(VK_MENU as i32) & 0x8000u16 as i16) != 0;
     let win_down = ((GetKeyState(VK_LWIN as i32) | GetKeyState(VK_RWIN as i32))
         & 0x8000u16 as i16)
         != 0;
 
-    // Ctrl+Space Global Hotkey toggles Bengali/English mode
-    if vk == VK_SPACE && ctrl_down && !alt_down && !win_down {
+    // Check global toggle hotkeys (F12, Ctrl+Space, and configurable Shift+Space)
+    let is_toggle = if vk == VK_F12 && !ctrl_down && !alt_down && !win_down {
+        true
+    } else if vk == VK_SPACE && ctrl_down && !alt_down && !win_down {
+        true
+    } else if vk == VK_SPACE && shift_down && !ctrl_down && !alt_down && !win_down {
+        let configured_shift_space = if let Ok(guard) = HOOK_STATE.lock() {
+            guard.as_ref().map_or(false, |s| {
+                s.config_mgr
+                    .config
+                    .general
+                    .toggle_key
+                    .eq_ignore_ascii_case("Shift+Space")
+            })
+        } else {
+            false
+        };
+        configured_shift_space
+    } else {
+        false
+    };
+
+    if is_toggle {
         toggle_bengali_mode();
         return 1;
     }

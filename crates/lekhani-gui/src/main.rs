@@ -13,6 +13,8 @@ mod win_candidate;
 #[cfg(windows)]
 mod win_hook;
 #[cfg(windows)]
+mod win_osd;
+#[cfg(windows)]
 mod win_tray;
 
 use lekhani_core::{bijoy_to_unicode, unicode_to_bijoy, PhoneticDatabase, PhoneticSuggestion};

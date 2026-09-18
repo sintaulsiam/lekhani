@@ -103,13 +103,36 @@ impl CandidateWindow {
             let mut gui_info: GUITHREADINFO = std::mem::zeroed();
             gui_info.cbSize = std::mem::size_of::<GUITHREADINFO>() as u32;
 
-            if GetGUIThreadInfo(0, &mut gui_info) != 0 && gui_info.hwndCaret != 0 as _ {
+            let has_caret = GetGUIThreadInfo(0, &mut gui_info) != 0
+                && gui_info.hwndCaret != 0 as _
+                && (gui_info.rcCaret.left != 0
+                    || gui_info.rcCaret.top != 0
+                    || gui_info.rcCaret.right != 0
+                    || gui_info.rcCaret.bottom != 0);
+
+            if has_caret {
                 pt.x = gui_info.rcCaret.left;
                 pt.y = gui_info.rcCaret.bottom + 4;
                 ClientToScreen(gui_info.hwndCaret, &mut pt);
             } else {
                 GetCursorPos(&mut pt);
                 pt.y += 24;
+            }
+
+            // Screen boundary clamping
+            use windows_sys::Win32::UI::WindowsAndMessaging::{GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN};
+            let screen_w = GetSystemMetrics(SM_CXSCREEN);
+            let screen_h = GetSystemMetrics(SM_CYSCREEN);
+
+            if pt.x + total_width > screen_w - 8 {
+                pt.x = (screen_w - total_width - 8).max(8);
+            }
+            if pt.x < 8 {
+                pt.x = 8;
+            }
+
+            if pt.y + height > screen_h - 48 {
+                pt.y = (pt.y - height - 32).max(8);
             }
 
             SetWindowPos(
