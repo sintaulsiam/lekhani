@@ -8,6 +8,8 @@ pub enum TrayCommand {
     UpdateLayout(String),
 }
 
+pub type ToolTipData = (String, Vec<(i32, i32, Vec<u8>)>, String, String);
+
 pub struct LekhaniTray {
     pub active_layout: Arc<RwLock<String>>,
     pub app_weak: slint::Weak<crate::TopBarWindow>,
@@ -100,11 +102,26 @@ impl LekhaniTray {
         });
     }
 
+    #[allow(clippy::type_complexity)]
+    #[zbus(property)]
+    fn tool_tip(&self) -> ToolTipData {
+        let layout = self.active_layout.read().unwrap();
+        (
+            "lekhani".to_string(),
+            Vec::new(),
+            "Lekhani (লেখনী)".to_string(),
+            format!("Active: {}", *layout),
+        )
+    }
+
     #[zbus(signal)]
     pub async fn new_title(emitter: &zbus::object_server::SignalContext<'_>) -> zbus::Result<()>;
 
     #[zbus(signal)]
     pub async fn new_icon(emitter: &zbus::object_server::SignalContext<'_>) -> zbus::Result<()>;
+
+    #[zbus(signal)]
+    pub async fn new_tool_tip(emitter: &zbus::object_server::SignalContext<'_>) -> zbus::Result<()>;
 }
 
 #[derive(Clone)]
@@ -207,6 +224,7 @@ pub fn spawn_tray(
                             .await
                         {
                             let _ = LekhaniTray::new_title(iface_ref.signal_context()).await;
+                            let _ = LekhaniTray::new_tool_tip(iface_ref.signal_context()).await;
                         }
                     }
                 }
