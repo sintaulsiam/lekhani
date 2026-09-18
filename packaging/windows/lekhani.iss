@@ -45,6 +45,7 @@ Name: "autostart"; Description: "Automatically launch Lekhani when Windows start
 Source: "{#SourceDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourceDir}\{#MyAppCliName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourceDir}\lekhani.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "{#SourceDir}\lekhani_ffi.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "..\..\data\layouts\*"; DestDir: "{app}\data\layouts"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\..\data\dictionaries\*"; DestDir: "{app}\data\dictionaries"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\..\data\icons\*"; DestDir: "{app}\data\icons"; Flags: ignoreversion recursesubdirs createallsubdirs
