@@ -25,9 +25,8 @@ uninstall_lekhani() {
     sudo rm -f /usr/bin/lekhani-gui /usr/bin/lekhani /usr/bin/ibus-lekhani
     rm -f "$HOME/.local/bin/lekhani-gui" "$HOME/.local/bin/lekhani" "$HOME/.local/bin/ibus-lekhani" 2>/dev/null || true
 
-    echo "--> Removing shared data assets and layouts..."
+    echo "--> Removing system shared data assets and layouts..."
     sudo rm -rf /usr/share/lekhani
-    rm -rf "$HOME/.local/share/lekhani" 2>/dev/null || true
 
     echo "--> Removing desktop applications and AppStream metadata..."
     sudo rm -f /usr/share/applications/io.github.lekhani.keyboard.desktop
@@ -71,21 +70,22 @@ uninstall_lekhani() {
     update-desktop-database -q "$HOME/.local/share/applications" 2>/dev/null || true
     kbuildsycoca6 --noincremental 2>/dev/null || kbuildsycoca5 --noincremental 2>/dev/null || true
 
-    if [ -d "$HOME/.config/lekhani" ]; then
+    if [ -d "$HOME/.config/lekhani" ] || [ -d "$HOME/.local/share/lekhani" ]; then
         echo ""
         if [ -t 0 ]; then
-            read -rp "Do you also want to delete user configurations (~/.config/lekhani)? [y/N]: " REMOVE_CONFIG
+            read -rp "Do you also want to delete user configurations, stats & learning history (~/.config/lekhani & ~/.local/share/lekhani)? [y/N]: " REMOVE_CONFIG
             case "$REMOVE_CONFIG" in
                 [yY]|[yY][eE][sS])
                     rm -rf "$HOME/.config/lekhani"
-                    echo "--> User configuration directory removed."
+                    rm -rf "$HOME/.local/share/lekhani"
+                    echo "--> User configurations and statistics directories removed."
                     ;;
                 *)
-                    echo "--> Preserved user configurations in ~/.config/lekhani."
+                    echo "--> Preserved user configurations (~/.config/lekhani) and typing statistics / learning history (~/.local/share/lekhani)."
                     ;;
             esac
         else
-            echo "--> Preserved user configurations in ~/.config/lekhani."
+            echo "--> Preserved user configurations and typing statistics."
         fi
     fi
 
