@@ -517,4 +517,17 @@ mod tests {
         assert!(config.general.show_osd);
         assert!(config.general.auto_dari);
     }
+
+    #[test]
+    fn test_layout_discovery_and_distinct_mappings() {
+        let mut layout_mgr = LayoutManager::new();
+        let system_dir = ConfigManager::get_system_layout_dir();
+        layout_mgr.discover_layouts(system_dir, std::path::PathBuf::from("/nonexistent"));
+        let layouts = layout_mgr.get_layout_list();
+        assert!(layouts.len() >= 6, "Should discover at least 6 layouts, got: {:?}", layouts);
+        for name in &layouts {
+            let json = layout_mgr.load_layout_json(name);
+            assert!(json.is_some(), "Layout '{}' should have valid JSON", name);
+        }
+    }
 }

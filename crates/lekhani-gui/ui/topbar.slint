@@ -238,9 +238,16 @@ component LayoutSelectorPill inherits Rectangle {
 component KeyCapButton inherits Rectangle {
     in property <string> key-char;
     in property <color> text-color: #e2e8f0;
+    in property <length> key-width: 34px;
+    in property <length> key-height: 30px;
+    in property <int> flex-stretch: 1;
 
-    width: 32px;
-    height: 30px;
+    min-width: 24px;
+    preferred-width: root.key-width;
+    min-height: 26px;
+    preferred-height: root.key-height;
+    horizontal-stretch: root.flex-stretch;
+    vertical-stretch: 1;
     border-radius: 6px;
     background: ta.has-hover ? #2a2d42 : #181926;
     border-width: 1px;
@@ -256,9 +263,10 @@ component KeyCapButton inherits Rectangle {
         Text {
             text: root.key-char;
             color: root.text-color;
-            font-size: 12.5px;
-            font-weight: 500;
+            font-size: 13.5px;
+            font-weight: 600;
             horizontal-alignment: center;
+            vertical-alignment: center;
         }
     }
 }
@@ -409,6 +417,13 @@ export component TopBarWindow inherits Window {
 
     // Layout Viewer state
     in-out property <int> viewer-mode: 0; // 0: Normal, 1: Shift, 2: AltGr
+    in property <[string]> viewer-row-1: [];
+    in property <[string]> viewer-row-2: [];
+    in property <[string]> viewer-row-3: [];
+    in property <[string]> viewer-row-4: [];
+    in-out property <string> viewer-selected-layout: root.active-layout-name;
+    callback viewer-mode-changed(int);
+    callback select-viewer-layout(string);
 
     // AutoCorrect Manager properties
     in-out property <string> ac-search-query: "";
@@ -577,6 +592,9 @@ export component TopBarWindow inherits Window {
                     active-border: #89b4fa66;
                     clicked => {
                         root.active-dialog = root.active-dialog == 2 ? 0 : 2;
+                        if (root.active-dialog == 2) {
+                            root.viewer-mode-changed(root.viewer-mode);
+                        }
                     }
                 }
 
@@ -795,19 +813,19 @@ export component TopBarWindow inherits Window {
                             label: "Normal";
                             active: root.viewer-mode == 0;
                             active-color: #89b4fa;
-                            clicked => { root.viewer-mode = 0; }
+                            clicked => { root.viewer-mode = 0; root.viewer-mode-changed(0); }
                         }
                         SegmentButton {
                             label: "Shift";
                             active: root.viewer-mode == 1;
                             active-color: #a6e3a1;
-                            clicked => { root.viewer-mode = 1; }
+                            clicked => { root.viewer-mode = 1; root.viewer-mode-changed(1); }
                         }
                         SegmentButton {
                             label: "AltGr";
                             active: root.viewer-mode == 2;
                             active-color: #fab387;
-                            clicked => { root.viewer-mode = 2; }
+                            clicked => { root.viewer-mode = 2; root.viewer-mode-changed(2); }
                         }
                     }
                 }
@@ -826,10 +844,7 @@ export component TopBarWindow inherits Window {
                         // Row 1: Numbers
                         HorizontalLayout {
                             spacing: 3px;
-                            alignment: center;
-                            for key in (root.viewer-mode == 0 ? ["১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০", "-", "="] :
-                                       (root.viewer-mode == 1 ? ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "+"] :
-                                                                ["১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০", "–", "≠"])): KeyCapButton {
+                            for key in root.viewer-row-1: KeyCapButton {
                                 key-char: key;
                                 text-color: #89b4fa;
                             }
@@ -837,10 +852,7 @@ export component TopBarWindow inherits Window {
                         // Row 2: QWERTY
                         HorizontalLayout {
                             spacing: 3px;
-                            alignment: center;
-                            for key in (root.viewer-mode == 0 ? ["ট", "ঠ", "ড", "ঢ", "ণ", "ত", "থ", "দ", "ধ", "ন", "প", "ফ"] :
-                                       (root.viewer-mode == 1 ? ["ৌ", "ৈ", "া", "ী", "ূ", "ভ", "ঙ", "ঘ", "ধ", "ঝ", "ঢ", "খ"] :
-                                                                ["৲", "৳", "৴", "৵", "৶", "৷", "৸", "৹", "৺", "৻", "ৎ", "ং"])): KeyCapButton {
+                            for key in root.viewer-row-2: KeyCapButton {
                                 key-char: key;
                                 text-color: #a6e3a1;
                             }
@@ -848,10 +860,7 @@ export component TopBarWindow inherits Window {
                         // Row 3: ASDF
                         HorizontalLayout {
                             spacing: 3px;
-                            alignment: center;
-                            for key in (root.viewer-mode == 0 ? ["ব", "ভ", "ম", "য", "র", "ল", "শ", "ষ", "স", "হ", "ড়"] :
-                                       (root.viewer-mode == 1 ? ["ো", "ে", "্", "ি", "ু", "র", "অ", "আ", "ই", "ঈ", "উ"] :
-                                                                ["ঽ", "্", "়", "ঁ", "ঃ", "ৃ", "ৄ", "ৢ", "ৣ", "ৠ", "ঌ"])): KeyCapButton {
+                            for key in root.viewer-row-3: KeyCapButton {
                                 key-char: key;
                                 text-color: #f1f5f9;
                             }
@@ -859,10 +868,7 @@ export component TopBarWindow inherits Window {
                         // Row 4: ZXCV
                         HorizontalLayout {
                             spacing: 3px;
-                            alignment: center;
-                            for key in (root.viewer-mode == 0 ? ["অ", "আ", "ই", "ঈ", "উ", "ঊ", "ঋ", "এ", "ঐ", "ও", "ঔ"] :
-                                       (root.viewer-mode == 1 ? ["য", "শ", "ষ", "স", "হ", "ড়", "ঢ়", "য়", "ৎ", "ং", "ঃ"] :
-                                                                ["ঀ", "৾", "৿", "ৢ", "ৣ", "ৄ", "ৠ", "ঌ", "ৡ", "৲", "৳"])): KeyCapButton {
+                            for key in root.viewer-row-4: KeyCapButton {
                                 key-char: key;
                                 text-color: #fab387;
                             }
@@ -1768,8 +1774,10 @@ export component TopBarWindow inherits Window {
 export component StandaloneDialogWindow inherits Window {
     title: root.dialog-title;
     icon: @image-url("../../../data/icons/128.png");
-    min-width: 540px;
-    min-height: 480px;
+    min-width: 560px;
+    min-height: 440px;
+    preferred-width: 720px;
+    preferred-height: 520px;
     background: #11121dfa;
 
     in-out property <int> dialog-type: 4; // 2=Viewer, 3=AutoCorrect, 4=Converter, 5=Settings, 7=Conjuncts, 8=Stats
@@ -1809,8 +1817,14 @@ export component StandaloneDialogWindow inherits Window {
 
     // Layout Viewer State
     in-out property <int> viewer-mode: 0;
+    in property <[string]> viewer-row-1: [];
+    in property <[string]> viewer-row-2: [];
+    in property <[string]> viewer-row-3: [];
+    in property <[string]> viewer-row-4: [];
+    in-out property <string> viewer-selected-layout: root.active-layout-name;
+    in property <[string]> available-layouts: [];
 
-    property <string> dialog-title: root.dialog-type == 2 ? "Lekhani - Keyboard Layout Viewer (" + root.active-layout-name + ")" :
+    property <string> dialog-title: root.dialog-type == 2 ? "Lekhani - Keyboard Layout Viewer (" + root.viewer-selected-layout + ")" :
                                    root.dialog-type == 3 ? "Lekhani - AutoCorrect Manager" :
                                    root.dialog-type == 4 ? "Lekhani - Bijoy ⇄ Unicode Converter" :
                                    root.dialog-type == 5 ? "Lekhani - Settings" :
@@ -1830,6 +1844,8 @@ export component StandaloneDialogWindow inherits Window {
     callback copy-conjunct(string);
     callback refresh-stats();
     callback save-settings();
+    callback viewer-mode-changed(int);
+    callback select-viewer-layout(string);
 
     VerticalLayout {
         padding: 16px;
@@ -1907,109 +1923,142 @@ export component StandaloneDialogWindow inherits Window {
                 }
             }
 
-            // Input Section
-            VerticalLayout {
-                spacing: 6px;
+            // Dual Pane Layout
+            HorizontalLayout {
+                spacing: 12px;
                 vertical-stretch: 1;
-                HorizontalLayout {
-                    alignment: space-between;
-                    Text {
-                        text: root.conv-direction == 0 ? "Bijoy (ANSI) Source Text:" : "Unicode Bengali Source Text:";
-                        color: #89b4fa;
-                        font-size: 12px;
-                        font-weight: 700;
-                    }
-                    ModernButton {
-                        text: "Clear";
-                        clicked => {
-                            root.conv-input-text = "";
-                            root.conv-output-text = "";
-                            root.conv-copied = false;
-                        }
-                    }
-                }
 
-                Rectangle {
-                    background: #0b0c14;
-                    border-radius: 8px;
-                    border-width: 1px;
-                    border-color: #2a2d42;
+                // Left Column: Source
+                VerticalLayout {
+                    spacing: 6px;
+                    horizontal-stretch: 1;
                     vertical-stretch: 1;
 
-                    VerticalLayout {
-                        padding: 8px;
-                        TextEdit {
-                            text <=> root.conv-input-text;
-                            vertical-stretch: 1;
-                            edited => {
+                    HorizontalLayout {
+                        alignment: space-between;
+                        Text {
+                            text: root.conv-direction == 0 ? "Bijoy (ANSI) Source Text:" : "Unicode Bengali Source Text:";
+                            color: #89b4fa;
+                            font-size: 12px;
+                            font-weight: 700;
+                            vertical-alignment: center;
+                        }
+                        ModernButton {
+                            text: "Clear";
+                            clicked => {
+                                root.conv-input-text = "";
+                                root.conv-output-text = "";
                                 root.conv-copied = false;
-                                if (root.conv-direction == 0) {
-                                    root.convert-bijoy-to-unicode(root.conv-input-text);
-                                } else {
-                                    root.convert-unicode-to-bijoy(root.conv-input-text);
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        background: #0b0c14;
+                        border-radius: 8px;
+                        border-width: 1px;
+                        border-color: #2a2d42;
+                        vertical-stretch: 1;
+
+                        VerticalLayout {
+                            padding: 8px;
+                            vertical-stretch: 1;
+                            TextEdit {
+                                text <=> root.conv-input-text;
+                                vertical-stretch: 1;
+                                edited => {
+                                    root.conv-copied = false;
+                                    if (root.conv-direction == 0) {
+                                        root.convert-bijoy-to-unicode(root.conv-input-text);
+                                    } else {
+                                        root.convert-unicode-to-bijoy(root.conv-input-text);
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            // Action Row
-            HorizontalLayout {
-                alignment: space-between;
-                ModernButton {
-                    text: "Convert Now ➔";
-                    primary: true;
-                    clicked => {
-                        if (root.conv-direction == 0) {
-                            root.convert-bijoy-to-unicode(root.conv-input-text);
-                        } else {
-                            root.convert-unicode-to-bijoy(root.conv-input-text);
+                // Middle Column: Actions
+                VerticalLayout {
+                    spacing: 8px;
+                    alignment: center;
+                    vertical-stretch: 0;
+
+                    ModernButton {
+                        text: "➔ Convert";
+                        primary: true;
+                        clicked => {
+                            if (root.conv-direction == 0) {
+                                root.convert-bijoy-to-unicode(root.conv-input-text);
+                            } else {
+                                root.convert-unicode-to-bijoy(root.conv-input-text);
+                            }
+                        }
+                    }
+
+                    ModernButton {
+                        text: "⇄ Swap";
+                        clicked => {
+                            root.conv-direction = root.conv-direction == 0 ? 1 : 0;
+                            let tmp = root.conv-input-text;
+                            root.conv-input-text = root.conv-output-text;
+                            root.conv-output-text = "";
+                            if (root.conv-direction == 0) {
+                                root.convert-bijoy-to-unicode(root.conv-input-text);
+                            } else {
+                                root.convert-unicode-to-bijoy(root.conv-input-text);
+                            }
+                        }
+                    }
+
+                    if (root.conv-output-text != ""): CopyButton {
+                        copied: root.conv-copied;
+                        clicked => {
+                            root.copy-to-clipboard(root.conv-output-text);
                         }
                     }
                 }
 
-                if (root.conv-output-text != ""): CopyButton {
-                    copied: root.conv-copied;
-                    clicked => {
-                        root.copy-to-clipboard(root.conv-output-text);
-                    }
-                }
-            }
-
-            // Output Section
-            VerticalLayout {
-                spacing: 6px;
-                vertical-stretch: 1;
-                HorizontalLayout {
-                    alignment: space-between;
-                    Text {
-                        text: root.conv-direction == 0 ? "Unicode Bengali Result:" : "Bijoy (ANSI) Result:";
-                        color: #a6e3a1;
-                        font-size: 12px;
-                        font-weight: 700;
-                    }
-                    if (root.conv-output-text != ""): Text {
-                        text: root.conv-copied ? "Copied to Clipboard! ✓" : "Converted successfully ✓";
-                        color: #a6e3a1;
-                        font-size: 11px;
-                        font-weight: 600;
-                    }
-                }
-
-                Rectangle {
-                    background: #0b0c14;
-                    border-radius: 8px;
-                    border-width: 1px;
-                    border-color: #2a2d42;
+                // Right Column: Output
+                VerticalLayout {
+                    spacing: 6px;
+                    horizontal-stretch: 1;
                     vertical-stretch: 1;
 
-                    VerticalLayout {
-                        padding: 8px;
-                        TextEdit {
-                            text: root.conv-output-text;
-                            read-only: true;
+                    HorizontalLayout {
+                        alignment: space-between;
+                        Text {
+                            text: root.conv-direction == 0 ? "Unicode Bengali Result:" : "Bijoy (ANSI) Result:";
+                            color: #a6e3a1;
+                            font-size: 12px;
+                            font-weight: 700;
+                            vertical-alignment: center;
+                        }
+                        if (root.conv-output-text != ""): Text {
+                            text: root.conv-copied ? "Copied! ✓" : "Converted ✓";
+                            color: #a6e3a1;
+                            font-size: 11px;
+                            font-weight: 600;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    Rectangle {
+                        background: #0b0c14;
+                        border-radius: 8px;
+                        border-width: 1px;
+                        border-color: #2a2d42;
+                        vertical-stretch: 1;
+
+                        VerticalLayout {
+                            padding: 8px;
                             vertical-stretch: 1;
+                            TextEdit {
+                                text: root.conv-output-text;
+                                read-only: true;
+                                vertical-stretch: 1;
+                            }
                         }
                     }
                 }
@@ -2082,6 +2131,7 @@ export component StandaloneDialogWindow inherits Window {
 
                 VerticalLayout {
                     padding: 6px;
+                    vertical-stretch: 1;
                     ScrollView {
                         vertical-stretch: 1;
                         VerticalLayout {
@@ -2152,72 +2202,88 @@ export component StandaloneDialogWindow inherits Window {
                 VerticalLayout {
                     spacing: 10px;
 
-                    // Section 1: Phonetic Options
-                    Rectangle {
-                        background: #0c0d14;
-                        border-radius: 10px;
-                        border-width: 1px;
-                        border-color: #242638;
+                    HorizontalLayout {
+                        spacing: 12px;
 
+                        // Left Column
                         VerticalLayout {
-                            padding: 12px;
-                            spacing: 8px;
-                            Text { text: "PHONETIC ENGINE"; color: #89b4fa; font-size: 10px; font-weight: 700; }
-                            ModernToggleSwitch {
-                                label: "Auto Vowel Forming (o / i / u)";
-                                checked <=> root.set-auto-vowel;
+                            spacing: 10px;
+                            horizontal-stretch: 1;
+
+                            // Section 1: Phonetic Options
+                            Rectangle {
+                                background: #0c0d14;
+                                border-radius: 10px;
+                                border-width: 1px;
+                                border-color: #242638;
+
+                                VerticalLayout {
+                                    padding: 12px;
+                                    spacing: 8px;
+                                    Text { text: "PHONETIC ENGINE"; color: #89b4fa; font-size: 10px; font-weight: 700; }
+                                    ModernToggleSwitch {
+                                        label: "Auto Vowel Forming (o / i / u)";
+                                        checked <=> root.set-auto-vowel;
+                                    }
+                                    ModernToggleSwitch {
+                                        label: "Auto Chandra Position Adjustment";
+                                        checked <=> root.set-auto-chandra;
+                                    }
+                                }
                             }
-                            ModernToggleSwitch {
-                                label: "Auto Chandra Position Adjustment";
-                                checked <=> root.set-auto-chandra;
+
+                            // Section 3: General & Hotkey Options
+                            Rectangle {
+                                background: #0c0d14;
+                                border-radius: 10px;
+                                border-width: 1px;
+                                border-color: #242638;
+
+                                VerticalLayout {
+                                    padding: 12px;
+                                    spacing: 8px;
+                                    Text { text: "BEHAVIOR & SHORTCUTS"; color: #f9e2af; font-size: 10px; font-weight: 700; }
+                                    ModernToggleSwitch {
+                                        label: "Show On-Screen Display (OSD) Overlay";
+                                        checked <=> root.set-show-osd;
+                                    }
+                                    ModernToggleSwitch {
+                                        label: "Auto Dari Substitution (. ➔ ।)";
+                                        checked <=> root.set-auto-dari;
+                                    }
+                                }
                             }
                         }
-                    }
 
-                    // Section 2: Fixed Layout Options
-                    Rectangle {
-                        background: #0c0d14;
-                        border-radius: 10px;
-                        border-width: 1px;
-                        border-color: #242638;
-
+                        // Right Column
                         VerticalLayout {
-                            padding: 12px;
-                            spacing: 8px;
-                            Text { text: "FIXED LAYOUTS (PROBHAT / JATIYA / UNIBIJOY)"; color: #a6e3a1; font-size: 10px; font-weight: 700; }
-                            ModernToggleSwitch {
-                                label: "Traditional Kar Placement (ী / ূ)";
-                                checked <=> root.set-traditional-kar;
-                            }
-                            ModernToggleSwitch {
-                                label: "Old Reph Placement (র্)";
-                                checked <=> root.set-old-reph;
-                            }
-                            ModernToggleSwitch {
-                                label: "Bengali Number Pad Mapping";
-                                checked <=> root.set-numberpad;
-                            }
-                        }
-                    }
+                            spacing: 10px;
+                            horizontal-stretch: 1;
 
-                    // Section 3: General & Hotkey Options
-                    Rectangle {
-                        background: #0c0d14;
-                        border-radius: 10px;
-                        border-width: 1px;
-                        border-color: #242638;
+                            // Section 2: Fixed Layout Options
+                            Rectangle {
+                                background: #0c0d14;
+                                border-radius: 10px;
+                                border-width: 1px;
+                                border-color: #242638;
 
-                        VerticalLayout {
-                            padding: 12px;
-                            spacing: 8px;
-                            Text { text: "BEHAVIOR & SHORTCUTS"; color: #f9e2af; font-size: 10px; font-weight: 700; }
-                            ModernToggleSwitch {
-                                label: "Show On-Screen Display (OSD) Overlay";
-                                checked <=> root.set-show-osd;
-                            }
-                            ModernToggleSwitch {
-                                label: "Auto Dari Substitution (. ➔ ।)";
-                                checked <=> root.set-auto-dari;
+                                VerticalLayout {
+                                    padding: 12px;
+                                    spacing: 8px;
+                                    Text { text: "FIXED LAYOUTS (PROBHAT / JATIYA / UNIBIJOY)"; color: #a6e3a1; font-size: 10px; font-weight: 700; }
+                                    ModernToggleSwitch {
+                                        label: "Traditional Kar Placement (ী / ূ)";
+                                        checked <=> root.set-traditional-kar;
+                                    }
+                                    ModernToggleSwitch {
+                                        label: "Old Reph Placement (র্)";
+                                        checked <=> root.set-old-reph;
+                                    }
+                                    ModernToggleSwitch {
+                                        label: "Bengali Number Pad Mapping";
+                                        checked <=> root.set-numberpad;
+                                    }
+                                }
                             }
                         }
                     }
@@ -2235,36 +2301,83 @@ export component StandaloneDialogWindow inherits Window {
         // 2. KEYBOARD LAYOUT VIEWER (Standalone Resizable)
         // ---------------------------------------------------------------------
         if root.dialog-type == 2: VerticalLayout {
-            spacing: 12px;
+            spacing: 10px;
             vertical-stretch: 1;
 
-            // Mode Selector
-            Rectangle {
-                height: 32px;
-                background: #0c0d14;
-                border-radius: 8px;
-                border-width: 1px;
-                border-color: #242638;
-                HorizontalLayout {
-                    padding: 3px;
-                    spacing: 6px;
-                    SegmentButton {
-                        label: "Normal";
-                        active: root.viewer-mode == 0;
-                        active-color: #89b4fa;
-                        clicked => { root.viewer-mode = 0; }
+            // Top Control Bar: Layout Selection & Mode Switcher
+            HorizontalLayout {
+                spacing: 10px;
+                alignment: space-between;
+
+                // Layout Selector
+                ScrollView {
+                    horizontal-stretch: 1;
+                    HorizontalLayout {
+                        spacing: 6px;
+                        Text {
+                            text: "LAYOUT:";
+                            color: #6c7086;
+                            font-size: 10px;
+                            font-weight: 700;
+                            vertical-alignment: center;
+                        }
+                        for lay in root.available-layouts: Rectangle {
+                            height: 28px;
+                            border-radius: 6px;
+                            background: root.viewer-selected-layout == lay ? #89b4fa28 : (lay_sa_ta.has-hover ? #25283d : #141522);
+                            border-width: 1px;
+                            border-color: root.viewer-selected-layout == lay ? #89b4fa : (lay_sa_ta.has-hover ? #454866 : #23253a);
+                            lay_sa_ta := TouchArea {
+                                mouse-cursor: pointer;
+                                clicked => {
+                                    root.viewer-selected-layout = lay;
+                                    root.select-viewer-layout(lay);
+                                }
+                            }
+                            HorizontalLayout {
+                                padding-left: 9px;
+                                padding-right: 9px;
+                                alignment: center;
+                                Text {
+                                    text: lay;
+                                    color: root.viewer-selected-layout == lay ? #89b4fa : #cdd6f4;
+                                    font-size: 11px;
+                                    font-weight: root.viewer-selected-layout == lay ? 700 : 500;
+                                    vertical-alignment: center;
+                                }
+                            }
+                        }
                     }
-                    SegmentButton {
-                        label: "Shift";
-                        active: root.viewer-mode == 1;
-                        active-color: #a6e3a1;
-                        clicked => { root.viewer-mode = 1; }
-                    }
-                    SegmentButton {
-                        label: "AltGr";
-                        active: root.viewer-mode == 2;
-                        active-color: #fab387;
-                        clicked => { root.viewer-mode = 2; }
+                }
+
+                // Mode Selector
+                Rectangle {
+                    height: 30px;
+                    background: #0c0d14;
+                    border-radius: 8px;
+                    border-width: 1px;
+                    border-color: #242638;
+                    HorizontalLayout {
+                        padding: 2px;
+                        spacing: 4px;
+                        SegmentButton {
+                            label: "Normal";
+                            active: root.viewer-mode == 0;
+                            active-color: #89b4fa;
+                            clicked => { root.viewer-mode = 0; root.viewer-mode-changed(0); }
+                        }
+                        SegmentButton {
+                            label: "Shift";
+                            active: root.viewer-mode == 1;
+                            active-color: #a6e3a1;
+                            clicked => { root.viewer-mode = 1; root.viewer-mode-changed(1); }
+                        }
+                        SegmentButton {
+                            label: "AltGr";
+                            active: root.viewer-mode == 2;
+                            active-color: #fab387;
+                            clicked => { root.viewer-mode = 2; root.viewer-mode-changed(2); }
+                        }
                     }
                 }
             }
@@ -2272,57 +2385,57 @@ export component StandaloneDialogWindow inherits Window {
             // Keycap Grid
             Rectangle {
                 background: #0c0d14;
-                border-radius: 10px;
-                border-width: 1px;
+                border-radius: 12px;
+                border-width: 1.2px;
                 border-color: #242638;
                 vertical-stretch: 1;
 
                 VerticalLayout {
-                    padding: 16px;
+                    padding: 14px;
                     spacing: 6px;
-                    alignment: center;
+                    vertical-stretch: 1;
 
+                    // Row 1: Numbers / Symbols
                     HorizontalLayout {
                         spacing: 4px;
-                        alignment: center;
-                        for key in (root.viewer-mode == 0 ? ["১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০", "-", "="] :
-                                   (root.viewer-mode == 1 ? ["!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "+"] :
-                                                            ["১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০", "–", "≠"])): KeyCapButton {
+                        vertical-stretch: 1;
+                        for key in root.viewer-row-1: KeyCapButton {
                             key-char: key;
                             text-color: #89b4fa;
+                            flex-stretch: 1;
                         }
                     }
 
+                    // Row 2: QWERTY
                     HorizontalLayout {
                         spacing: 4px;
-                        alignment: center;
-                        for key in (root.viewer-mode == 0 ? ["ধ", "ঘ", "ঙ", "ঋ", "ট", "ঠ", "ণ", "থ", "ধ", "ঝ", "চ"] :
-                                   (root.viewer-mode == 1 ? ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "{", "}"] :
-                                                            ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]"])): KeyCapButton {
+                        vertical-stretch: 1;
+                        for key in root.viewer-row-2: KeyCapButton {
                             key-char: key;
                             text-color: #f1f5f9;
+                            flex-stretch: 1;
                         }
                     }
 
+                    // Row 3: ASDF
                     HorizontalLayout {
                         spacing: 4px;
-                        alignment: center;
-                        for key in (root.viewer-mode == 0 ? ["া", "ি", "ী", "ু", "ূ", "ৃ", "ে", "ৈ", "ো", "ৌ"] :
-                                   (root.viewer-mode == 1 ? ["A", "S", "D", "F", "G", "H", "J", "K", "L", ":", "\""] :
-                                                            ["a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'"])): KeyCapButton {
+                        vertical-stretch: 1;
+                        for key in root.viewer-row-3: KeyCapButton {
                             key-char: key;
                             text-color: #a6e3a1;
+                            flex-stretch: 1;
                         }
                     }
 
+                    // Row 4: ZXCV
                     HorizontalLayout {
                         spacing: 4px;
-                        alignment: center;
-                        for key in (root.viewer-mode == 0 ? ["য", "র", "ল", "শ", "ষ", "স", "হ", "ড়", "ঢ়", "য়"] :
-                                   (root.viewer-mode == 1 ? ["Z", "X", "C", "V", "B", "N", "M", "<", ">", "?"] :
-                                                            ["z", "x", "c", "v", "b", "n", "m", ",", ".", "/"])): KeyCapButton {
+                        vertical-stretch: 1;
+                        for key in root.viewer-row-4: KeyCapButton {
                             key-char: key;
                             text-color: #fab387;
+                            flex-stretch: 1;
                         }
                     }
                 }
@@ -2354,6 +2467,7 @@ export component StandaloneDialogWindow inherits Window {
 
                 VerticalLayout {
                     padding: 8px;
+                    vertical-stretch: 1;
                     ScrollView {
                         vertical-stretch: 1;
                         VerticalLayout {
@@ -2440,6 +2554,7 @@ export component StandaloneDialogWindow inherits Window {
                 VerticalLayout {
                     padding: 10px;
                     spacing: 6px;
+                    vertical-stretch: 1;
                     Text { text: "FREQUENTLY TYPED CHARACTERS"; color: #f9e2af; font-size: 10px; font-weight: 700; }
 
                     ScrollView {
