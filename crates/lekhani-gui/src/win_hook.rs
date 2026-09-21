@@ -510,6 +510,12 @@ unsafe extern "system" fn low_level_keyboard_proc(
         return CallNextHookEx(0 as _, n_code, w_param, l_param);
     }
 
+    // Standalone modifier keys (Shift, CapsLock, Ctrl, Alt, Win) must pass through
+    // without committing or altering active uncommitted preedit text
+    if is_modifier_key(vk) {
+        return CallNextHookEx(0 as _, n_code, w_param, l_param);
+    }
+
     // Translate Virtual Key to character
     if let Some(ch) = vk_to_char(vk, shift_down, caps_locked) {
         if state.session.is_prediction_mode() && state.uncommitted_units == 0 {
@@ -591,6 +597,19 @@ fn vk_to_char(vk: u16, shift: bool, caps: bool) -> Option<char> {
         VK_OEM_7 => Some(if shift { '"' } else { '\'' }),
         _ => None,
     }
+}
+
+fn is_modifier_key(vk: u16) -> bool {
+    matches!(
+        vk,
+        VK_SHIFT
+            | VK_CONTROL
+            | VK_MENU
+            | VK_LWIN
+            | VK_RWIN
+            | VK_CAPITAL
+            | 0xA0..=0xA5 // VK_LSHIFT, VK_RSHIFT, VK_LCONTROL, VK_RCONTROL, VK_LMENU, VK_RMENU
+    )
 }
 
 fn inject_backspaces(count: usize) {
