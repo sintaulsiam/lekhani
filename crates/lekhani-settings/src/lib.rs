@@ -83,42 +83,66 @@ pub struct UiConfig {
     pub dark_mode: bool,
 }
 
+impl Default for GeneralConfig {
+    fn default() -> Self {
+        Self {
+            active_layout: "Avro Phonetic".to_string(),
+            check_updates: true,
+            toggle_key: "F12".to_string(),
+            show_osd: true,
+            auto_dari: true,
+        }
+    }
+}
+
+impl Default for PhoneticConfig {
+    fn default() -> Self {
+        Self {
+            use_dictionary: true,
+            include_english: true,
+            enter_key_closes_candidate_window: false,
+            enable_predictive_next_words: true,
+            enable_code_shield: false,
+            enable_word_segmentation: false,
+            enable_colloquial_dialects: true,
+            enable_banglish_shorthand: true,
+            enable_reduplication: true,
+            enable_phrase_prediction: true,
+            enable_dynamic_macros: true,
+        }
+    }
+}
+
+impl Default for FixedConfig {
+    fn default() -> Self {
+        Self {
+            auto_vowel_forming: true,
+            auto_chandra_position: true,
+            traditional_kar: false,
+            old_reph: true,
+            numberpad: true,
+        }
+    }
+}
+
+impl Default for UiConfig {
+    fn default() -> Self {
+        Self {
+            horizontal_candidates: true,
+            topbar_x: 200,
+            topbar_y: 50,
+            dark_mode: true,
+        }
+    }
+}
+
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            general: GeneralConfig {
-                active_layout: "Avro Phonetic".to_string(),
-                check_updates: true,
-                toggle_key: "F12".to_string(),
-                show_osd: true,
-                auto_dari: true,
-            },
-            phonetic: PhoneticConfig {
-                use_dictionary: true,
-                include_english: true,
-                enter_key_closes_candidate_window: false,
-                enable_predictive_next_words: true,
-                enable_code_shield: false,
-                enable_word_segmentation: false,
-                enable_colloquial_dialects: true,
-                enable_banglish_shorthand: true,
-                enable_reduplication: true,
-                enable_phrase_prediction: true,
-                enable_dynamic_macros: true,
-            },
-            fixed: FixedConfig {
-                auto_vowel_forming: true,
-                auto_chandra_position: true,
-                traditional_kar: false,
-                old_reph: true,
-                numberpad: true,
-            },
-            ui: UiConfig {
-                horizontal_candidates: true,
-                topbar_x: 200,
-                topbar_y: 50,
-                dark_mode: true,
-            },
+            general: GeneralConfig::default(),
+            phonetic: PhoneticConfig::default(),
+            fixed: FixedConfig::default(),
+            ui: UiConfig::default(),
         }
     }
 }

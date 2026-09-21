@@ -21,7 +21,7 @@ use lekhani_core::{
     bijoy_to_unicode, unicode_to_bijoy, ConjunctCatalog, PhoneticDatabase, PhoneticSuggestion,
     UserStats,
 };
-use lekhani_settings::{ConfigManager, LayoutManager};
+use lekhani_settings::{AppConfig, ConfigManager, LayoutManager};
 use std::rc::Rc;
 use tracing::info;
 
@@ -121,47 +121,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(windows)]
     {
         app.set_is_windows(true);
+        standalone.set_is_windows(true);
         app.set_set_autostart(win_autostart::is_autostart_enabled());
+        standalone.set_set_autostart(win_autostart::is_autostart_enabled());
     }
-    app.set_set_use_dict(config_mgr.config.phonetic.use_dictionary);
-    app.set_set_include_eng(config_mgr.config.phonetic.include_english);
-    app.set_set_enter_closes(config_mgr.config.phonetic.enter_key_closes_candidate_window);
-    app.set_set_predictive_next(config_mgr.config.phonetic.enable_predictive_next_words);
-    app.set_set_code_shield(config_mgr.config.phonetic.enable_code_shield);
-    app.set_set_word_segmentation(config_mgr.config.phonetic.enable_word_segmentation);
-    app.set_set_colloquial_dialects(config_mgr.config.phonetic.enable_colloquial_dialects);
-    app.set_set_banglish_shorthand(config_mgr.config.phonetic.enable_banglish_shorthand);
-    app.set_set_reduplication(config_mgr.config.phonetic.enable_reduplication);
-    app.set_set_phrase_prediction(config_mgr.config.phonetic.enable_phrase_prediction);
-    app.set_set_dynamic_macros(config_mgr.config.phonetic.enable_dynamic_macros);
-    app.set_set_auto_vowel(config_mgr.config.fixed.auto_vowel_forming);
-    app.set_set_auto_chandra(config_mgr.config.fixed.auto_chandra_position);
-    app.set_set_traditional_kar(config_mgr.config.fixed.traditional_kar);
-    app.set_set_old_reph(config_mgr.config.fixed.old_reph);
-    app.set_set_numberpad(config_mgr.config.fixed.numberpad);
-    app.set_set_toggle_key(config_mgr.config.general.toggle_key.clone().into());
-    app.set_set_show_osd(config_mgr.config.general.show_osd);
-    app.set_set_auto_dari(config_mgr.config.general.auto_dari);
-
-    standalone.set_set_use_dict(config_mgr.config.phonetic.use_dictionary);
-    standalone.set_set_include_eng(config_mgr.config.phonetic.include_english);
-    standalone.set_set_enter_closes(config_mgr.config.phonetic.enter_key_closes_candidate_window);
-    standalone.set_set_predictive_next(config_mgr.config.phonetic.enable_predictive_next_words);
-    standalone.set_set_code_shield(config_mgr.config.phonetic.enable_code_shield);
-    standalone.set_set_word_segmentation(config_mgr.config.phonetic.enable_word_segmentation);
-    standalone.set_set_colloquial_dialects(config_mgr.config.phonetic.enable_colloquial_dialects);
-    standalone.set_set_banglish_shorthand(config_mgr.config.phonetic.enable_banglish_shorthand);
-    standalone.set_set_reduplication(config_mgr.config.phonetic.enable_reduplication);
-    standalone.set_set_phrase_prediction(config_mgr.config.phonetic.enable_phrase_prediction);
-    standalone.set_set_dynamic_macros(config_mgr.config.phonetic.enable_dynamic_macros);
-    standalone.set_set_auto_vowel(config_mgr.config.fixed.auto_vowel_forming);
-    standalone.set_set_auto_chandra(config_mgr.config.fixed.auto_chandra_position);
-    standalone.set_set_traditional_kar(config_mgr.config.fixed.traditional_kar);
-    standalone.set_set_old_reph(config_mgr.config.fixed.old_reph);
-    standalone.set_set_numberpad(config_mgr.config.fixed.numberpad);
-    standalone.set_set_toggle_key(config_mgr.config.general.toggle_key.clone().into());
-    standalone.set_set_show_osd(config_mgr.config.general.show_osd);
-    standalone.set_set_auto_dari(config_mgr.config.general.auto_dari);
+    apply_settings_to_app(&app, &config_mgr.config);
+    apply_settings_to_standalone(&standalone, &config_mgr.config);
 
     // Initialize Conjunct Assistant state
     let all_conjuncts = ConjunctCatalog::all();
@@ -764,31 +729,50 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    let cm_save2 = config_mgr_rc.clone();
-    let s_weak_set = standalone_weak.clone();
-    standalone.on_save_settings(move || {
-        if let Some(s) = s_weak_set.upgrade() {
-            let mut cm = cm_save2.borrow_mut();
-            cm.config.phonetic.use_dictionary = s.get_set_use_dict();
-            cm.config.phonetic.include_english = s.get_set_include_eng();
-            cm.config.phonetic.enter_key_closes_candidate_window = s.get_set_enter_closes();
-            cm.config.phonetic.enable_predictive_next_words = s.get_set_predictive_next();
-            cm.config.phonetic.enable_code_shield = s.get_set_code_shield();
-            cm.config.phonetic.enable_word_segmentation = s.get_set_word_segmentation();
-            cm.config.phonetic.enable_colloquial_dialects = s.get_set_colloquial_dialects();
-            cm.config.phonetic.enable_banglish_shorthand = s.get_set_banglish_shorthand();
-            cm.config.phonetic.enable_reduplication = s.get_set_reduplication();
-            cm.config.phonetic.enable_phrase_prediction = s.get_set_phrase_prediction();
-            cm.config.phonetic.enable_dynamic_macros = s.get_set_dynamic_macros();
-            cm.config.fixed.auto_vowel_forming = s.get_set_auto_vowel();
-            cm.config.fixed.auto_chandra_position = s.get_set_auto_chandra();
-            cm.config.fixed.traditional_kar = s.get_set_traditional_kar();
-            cm.config.fixed.old_reph = s.get_set_old_reph();
-            cm.config.fixed.numberpad = s.get_set_numberpad();
-            cm.config.general.toggle_key = s.get_set_toggle_key().to_string();
-            cm.config.general.show_osd = s.get_set_show_osd();
-            cm.config.general.auto_dari = s.get_set_auto_dari();
+    // Settings: Standalone Auto-Save
+    let cm_auto_s = config_mgr_rc.clone();
+    let s_weak_auto = standalone_weak.clone();
+    let app_weak_sync = app_weak.clone();
+    standalone.on_auto_save_settings(move || {
+        if let Some(s) = s_weak_auto.upgrade() {
+            let mut cm = cm_auto_s.borrow_mut();
+            read_settings_from_standalone(&s, &mut cm.config);
             cm.save();
+            #[cfg(windows)]
+            let _ = win_autostart::set_autostart(s.get_set_autostart());
+            s.set_settings_status_text("✓ All changes saved automatically".into());
+            if let Some(app) = app_weak_sync.upgrade() {
+                apply_settings_to_app(&app, &cm.config);
+                app.set_settings_status_text("✓ All changes saved automatically".into());
+            }
+        }
+    });
+
+    // Settings: Standalone Reset Defaults
+    let cm_reset_s = config_mgr_rc.clone();
+    let s_weak_reset = standalone_weak.clone();
+    let app_weak_reset_sync = app_weak.clone();
+    standalone.on_reset_default_settings(move || {
+        if let Some(s) = s_weak_reset.upgrade() {
+            let mut cm = cm_reset_s.borrow_mut();
+            cm.config.phonetic = lekhani_settings::PhoneticConfig::default();
+            cm.config.fixed = lekhani_settings::FixedConfig::default();
+            cm.config.general.toggle_key = "F12".to_string();
+            cm.config.general.show_osd = true;
+            cm.config.general.auto_dari = true;
+            cm.save();
+            apply_settings_to_standalone(&s, &cm.config);
+            s.set_settings_status_text("✓ Defaults restored!".into());
+            if let Some(app) = app_weak_reset_sync.upgrade() {
+                apply_settings_to_app(&app, &cm.config);
+                app.set_settings_status_text("✓ Defaults restored!".into());
+            }
+        }
+    });
+
+    let s_weak_save_btn = standalone_weak.clone();
+    standalone.on_save_settings(move || {
+        if let Some(s) = s_weak_save_btn.upgrade() {
             let _ = s.hide();
         }
     });
@@ -802,35 +786,52 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    // Callbacks: Settings Save
-    let cm_save = config_mgr_rc.clone();
-    let app_weak_set = app_weak.clone();
-    app.on_save_settings(move || {
-        if let Some(app) = app_weak_set.upgrade() {
-            let mut cm = cm_save.borrow_mut();
-            cm.config.phonetic.use_dictionary = app.get_set_use_dict();
-            cm.config.phonetic.include_english = app.get_set_include_eng();
-            cm.config.phonetic.enter_key_closes_candidate_window = app.get_set_enter_closes();
-            cm.config.phonetic.enable_predictive_next_words = app.get_set_predictive_next();
-            cm.config.phonetic.enable_code_shield = app.get_set_code_shield();
-            cm.config.phonetic.enable_word_segmentation = app.get_set_word_segmentation();
-            cm.config.phonetic.enable_colloquial_dialects = app.get_set_colloquial_dialects();
-            cm.config.phonetic.enable_banglish_shorthand = app.get_set_banglish_shorthand();
-            cm.config.phonetic.enable_reduplication = app.get_set_reduplication();
-            cm.config.phonetic.enable_phrase_prediction = app.get_set_phrase_prediction();
-            cm.config.phonetic.enable_dynamic_macros = app.get_set_dynamic_macros();
-            cm.config.fixed.auto_vowel_forming = app.get_set_auto_vowel();
-            cm.config.fixed.auto_chandra_position = app.get_set_auto_chandra();
-            cm.config.fixed.traditional_kar = app.get_set_traditional_kar();
-            cm.config.fixed.old_reph = app.get_set_old_reph();
-            cm.config.fixed.numberpad = app.get_set_numberpad();
-            cm.config.general.toggle_key = app.get_set_toggle_key().to_string();
-            cm.config.general.show_osd = app.get_set_show_osd();
-            cm.config.general.auto_dari = app.get_set_auto_dari();
+    // Settings: Popover Auto-Save
+    let cm_auto_app = config_mgr_rc.clone();
+    let app_weak_auto = app_weak.clone();
+    let s_weak_sync = standalone_weak.clone();
+    app.on_auto_save_settings(move || {
+        if let Some(app) = app_weak_auto.upgrade() {
+            let mut cm = cm_auto_app.borrow_mut();
+            read_settings_from_app(&app, &mut cm.config);
             cm.save();
             #[cfg(windows)]
             let _ = win_autostart::set_autostart(app.get_set_autostart());
-            app.set_show_settings_dialog(false);
+            app.set_settings_status_text("✓ All changes saved automatically".into());
+            if let Some(s) = s_weak_sync.upgrade() {
+                apply_settings_to_standalone(&s, &cm.config);
+                s.set_settings_status_text("✓ All changes saved automatically".into());
+            }
+        }
+    });
+
+    // Settings: Popover Reset Defaults
+    let cm_reset_app = config_mgr_rc.clone();
+    let app_weak_reset = app_weak.clone();
+    let s_weak_reset_sync2 = standalone_weak.clone();
+    app.on_reset_default_settings(move || {
+        if let Some(app) = app_weak_reset.upgrade() {
+            let mut cm = cm_reset_app.borrow_mut();
+            cm.config.phonetic = lekhani_settings::PhoneticConfig::default();
+            cm.config.fixed = lekhani_settings::FixedConfig::default();
+            cm.config.general.toggle_key = "F12".to_string();
+            cm.config.general.show_osd = true;
+            cm.config.general.auto_dari = true;
+            cm.save();
+            apply_settings_to_app(&app, &cm.config);
+            app.set_settings_status_text("✓ Defaults restored!".into());
+            if let Some(s) = s_weak_reset_sync2.upgrade() {
+                apply_settings_to_standalone(&s, &cm.config);
+                s.set_settings_status_text("✓ Defaults restored!".into());
+            }
+        }
+    });
+
+    // Settings: Popover Done / Save
+    let app_weak_set = app_weak.clone();
+    app.on_save_settings(move || {
+        if let Some(app) = app_weak_set.upgrade() {
+            app.set_active_dialog(0);
         }
     });
 
@@ -880,7 +881,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
     );
 
-    // Callbacks: Minimize to System Tray
+    // Callbacks: Minimize to System Tray (Windows) / Taskbar (Linux)
     let app_weak_min = app_weak.clone();
     #[cfg(windows)]
     let win_tray_for_min = win_tray_handle.clone();
@@ -888,7 +889,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(app) = app_weak_min.upgrade() {
             use i_slint_backend_winit::WinitWindowAccessor;
             let _ = app.window().with_winit_window(|winit_window| {
-                winit_window.set_visible(false);
+                #[cfg(windows)]
+                {
+                    winit_window.set_visible(false);
+                }
+                #[cfg(not(windows))]
+                {
+                    winit_window.set_minimized(true);
+                }
             });
             #[cfg(windows)]
             if let Some(ref tray) = win_tray_for_min {
@@ -1145,4 +1153,92 @@ fn update_standalone_viewer_ui(standalone: &StandaloneDialogWindow, layout_mgr: 
     standalone.set_viewer_row_4(Rc::new(slint::VecModel::from(r4.into_iter().map(slint::SharedString::from).collect::<Vec<_>>())).into());
     standalone.set_viewer_selected_layout(layout_name.into());
     standalone.set_viewer_mode(mode);
+}
+
+fn apply_settings_to_app(app: &TopBarWindow, config: &AppConfig) {
+    app.set_set_use_dict(config.phonetic.use_dictionary);
+    app.set_set_include_eng(config.phonetic.include_english);
+    app.set_set_enter_closes(config.phonetic.enter_key_closes_candidate_window);
+    app.set_set_predictive_next(config.phonetic.enable_predictive_next_words);
+    app.set_set_code_shield(config.phonetic.enable_code_shield);
+    app.set_set_word_segmentation(config.phonetic.enable_word_segmentation);
+    app.set_set_colloquial_dialects(config.phonetic.enable_colloquial_dialects);
+    app.set_set_banglish_shorthand(config.phonetic.enable_banglish_shorthand);
+    app.set_set_reduplication(config.phonetic.enable_reduplication);
+    app.set_set_phrase_prediction(config.phonetic.enable_phrase_prediction);
+    app.set_set_dynamic_macros(config.phonetic.enable_dynamic_macros);
+    app.set_set_auto_vowel(config.fixed.auto_vowel_forming);
+    app.set_set_auto_chandra(config.fixed.auto_chandra_position);
+    app.set_set_traditional_kar(config.fixed.traditional_kar);
+    app.set_set_old_reph(config.fixed.old_reph);
+    app.set_set_numberpad(config.fixed.numberpad);
+    app.set_set_toggle_key(config.general.toggle_key.clone().into());
+    app.set_set_show_osd(config.general.show_osd);
+    app.set_set_auto_dari(config.general.auto_dari);
+}
+
+fn apply_settings_to_standalone(s: &StandaloneDialogWindow, config: &AppConfig) {
+    s.set_set_use_dict(config.phonetic.use_dictionary);
+    s.set_set_include_eng(config.phonetic.include_english);
+    s.set_set_enter_closes(config.phonetic.enter_key_closes_candidate_window);
+    s.set_set_predictive_next(config.phonetic.enable_predictive_next_words);
+    s.set_set_code_shield(config.phonetic.enable_code_shield);
+    s.set_set_word_segmentation(config.phonetic.enable_word_segmentation);
+    s.set_set_colloquial_dialects(config.phonetic.enable_colloquial_dialects);
+    s.set_set_banglish_shorthand(config.phonetic.enable_banglish_shorthand);
+    s.set_set_reduplication(config.phonetic.enable_reduplication);
+    s.set_set_phrase_prediction(config.phonetic.enable_phrase_prediction);
+    s.set_set_dynamic_macros(config.phonetic.enable_dynamic_macros);
+    s.set_set_auto_vowel(config.fixed.auto_vowel_forming);
+    s.set_set_auto_chandra(config.fixed.auto_chandra_position);
+    s.set_set_traditional_kar(config.fixed.traditional_kar);
+    s.set_set_old_reph(config.fixed.old_reph);
+    s.set_set_numberpad(config.fixed.numberpad);
+    s.set_set_toggle_key(config.general.toggle_key.clone().into());
+    s.set_set_show_osd(config.general.show_osd);
+    s.set_set_auto_dari(config.general.auto_dari);
+}
+
+fn read_settings_from_app(app: &TopBarWindow, config: &mut AppConfig) {
+    config.phonetic.use_dictionary = app.get_set_use_dict();
+    config.phonetic.include_english = app.get_set_include_eng();
+    config.phonetic.enter_key_closes_candidate_window = app.get_set_enter_closes();
+    config.phonetic.enable_predictive_next_words = app.get_set_predictive_next();
+    config.phonetic.enable_code_shield = app.get_set_code_shield();
+    config.phonetic.enable_word_segmentation = app.get_set_word_segmentation();
+    config.phonetic.enable_colloquial_dialects = app.get_set_colloquial_dialects();
+    config.phonetic.enable_banglish_shorthand = app.get_set_banglish_shorthand();
+    config.phonetic.enable_reduplication = app.get_set_reduplication();
+    config.phonetic.enable_phrase_prediction = app.get_set_phrase_prediction();
+    config.phonetic.enable_dynamic_macros = app.get_set_dynamic_macros();
+    config.fixed.auto_vowel_forming = app.get_set_auto_vowel();
+    config.fixed.auto_chandra_position = app.get_set_auto_chandra();
+    config.fixed.traditional_kar = app.get_set_traditional_kar();
+    config.fixed.old_reph = app.get_set_old_reph();
+    config.fixed.numberpad = app.get_set_numberpad();
+    config.general.toggle_key = app.get_set_toggle_key().to_string();
+    config.general.show_osd = app.get_set_show_osd();
+    config.general.auto_dari = app.get_set_auto_dari();
+}
+
+fn read_settings_from_standalone(s: &StandaloneDialogWindow, config: &mut AppConfig) {
+    config.phonetic.use_dictionary = s.get_set_use_dict();
+    config.phonetic.include_english = s.get_set_include_eng();
+    config.phonetic.enter_key_closes_candidate_window = s.get_set_enter_closes();
+    config.phonetic.enable_predictive_next_words = s.get_set_predictive_next();
+    config.phonetic.enable_code_shield = s.get_set_code_shield();
+    config.phonetic.enable_word_segmentation = s.get_set_word_segmentation();
+    config.phonetic.enable_colloquial_dialects = s.get_set_colloquial_dialects();
+    config.phonetic.enable_banglish_shorthand = s.get_set_banglish_shorthand();
+    config.phonetic.enable_reduplication = s.get_set_reduplication();
+    config.phonetic.enable_phrase_prediction = s.get_set_phrase_prediction();
+    config.phonetic.enable_dynamic_macros = s.get_set_dynamic_macros();
+    config.fixed.auto_vowel_forming = s.get_set_auto_vowel();
+    config.fixed.auto_chandra_position = s.get_set_auto_chandra();
+    config.fixed.traditional_kar = s.get_set_traditional_kar();
+    config.fixed.old_reph = s.get_set_old_reph();
+    config.fixed.numberpad = s.get_set_numberpad();
+    config.general.toggle_key = s.get_set_toggle_key().to_string();
+    config.general.show_osd = s.get_set_show_osd();
+    config.general.auto_dari = s.get_set_auto_dari();
 }
