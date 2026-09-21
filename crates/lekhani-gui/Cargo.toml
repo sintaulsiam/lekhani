@@ -21,9 +21,11 @@ i-slint-backend-winit = "1.17"
 image = { version = "0.25", default-features = false, features = ["png"] }
 serde.workspace = true
 serde_json.workspace = true
+chrono.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 thiserror.workspace = true
+rfd = "0.15"
 
 [target.'cfg(unix)'.dependencies]
 zbus.workspace = true

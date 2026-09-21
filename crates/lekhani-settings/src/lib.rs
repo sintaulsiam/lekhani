@@ -589,4 +589,76 @@ mod tests {
             assert!(json.is_some(), "Layout '{}' should have valid JSON", name);
         }
     }
+
+    #[test]
+    fn test_backup_bundle_export_import() {
+        let temp_dir = std::env::temp_dir().join(format!(
+            "lekhani_test_{}",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let _ = std::fs::create_dir_all(&temp_dir);
+        let conf_dir = temp_dir.join("config");
+        let data_dir = temp_dir.join("data");
+        let _ = std::fs::create_dir_all(&conf_dir);
+        let _ = std::fs::create_dir_all(&data_dir);
+        let _ = std::fs::create_dir_all(data_dir.join("layouts"));
+
+        let mut cm = ConfigManager {
+            config_path: conf_dir.join("config.toml"),
+            data_dir: data_dir.clone(),
+            config: AppConfig::default(),
+            last_config_mtime: None,
+            last_autocorrect_mtime: None,
+        };
+
+        cm.config.general.toggle_key = "F11".to_string();
+        cm.config.phonetic.enable_phrase_prediction = false;
+        cm.save();
+
+        // Populate user autocorrect
+        let ac_path = cm.get_user_autocorrect_path();
+        let mut map = std::collections::HashMap::new();
+        map.insert("amr".to_string(), "আমার".to_string());
+        let _ = std::fs::write(&ac_path, serde_json::to_string(&map).unwrap());
+
+        // Populate user learned
+        let learned_path = cm.get_user_learned_path();
+        let learned_data = serde_json::json!({
+            "learned_words": {"বাংলাদেশ": 10},
+            "user_bigrams": {"সোনার": {"বাংলা": 5}}
+        });
+        let _ = std::fs::write(&learned_path, serde_json::to_string(&learned_data).unwrap());
+
+        // Export backup
+        let backup_path = temp_dir.join("backup.json");
+        cm.export_backup(&backup_path).expect("Export should succeed");
+        assert!(backup_path.exists());
+
+        // Mutate current state
+        cm.config.general.toggle_key = "F12".to_string();
+        cm.config.phonetic.enable_phrase_prediction = true;
+        cm.save();
+        let _ = std::fs::write(&ac_path, "{}");
+        let _ = std::fs::write(&learned_path, "{}");
+
+        // Import backup
+        cm.import_backup(&backup_path).expect("Import should succeed");
+
+        // Validate restored state
+        assert_eq!(cm.config.general.toggle_key, "F11");
+        assert!(!cm.config.phonetic.enable_phrase_prediction);
+
+        let restored_ac: std::collections::HashMap<String, String> =
+            serde_json::from_str(&std::fs::read_to_string(&ac_path).unwrap()).unwrap();
+        assert_eq!(restored_ac.get("amr"), Some(&"আমার".to_string()));
+
+        let restored_learned: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&learned_path).unwrap()).unwrap();
+        assert_eq!(restored_learned["learned_words"]["বাংলাদেশ"], 10);
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
+    }
 }

@@ -300,14 +300,19 @@ component ModernButton inherits Rectangle {
     in property <string> text;
     in property <color> btn-color: #89b4fa;
     in property <bool> primary: false;
+    in property <bool> danger: false;
     out property <bool> has-hover: ta.has-hover;
     callback clicked;
 
     height: 30px;
     border-radius: 7px;
-    background: root.primary ? (ta.has-hover ? #3b82f6 : #2563eb) : (ta.has-hover ? #22293a : #151822);
+    background: root.danger ? (ta.has-hover ? #dc2626 : #991b1b) :
+                root.primary ? (ta.has-hover ? #3b82f6 : #2563eb) :
+                (ta.has-hover ? #22293a : #151822);
     border-width: 1px;
-    border-color: root.primary ? #60a5fa88 : (ta.has-hover ? #3d4963 : #222838);
+    border-color: root.danger ? (ta.has-hover ? #f87171 : #ef4444aa) :
+                  root.primary ? #60a5fa88 :
+                  (ta.has-hover ? #3d4963 : #222838);
     animate background, border-color { duration: 100ms; }
 
     ta := TouchArea {
@@ -323,10 +328,85 @@ component ModernButton inherits Rectangle {
             alignment: center;
             Text {
                 text: root.text;
-                color: root.primary ? #ffffff : (ta.has-hover ? #ffffff : #f1f5f9);
+                color: (root.primary || root.danger) ? #ffffff : (ta.has-hover ? #ffffff : #f1f5f9);
                 font-size: 12px;
-                font-weight: root.primary ? 700 : 600;
+                font-weight: (root.primary || root.danger) ? 700 : 600;
                 vertical-alignment: center;
+            }
+        }
+    }
+}
+
+component ConfirmModal inherits Rectangle {
+    in property <string> title: "Confirm Action";
+    in property <string> message: "Are you sure you want to proceed?";
+    in property <string> confirm-text: "Confirm";
+    in property <bool> is-danger: true;
+    callback confirm();
+    callback cancel();
+
+    background: #000000dd;
+
+    TouchArea {
+        // block clicks from passing through
+    }
+
+    Rectangle {
+        width: min(parent.width - 32px, 390px);
+        background: #0f121dfa;
+        border-radius: 14px;
+        border-width: 1.2px;
+        border-color: root.is-danger ? #ef444488 : #3b82f688;
+        drop-shadow-blur: 32px;
+        drop-shadow-color: #000000ff;
+
+        VerticalLayout {
+            padding: 18px;
+            spacing: 12px;
+
+            HorizontalLayout {
+                spacing: 10px;
+                alignment: start;
+
+                Text {
+                    text: root.is-danger ? "⚠️" : "ℹ️";
+                    font-size: 20px;
+                    vertical-alignment: center;
+                }
+
+                Text {
+                    text: root.title;
+                    color: #f8fafc;
+                    font-size: 14px;
+                    font-weight: 700;
+                    vertical-alignment: center;
+                }
+            }
+
+            Text {
+                text: root.message;
+                color: #94a3b8;
+                font-size: 12px;
+                wrap: word-wrap;
+            }
+
+            HorizontalLayout {
+                spacing: 10px;
+                alignment: end;
+                padding-top: 8px;
+
+                ModernButton {
+                    text: "Cancel";
+                    primary: false;
+                    clicked => { root.cancel(); }
+                }
+
+                ModernButton {
+                    text: root.confirm-text;
+                    danger: root.is-danger;
+                    primary: !root.is-danger;
+                    clicked => { root.confirm(); }
+                }
             }
         }
     }
@@ -555,6 +635,23 @@ export component TopBarWindow inherits Window {
     callback auto-save-settings();
     callback reset-default-settings();
     callback clear-learned-data();
+
+    // Confirmation Modal Properties
+    in-out property <int> confirm-dialog-type: 0; // 0 = none, 1 = Reset Learning, 2 = Restore Defaults
+    in-out property <string> confirm-dialog-title: "";
+    in-out property <string> confirm-dialog-message: "";
+    in-out property <string> confirm-dialog-btn-text: "";
+    in-out property <bool> confirm-is-danger: true;
+
+    // Data & Backup Callbacks
+    callback export-full-backup();
+    callback import-full-backup();
+    callback export-learned-data();
+    callback import-learned-data();
+    callback request-clear-learned-data();
+    callback request-restore-defaults();
+    callback execute-confirmed-action();
+    callback cancel-confirm-action();
 
     VerticalLayout {
         alignment: start;
@@ -1627,6 +1724,72 @@ export component TopBarWindow inherits Window {
                                 }
                             }
                         }
+                        // Section 6: Data & Backup Management
+                        Rectangle {
+                            background: #0c0d14;
+                            border-radius: 10px;
+                            border-width: 1px;
+                            border-color: #242638;
+
+                            VerticalLayout {
+                                padding: 12px;
+                                spacing: 10px;
+                                alignment: start;
+
+                                Text {
+                                    text: "DATA & BACKUP MANAGEMENT";
+                                    color: #38bdf8;
+                                    font-size: 9.5px;
+                                    font-weight: 700;
+                                }
+
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    alignment: start;
+
+                                    ModernButton {
+                                        text: "Export Full Backup...";
+                                        primary: false;
+                                        clicked => { root.export-full-backup(); }
+                                    }
+
+                                    ModernButton {
+                                        text: "Import Full Backup...";
+                                        primary: false;
+                                        clicked => { root.import-full-backup(); }
+                                    }
+                                }
+
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    alignment: start;
+
+                                    ModernButton {
+                                        text: "Export Learned Words...";
+                                        primary: false;
+                                        clicked => { root.export-learned-data(); }
+                                    }
+
+                                    ModernButton {
+                                        text: "Import Learned Words...";
+                                        primary: false;
+                                        clicked => { root.import-learned-data(); }
+                                    }
+                                }
+
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    alignment: start;
+                                    padding-top: 4px;
+
+                                    ModernButton {
+                                        text: "⚠️ Reset Learned Data...";
+                                        danger: true;
+                                        clicked => { root.request-clear-learned-data(); }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -1650,15 +1813,9 @@ export component TopBarWindow inherits Window {
                         alignment: center;
 
                         ModernButton {
-                            text: "Clear Learning";
-                            primary: false;
-                            clicked => { root.clear-learned-data(); }
-                        }
-
-                        ModernButton {
                             text: "Restore Defaults";
                             primary: false;
-                            clicked => { root.reset-default-settings(); }
+                            clicked => { root.request-restore-defaults(); }
                         }
 
                         ModernButton {
@@ -2222,6 +2379,15 @@ export component TopBarWindow inherits Window {
             }
         }
     }
+
+    if (root.confirm-dialog-type > 0): ConfirmModal {
+        title: root.confirm-dialog-title;
+        message: root.confirm-dialog-message;
+        confirm-text: root.confirm-dialog-btn-text;
+        is-danger: root.confirm-is-danger;
+        confirm => { root.execute-confirmed-action(); }
+        cancel => { root.cancel-confirm-action(); }
+    }
 }
 
 // -----------------------------------------------------------------------------
@@ -2321,6 +2487,23 @@ export component StandaloneDialogWindow inherits Window {
     callback auto-save-settings();
     callback reset-default-settings();
     callback clear-learned-data();
+
+    // Confirmation Modal Properties
+    in-out property <int> confirm-dialog-type: 0; // 0 = none, 1 = Reset Learning, 2 = Restore Defaults
+    in-out property <string> confirm-dialog-title: "";
+    in-out property <string> confirm-dialog-message: "";
+    in-out property <string> confirm-dialog-btn-text: "";
+    in-out property <bool> confirm-is-danger: true;
+
+    // Data & Backup Callbacks
+    callback export-full-backup();
+    callback import-full-backup();
+    callback export-learned-data();
+    callback import-learned-data();
+    callback request-clear-learned-data();
+    callback request-restore-defaults();
+    callback execute-confirmed-action();
+    callback cancel-confirm-action();
     callback viewer-mode-changed(int);
     callback select-viewer-layout(string);
 
@@ -3013,6 +3196,72 @@ export component StandaloneDialogWindow inherits Window {
                                             toggled(_) => { root.auto-save-settings(); }
                                         }
                                     }
+                                    // Section 6: Data & Backup Management
+                                    Rectangle {
+                                        background: #0c0d14;
+                                        border-radius: 10px;
+                                        border-width: 1px;
+                                        border-color: #242638;
+
+                                        VerticalLayout {
+                                            padding: 14px;
+                                            spacing: 10px;
+                                            alignment: start;
+
+                                            Text {
+                                                text: "DATA & BACKUP MANAGEMENT";
+                                                color: #38bdf8;
+                                                font-size: 9.5px;
+                                                font-weight: 700;
+                                            }
+
+                                            HorizontalLayout {
+                                                spacing: 8px;
+                                                alignment: start;
+
+                                                ModernButton {
+                                                    text: "Export Full Backup...";
+                                                    primary: false;
+                                                    clicked => { root.export-full-backup(); }
+                                                }
+
+                                                ModernButton {
+                                                    text: "Import Full Backup...";
+                                                    primary: false;
+                                                    clicked => { root.import-full-backup(); }
+                                                }
+                                            }
+
+                                            HorizontalLayout {
+                                                spacing: 8px;
+                                                alignment: start;
+
+                                                ModernButton {
+                                                    text: "Export Learned Words...";
+                                                    primary: false;
+                                                    clicked => { root.export-learned-data(); }
+                                                }
+
+                                                ModernButton {
+                                                    text: "Import Learned Words...";
+                                                    primary: false;
+                                                    clicked => { root.import-learned-data(); }
+                                                }
+                                            }
+
+                                            HorizontalLayout {
+                                                spacing: 8px;
+                                                alignment: start;
+                                                padding-top: 4px;
+
+                                                ModernButton {
+                                                    text: "⚠️ Reset Learned Data...";
+                                                    danger: true;
+                                                    clicked => { root.request-clear-learned-data(); }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -3042,15 +3291,9 @@ export component StandaloneDialogWindow inherits Window {
                         alignment: center;
 
                         ModernButton {
-                            text: "Clear Learning";
-                            primary: false;
-                            clicked => { root.clear-learned-data(); }
-                        }
-
-                        ModernButton {
                             text: "Restore Defaults";
                             primary: false;
-                            clicked => { root.reset-default-settings(); }
+                            clicked => { root.request-restore-defaults(); }
                         }
 
                         ModernButton {
@@ -3480,5 +3723,14 @@ export component StandaloneDialogWindow inherits Window {
                 }
             }
         }
+    }
+
+    if (root.confirm-dialog-type > 0): ConfirmModal {
+        title: root.confirm-dialog-title;
+        message: root.confirm-dialog-message;
+        confirm-text: root.confirm-dialog-btn-text;
+        is-danger: root.confirm-is-danger;
+        confirm => { root.execute-confirmed-action(); }
+        cancel => { root.cancel-confirm-action(); }
     }
 }

@@ -22,6 +22,7 @@ use lekhani_core::{
     UserStats,
 };
 use lekhani_settings::{AppConfig, ConfigManager, LayoutManager};
+use std::cell::RefCell;
 use std::rc::Rc;
 use tracing::info;
 
@@ -80,6 +81,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     update_viewer_ui(&app, &layout_mgr_rc.borrow(), &current_layout, 0);
     update_standalone_viewer_ui(&standalone, &layout_mgr_rc.borrow(), &current_layout, 0);
 
+    // Settings state
+    #[cfg(windows)]
+    {
+        app.set_is_windows(true);
+        standalone.set_is_windows(true);
+        app.set_set_autostart(win_autostart::is_autostart_enabled());
+        standalone.set_set_autostart(win_autostart::is_autostart_enabled());
+    }
+    apply_settings_to_app(&app, &config_mgr.config);
+    apply_settings_to_standalone(&standalone, &config_mgr.config);
+
+    // Initialize Autonomous Learning Profile state
+    let learned_path = config_mgr.get_user_learned_path();
+    let learner_init = lekhani_core::AutonomousLearner::load_from_path(&learned_path);
+    let learned_stats_init = format!(
+        "{} learned words • {} phrases",
+        learner_init.learned_words.len(),
+        learner_init.user_bigrams.len()
+    );
+    app.set_learned_stats_text(learned_stats_init.clone().into());
+    standalone.set_learned_stats_text(learned_stats_init.into());
+
     let args: Vec<String> = std::env::args().collect();
     let is_standalone = args.contains(&"--standalone".to_string());
     if args.contains(&"--converter".to_string()) {
@@ -123,28 +146,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .into(),
     );
-
-    // Settings state
-    #[cfg(windows)]
-    {
-        app.set_is_windows(true);
-        standalone.set_is_windows(true);
-        app.set_set_autostart(win_autostart::is_autostart_enabled());
-        standalone.set_set_autostart(win_autostart::is_autostart_enabled());
-    }
-    apply_settings_to_app(&app, &config_mgr.config);
-    apply_settings_to_standalone(&standalone, &config_mgr.config);
-
-    // Initialize Autonomous Learning Profile state
-    let learned_path = config_mgr.get_user_learned_path();
-    let learner_init = lekhani_core::AutonomousLearner::load_from_path(&learned_path);
-    let learned_stats_init = format!(
-        "{} learned words • {} phrases",
-        learner_init.learned_words.len(),
-        learner_init.user_bigrams.len()
-    );
-    app.set_learned_stats_text(learned_stats_init.clone().into());
-    standalone.set_learned_stats_text(learned_stats_init.into());
 
     // Initialize Conjunct Assistant state
     let all_conjuncts = ConjunctCatalog::all();
@@ -555,6 +556,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     sel.to_string()
                 };
                 update_standalone_viewer_ui(&standalone, &lm, &layout_name, standalone.get_viewer_mode());
+            } else if dialog_id == 5 {
+                let cm = cm_detach.borrow();
+                apply_settings_to_standalone(&standalone, &cm.config);
+                let learned_path = cm.get_user_learned_path();
+                let learner = lekhani_core::AutonomousLearner::load_from_path(&learned_path);
+                standalone.set_learned_stats_text(
+                    format!(
+                        "{} learned words • {} phrases",
+                        learner.learned_words.len(),
+                        learner.user_bigrams.len()
+                    )
+                    .into(),
+                );
             } else if dialog_id == 8 {
                 let cm = cm_detach.borrow();
                 refresh_standalone_stats_ui(&standalone, &cm);
@@ -766,25 +780,120 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    // Settings: Standalone Reset Defaults
-    let cm_reset_s = config_mgr_rc.clone();
-    let s_weak_reset = standalone_weak.clone();
-    let app_weak_reset_sync = app_weak.clone();
-    standalone.on_reset_default_settings(move || {
-        if let Some(s) = s_weak_reset.upgrade() {
-            let mut cm = cm_reset_s.borrow_mut();
-            cm.config.phonetic = lekhani_settings::PhoneticConfig::default();
-            cm.config.fixed = lekhani_settings::FixedConfig::default();
-            cm.config.general.toggle_key = "F12".to_string();
-            cm.config.general.show_osd = true;
-            cm.config.general.auto_dari = true;
-            cm.save();
-            apply_settings_to_standalone(&s, &cm.config);
-            s.set_settings_status_text("✓ Defaults restored!".into());
-            if let Some(app) = app_weak_reset_sync.upgrade() {
-                apply_settings_to_app(&app, &cm.config);
-                app.set_settings_status_text("✓ Defaults restored!".into());
+    // --- Standalone Data & Backup Management Callbacks ---
+    let cm_full_exp_s = config_mgr_rc.clone();
+    let s_weak_full_exp = standalone_weak.clone();
+    let app_weak_full_exp = app_weak.clone();
+    standalone.on_export_full_backup(move || {
+        perform_export_full_backup(
+            &cm_full_exp_s,
+            app_weak_full_exp.upgrade().as_ref(),
+            s_weak_full_exp.upgrade().as_ref(),
+        );
+    });
+
+    let cm_full_imp_s = config_mgr_rc.clone();
+    let db_full_imp_s = db_rc.clone();
+    let s_weak_full_imp = standalone_weak.clone();
+    let app_weak_full_imp = app_weak.clone();
+    standalone.on_import_full_backup(move || {
+        perform_import_full_backup(
+            &cm_full_imp_s,
+            &db_full_imp_s,
+            app_weak_full_imp.upgrade().as_ref(),
+            s_weak_full_imp.upgrade().as_ref(),
+        );
+    });
+
+    let cm_lrn_exp_s = config_mgr_rc.clone();
+    let s_weak_lrn_exp = standalone_weak.clone();
+    let app_weak_lrn_exp = app_weak.clone();
+    standalone.on_export_learned_data(move || {
+        perform_export_learned_data(
+            &cm_lrn_exp_s,
+            app_weak_lrn_exp.upgrade().as_ref(),
+            s_weak_lrn_exp.upgrade().as_ref(),
+        );
+    });
+
+    let cm_lrn_imp_s = config_mgr_rc.clone();
+    let s_weak_lrn_imp = standalone_weak.clone();
+    let app_weak_lrn_imp = app_weak.clone();
+    standalone.on_import_learned_data(move || {
+        perform_import_learned_data(
+            &cm_lrn_imp_s,
+            app_weak_lrn_imp.upgrade().as_ref(),
+            s_weak_lrn_imp.upgrade().as_ref(),
+        );
+    });
+
+    let s_weak_req_clr = standalone_weak.clone();
+    standalone.on_request_clear_learned_data(move || {
+        if let Some(s) = s_weak_req_clr.upgrade() {
+            s.set_confirm_dialog_type(1);
+            s.set_confirm_dialog_title("Reset Learned Vocabulary & Phrases?".into());
+            s.set_confirm_dialog_message(
+                "This will permanently remove your personalized words, bigram frequencies, and candidate choices. Core dictionary and system idioms will remain intact. This action cannot be undone.".into(),
+            );
+            s.set_confirm_dialog_btn_text("Yes, Reset Data".into());
+            s.set_confirm_is_danger(true);
+        }
+    });
+
+    let s_weak_req_rst = standalone_weak.clone();
+    standalone.on_request_restore_defaults(move || {
+        if let Some(s) = s_weak_req_rst.upgrade() {
+            s.set_confirm_dialog_type(2);
+            s.set_confirm_dialog_title("Restore Default Settings?".into());
+            s.set_confirm_dialog_message(
+                "This will restore all phonetic and fixed layout options to their factory defaults.".into(),
+            );
+            s.set_confirm_dialog_btn_text("Restore Defaults".into());
+            s.set_confirm_is_danger(false);
+        }
+    });
+
+    let s_weak_cancel_conf = standalone_weak.clone();
+    standalone.on_cancel_confirm_action(move || {
+        if let Some(s) = s_weak_cancel_conf.upgrade() {
+            s.set_confirm_dialog_type(0);
+        }
+    });
+
+    let cm_exec_s = config_mgr_rc.clone();
+    let s_weak_exec_conf = standalone_weak.clone();
+    let app_weak_exec_conf = app_weak.clone();
+    standalone.on_execute_confirmed_action(move || {
+        if let Some(s) = s_weak_exec_conf.upgrade() {
+            let action_type = s.get_confirm_dialog_type();
+            s.set_confirm_dialog_type(0);
+            if action_type == 1 {
+                perform_clear_learned_data(
+                    &cm_exec_s,
+                    app_weak_exec_conf.upgrade().as_ref(),
+                    Some(&s),
+                );
+            } else if action_type == 2 {
+                perform_restore_defaults(
+                    &cm_exec_s,
+                    app_weak_exec_conf.upgrade().as_ref(),
+                    Some(&s),
+                );
             }
+        }
+    });
+
+    let s_weak_reset_legacy = standalone_weak.clone();
+    standalone.on_reset_default_settings(move || {
+        if let Some(s) = s_weak_reset_legacy.upgrade() {
+            s.invoke_request_restore_defaults();
+        }
+    });
+
+    let s_weak_clear_legacy = standalone_weak.clone();
+    standalone.on_clear_learned_data(move || {
+        if let Some(s) = s_weak_clear_legacy.upgrade() {
+            s.invoke_request_clear_learned_data();
         }
     });
 
@@ -823,75 +932,120 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    // Settings: Popover Reset Defaults
-    let cm_reset_app = config_mgr_rc.clone();
-    let app_weak_reset = app_weak.clone();
-    let s_weak_reset_sync2 = standalone_weak.clone();
-    app.on_reset_default_settings(move || {
-        if let Some(app) = app_weak_reset.upgrade() {
-            let mut cm = cm_reset_app.borrow_mut();
-            cm.config.phonetic = lekhani_settings::PhoneticConfig::default();
-            cm.config.fixed = lekhani_settings::FixedConfig::default();
-            cm.config.general.toggle_key = "F12".to_string();
-            cm.config.general.show_osd = true;
-            cm.config.general.auto_dari = true;
-            cm.save();
-            apply_settings_to_app(&app, &cm.config);
-            app.set_settings_status_text("✓ Defaults restored!".into());
-            if let Some(s) = s_weak_reset_sync2.upgrade() {
-                apply_settings_to_standalone(&s, &cm.config);
-                s.set_settings_status_text("✓ Defaults restored!".into());
+    // --- Popover Data & Backup Management Callbacks ---
+    let cm_full_exp_app = config_mgr_rc.clone();
+    let app_weak_full_exp = app_weak.clone();
+    let s_weak_full_exp2 = standalone_weak.clone();
+    app.on_export_full_backup(move || {
+        perform_export_full_backup(
+            &cm_full_exp_app,
+            app_weak_full_exp.upgrade().as_ref(),
+            s_weak_full_exp2.upgrade().as_ref(),
+        );
+    });
+
+    let cm_full_imp_app = config_mgr_rc.clone();
+    let db_full_imp_app = db_rc.clone();
+    let app_weak_full_imp = app_weak.clone();
+    let s_weak_full_imp2 = standalone_weak.clone();
+    app.on_import_full_backup(move || {
+        perform_import_full_backup(
+            &cm_full_imp_app,
+            &db_full_imp_app,
+            app_weak_full_imp.upgrade().as_ref(),
+            s_weak_full_imp2.upgrade().as_ref(),
+        );
+    });
+
+    let cm_lrn_exp_app = config_mgr_rc.clone();
+    let app_weak_lrn_exp = app_weak.clone();
+    let s_weak_lrn_exp2 = standalone_weak.clone();
+    app.on_export_learned_data(move || {
+        perform_export_learned_data(
+            &cm_lrn_exp_app,
+            app_weak_lrn_exp.upgrade().as_ref(),
+            s_weak_lrn_exp2.upgrade().as_ref(),
+        );
+    });
+
+    let cm_lrn_imp_app = config_mgr_rc.clone();
+    let app_weak_lrn_imp = app_weak.clone();
+    let s_weak_lrn_imp2 = standalone_weak.clone();
+    app.on_import_learned_data(move || {
+        perform_import_learned_data(
+            &cm_lrn_imp_app,
+            app_weak_lrn_imp.upgrade().as_ref(),
+            s_weak_lrn_imp2.upgrade().as_ref(),
+        );
+    });
+
+    let app_weak_req_clr = app_weak.clone();
+    app.on_request_clear_learned_data(move || {
+        if let Some(app) = app_weak_req_clr.upgrade() {
+            app.set_confirm_dialog_type(1);
+            app.set_confirm_dialog_title("Reset Learned Vocabulary & Phrases?".into());
+            app.set_confirm_dialog_message(
+                "This will permanently remove your personalized words, bigram frequencies, and candidate choices. Core dictionary and system idioms will remain intact. This action cannot be undone.".into(),
+            );
+            app.set_confirm_dialog_btn_text("Yes, Reset Data".into());
+            app.set_confirm_is_danger(true);
+        }
+    });
+
+    let app_weak_req_rst = app_weak.clone();
+    app.on_request_restore_defaults(move || {
+        if let Some(app) = app_weak_req_rst.upgrade() {
+            app.set_confirm_dialog_type(2);
+            app.set_confirm_dialog_title("Restore Default Settings?".into());
+            app.set_confirm_dialog_message(
+                "This will restore all phonetic and fixed layout options to their factory defaults.".into(),
+            );
+            app.set_confirm_dialog_btn_text("Restore Defaults".into());
+            app.set_confirm_is_danger(false);
+        }
+    });
+
+    let app_weak_cancel_conf = app_weak.clone();
+    app.on_cancel_confirm_action(move || {
+        if let Some(app) = app_weak_cancel_conf.upgrade() {
+            app.set_confirm_dialog_type(0);
+        }
+    });
+
+    let cm_exec_app = config_mgr_rc.clone();
+    let app_weak_exec_conf = app_weak.clone();
+    let s_weak_exec_conf2 = standalone_weak.clone();
+    app.on_execute_confirmed_action(move || {
+        if let Some(app) = app_weak_exec_conf.upgrade() {
+            let action_type = app.get_confirm_dialog_type();
+            app.set_confirm_dialog_type(0);
+            if action_type == 1 {
+                perform_clear_learned_data(
+                    &cm_exec_app,
+                    Some(&app),
+                    s_weak_exec_conf2.upgrade().as_ref(),
+                );
+            } else if action_type == 2 {
+                perform_restore_defaults(
+                    &cm_exec_app,
+                    Some(&app),
+                    s_weak_exec_conf2.upgrade().as_ref(),
+                );
             }
         }
     });
 
-    // Settings: Clear Learned Data (Standalone)
-    let cm_clear_s = config_mgr_rc.clone();
-    let s_weak_clear = standalone_weak.clone();
-    let app_weak_clear_sync = app_weak.clone();
-    standalone.on_clear_learned_data(move || {
-        let cm = cm_clear_s.borrow();
-        let p = cm.get_user_learned_path();
-        let mut learner = lekhani_core::AutonomousLearner::load_from_path(&p);
-        learner.clear_user_data();
-        let _ = learner.save_to_path(&p);
-        let stats_str = format!(
-            "{} learned words • {} phrases",
-            learner.learned_words.len(),
-            learner.user_bigrams.len()
-        );
-        if let Some(s) = s_weak_clear.upgrade() {
-            s.set_learned_stats_text(stats_str.clone().into());
-            s.set_settings_status_text("✓ Learned data reset to baseline".into());
-        }
-        if let Some(app) = app_weak_clear_sync.upgrade() {
-            app.set_learned_stats_text(stats_str.into());
-            app.set_settings_status_text("✓ Learned data reset to baseline".into());
+    let app_weak_reset_legacy = app_weak.clone();
+    app.on_reset_default_settings(move || {
+        if let Some(app) = app_weak_reset_legacy.upgrade() {
+            app.invoke_request_restore_defaults();
         }
     });
 
-    // Settings: Clear Learned Data (Popover)
-    let cm_clear_app = config_mgr_rc.clone();
-    let app_weak_clear = app_weak.clone();
-    let s_weak_clear_sync = standalone_weak.clone();
+    let app_weak_clear_legacy = app_weak.clone();
     app.on_clear_learned_data(move || {
-        let cm = cm_clear_app.borrow();
-        let p = cm.get_user_learned_path();
-        let mut learner = lekhani_core::AutonomousLearner::load_from_path(&p);
-        learner.clear_user_data();
-        let _ = learner.save_to_path(&p);
-        let stats_str = format!(
-            "{} learned words • {} phrases",
-            learner.learned_words.len(),
-            learner.user_bigrams.len()
-        );
-        if let Some(app) = app_weak_clear.upgrade() {
-            app.set_learned_stats_text(stats_str.clone().into());
-            app.set_settings_status_text("✓ Learned data reset to baseline".into());
-        }
-        if let Some(s) = s_weak_clear_sync.upgrade() {
-            s.set_learned_stats_text(stats_str.into());
-            s.set_settings_status_text("✓ Learned data reset to baseline".into());
+        if let Some(app) = app_weak_clear_legacy.upgrade() {
+            app.invoke_request_clear_learned_data();
         }
     });
 
@@ -1309,4 +1463,221 @@ fn read_settings_from_standalone(s: &StandaloneDialogWindow, config: &mut AppCon
     config.general.toggle_key = s.get_set_toggle_key().to_string();
     config.general.show_osd = s.get_set_show_osd();
     config.general.auto_dari = s.get_set_auto_dari();
+}
+
+fn perform_clear_learned_data(
+    cm_rc: &Rc<RefCell<ConfigManager>>,
+    app_opt: Option<&TopBarWindow>,
+    s_opt: Option<&StandaloneDialogWindow>,
+) {
+    let cm = cm_rc.borrow();
+    let p = cm.get_user_learned_path();
+    let mut learner = lekhani_core::AutonomousLearner::load_from_path(&p);
+    learner.clear_user_data();
+    let _ = learner.save_to_path(&p);
+    let stats_str = format!(
+        "{} learned words • {} phrases",
+        learner.learned_words.len(),
+        learner.user_bigrams.len()
+    );
+    if let Some(app) = app_opt {
+        app.set_learned_stats_text(stats_str.clone().into());
+        app.set_settings_status_text("✓ Learned data reset to baseline".into());
+    }
+    if let Some(s) = s_opt {
+        s.set_learned_stats_text(stats_str.into());
+        s.set_settings_status_text("✓ Learned data reset to baseline".into());
+    }
+}
+
+fn perform_restore_defaults(
+    cm_rc: &Rc<RefCell<ConfigManager>>,
+    app_opt: Option<&TopBarWindow>,
+    s_opt: Option<&StandaloneDialogWindow>,
+) {
+    let mut cm = cm_rc.borrow_mut();
+    cm.config.phonetic = lekhani_settings::PhoneticConfig::default();
+    cm.config.fixed = lekhani_settings::FixedConfig::default();
+    cm.config.general.toggle_key = "F12".to_string();
+    cm.config.general.show_osd = true;
+    cm.config.general.auto_dari = true;
+    cm.save();
+    if let Some(app) = app_opt {
+        apply_settings_to_app(app, &cm.config);
+        app.set_settings_status_text("✓ Defaults restored!".into());
+    }
+    if let Some(s) = s_opt {
+        apply_settings_to_standalone(s, &cm.config);
+        s.set_settings_status_text("✓ Defaults restored!".into());
+    }
+}
+
+fn perform_export_full_backup(
+    cm_rc: &Rc<RefCell<ConfigManager>>,
+    app_opt: Option<&TopBarWindow>,
+    s_opt: Option<&StandaloneDialogWindow>,
+) {
+    if let Some(dest) = rfd::FileDialog::new()
+        .set_title("Export Full Lekhani Backup")
+        .add_filter("Lekhani Backup (*.json)", &["json"])
+        .set_file_name("lekhani_full_backup.json")
+        .save_file()
+    {
+        let cm = cm_rc.borrow();
+        let msg = match cm.export_backup(&dest) {
+            Ok(_) => "✓ Backup bundle exported successfully!".to_string(),
+            Err(e) => format!("Export failed: {}", e),
+        };
+        if let Some(app) = app_opt {
+            app.set_settings_status_text(msg.clone().into());
+        }
+        if let Some(s) = s_opt {
+            s.set_settings_status_text(msg.into());
+        }
+    }
+}
+
+fn perform_import_full_backup(
+    cm_rc: &Rc<RefCell<ConfigManager>>,
+    db_rc: &Rc<RefCell<PhoneticDatabase>>,
+    app_opt: Option<&TopBarWindow>,
+    s_opt: Option<&StandaloneDialogWindow>,
+) {
+    if let Some(src) = rfd::FileDialog::new()
+        .set_title("Import Full Lekhani Backup")
+        .add_filter("Lekhani Backup (*.json)", &["json"])
+        .pick_file()
+    {
+        let mut cm = cm_rc.borrow_mut();
+        match cm.import_backup(&src) {
+            Ok(_) => {
+                if let Some(app) = app_opt {
+                    apply_settings_to_app(app, &cm.config);
+                    app.set_settings_status_text("✓ Backup bundle restored successfully!".into());
+                    refresh_stats_ui(app, &cm);
+                }
+                if let Some(s) = s_opt {
+                    apply_settings_to_standalone(s, &cm.config);
+                    s.set_settings_status_text("✓ Backup bundle restored successfully!".into());
+                    refresh_standalone_stats_ui(s, &cm);
+                }
+                let p = cm.get_user_learned_path();
+                let learner = lekhani_core::AutonomousLearner::load_from_path(&p);
+                let stats_str = format!(
+                    "{} learned words • {} phrases",
+                    learner.learned_words.len(),
+                    learner.user_bigrams.len()
+                );
+                if let Some(app) = app_opt {
+                    app.set_learned_stats_text(stats_str.clone().into());
+                }
+                if let Some(s) = s_opt {
+                    s.set_learned_stats_text(stats_str.into());
+                }
+
+                // Reload user autocorrect cache & stats
+                let ac_path = cm.get_user_autocorrect_path();
+                let mut db = db_rc.borrow_mut();
+                db.load_user_autocorrect(&ac_path);
+                let total_entries = db.get_user_autocorrect().len() + db.get_system_autocorrect().len();
+                let ac_status = format!(
+                    "Total active entries: {} (User: {})",
+                    total_entries,
+                    db.get_user_autocorrect().len()
+                );
+                if let Some(app) = app_opt {
+                    app.set_ac_status_text(ac_status.clone().into());
+                }
+                if let Some(s) = s_opt {
+                    s.set_ac_status_text(ac_status.into());
+                }
+            }
+            Err(e) => {
+                let err_msg = format!("Import failed: {}", e);
+                if let Some(app) = app_opt {
+                    app.set_settings_status_text(err_msg.clone().into());
+                }
+                if let Some(s) = s_opt {
+                    s.set_settings_status_text(err_msg.into());
+                }
+            }
+        }
+    }
+}
+
+fn perform_export_learned_data(
+    cm_rc: &Rc<RefCell<ConfigManager>>,
+    app_opt: Option<&TopBarWindow>,
+    s_opt: Option<&StandaloneDialogWindow>,
+) {
+    if let Some(dest) = rfd::FileDialog::new()
+        .set_title("Export Learned Vocabulary & Phrases")
+        .add_filter("JSON (*.json)", &["json"])
+        .set_file_name("lekhani_learned_words.json")
+        .save_file()
+    {
+        let cm = cm_rc.borrow();
+        let p = cm.get_user_learned_path();
+        let res = if p.exists() {
+            std::fs::copy(&p, &dest)
+                .map(|_| ())
+                .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
+        } else {
+            let empty_learner = lekhani_core::AutonomousLearner::load_from_path(&p);
+            empty_learner.save_to_path(&dest)
+                .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
+        };
+        let msg = match res {
+            Ok(_) => "✓ Learned vocabulary & phrases exported!".to_string(),
+            Err(e) => format!("Export failed: {}", e),
+        };
+        if let Some(app) = app_opt {
+            app.set_settings_status_text(msg.clone().into());
+        }
+        if let Some(s) = s_opt {
+            s.set_settings_status_text(msg.into());
+        }
+    }
+}
+
+fn perform_import_learned_data(
+    cm_rc: &Rc<RefCell<ConfigManager>>,
+    app_opt: Option<&TopBarWindow>,
+    s_opt: Option<&StandaloneDialogWindow>,
+) {
+    if let Some(src) = rfd::FileDialog::new()
+        .set_title("Import Learned Vocabulary & Phrases")
+        .add_filter("JSON (*.json)", &["json"])
+        .pick_file()
+    {
+        let loaded = lekhani_core::AutonomousLearner::load_from_path(&src);
+        let cm = cm_rc.borrow();
+        let p = cm.get_user_learned_path();
+        match loaded.save_to_path(&p) {
+            Ok(_) => {
+                let stats_str = format!(
+                    "{} learned words • {} phrases",
+                    loaded.learned_words.len(),
+                    loaded.user_bigrams.len()
+                );
+                if let Some(app) = app_opt {
+                    app.set_learned_stats_text(stats_str.clone().into());
+                    app.set_settings_status_text("✓ Learned data imported successfully!".into());
+                }
+                if let Some(s) = s_opt {
+                    s.set_learned_stats_text(stats_str.into());
+                    s.set_settings_status_text("✓ Learned data imported successfully!".into());
+                }
+            }
+            Err(e) => {
+                let err_msg = format!("Import failed: {}", e);
+                if let Some(app) = app_opt {
+                    app.set_settings_status_text(err_msg.clone().into());
+                }
+                if let Some(s) = s_opt {
+                    s.set_settings_status_text(err_msg.into());
+                }
+            }
+        }
+    }
 }
