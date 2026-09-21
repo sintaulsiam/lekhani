@@ -528,11 +528,17 @@ fn main() -> anyhow::Result<()> {
                     println!("║ Unique Bigrams:     {:>32} ║", compiled.bigrams.len());
                     println!("║ Unique Trigrams:    {:>32} ║", compiled.trigrams.len());
                     if let Some(out_path) = output {
-                        let json = serde_json::to_string_pretty(&compiled)?;
                         if let Some(p) = out_path.parent() {
                             let _ = std::fs::create_dir_all(p);
                         }
-                        std::fs::write(&out_path, json)?;
+                        if out_path.extension().and_then(|e| e.to_str()) == Some("bin")
+                            || out_path.extension().and_then(|e| e.to_str()) == Some("lm")
+                        {
+                            compiled.save_binary(&out_path)?;
+                        } else {
+                            let json = serde_json::to_string_pretty(&compiled)?;
+                            std::fs::write(&out_path, json)?;
+                        }
                         println!("║ Exported Model To:  {:<32} ║", out_path.display());
                     }
                     println!("╚══════════════════════════════════════════════════════╝");
