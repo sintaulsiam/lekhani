@@ -127,6 +127,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     app.set_set_include_eng(config_mgr.config.phonetic.include_english);
     app.set_set_enter_closes(config_mgr.config.phonetic.enter_key_closes_candidate_window);
     app.set_set_predictive_next(config_mgr.config.phonetic.enable_predictive_next_words);
+    app.set_set_code_shield(config_mgr.config.phonetic.enable_code_shield);
+    app.set_set_word_segmentation(config_mgr.config.phonetic.enable_word_segmentation);
+    app.set_set_colloquial_dialects(config_mgr.config.phonetic.enable_colloquial_dialects);
+    app.set_set_banglish_shorthand(config_mgr.config.phonetic.enable_banglish_shorthand);
+    app.set_set_reduplication(config_mgr.config.phonetic.enable_reduplication);
+    app.set_set_phrase_prediction(config_mgr.config.phonetic.enable_phrase_prediction);
+    app.set_set_dynamic_macros(config_mgr.config.phonetic.enable_dynamic_macros);
     app.set_set_auto_vowel(config_mgr.config.fixed.auto_vowel_forming);
     app.set_set_auto_chandra(config_mgr.config.fixed.auto_chandra_position);
     app.set_set_traditional_kar(config_mgr.config.fixed.traditional_kar);
@@ -136,6 +143,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     app.set_set_show_osd(config_mgr.config.general.show_osd);
     app.set_set_auto_dari(config_mgr.config.general.auto_dari);
 
+    standalone.set_set_use_dict(config_mgr.config.phonetic.use_dictionary);
+    standalone.set_set_include_eng(config_mgr.config.phonetic.include_english);
+    standalone.set_set_enter_closes(config_mgr.config.phonetic.enter_key_closes_candidate_window);
+    standalone.set_set_predictive_next(config_mgr.config.phonetic.enable_predictive_next_words);
+    standalone.set_set_code_shield(config_mgr.config.phonetic.enable_code_shield);
+    standalone.set_set_word_segmentation(config_mgr.config.phonetic.enable_word_segmentation);
+    standalone.set_set_colloquial_dialects(config_mgr.config.phonetic.enable_colloquial_dialects);
+    standalone.set_set_banglish_shorthand(config_mgr.config.phonetic.enable_banglish_shorthand);
+    standalone.set_set_reduplication(config_mgr.config.phonetic.enable_reduplication);
+    standalone.set_set_phrase_prediction(config_mgr.config.phonetic.enable_phrase_prediction);
+    standalone.set_set_dynamic_macros(config_mgr.config.phonetic.enable_dynamic_macros);
     standalone.set_set_auto_vowel(config_mgr.config.fixed.auto_vowel_forming);
     standalone.set_set_auto_chandra(config_mgr.config.fixed.auto_chandra_position);
     standalone.set_set_traditional_kar(config_mgr.config.fixed.traditional_kar);
@@ -751,6 +769,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     standalone.on_save_settings(move || {
         if let Some(s) = s_weak_set.upgrade() {
             let mut cm = cm_save2.borrow_mut();
+            cm.config.phonetic.use_dictionary = s.get_set_use_dict();
+            cm.config.phonetic.include_english = s.get_set_include_eng();
+            cm.config.phonetic.enter_key_closes_candidate_window = s.get_set_enter_closes();
+            cm.config.phonetic.enable_predictive_next_words = s.get_set_predictive_next();
+            cm.config.phonetic.enable_code_shield = s.get_set_code_shield();
+            cm.config.phonetic.enable_word_segmentation = s.get_set_word_segmentation();
+            cm.config.phonetic.enable_colloquial_dialects = s.get_set_colloquial_dialects();
+            cm.config.phonetic.enable_banglish_shorthand = s.get_set_banglish_shorthand();
+            cm.config.phonetic.enable_reduplication = s.get_set_reduplication();
+            cm.config.phonetic.enable_phrase_prediction = s.get_set_phrase_prediction();
+            cm.config.phonetic.enable_dynamic_macros = s.get_set_dynamic_macros();
             cm.config.fixed.auto_vowel_forming = s.get_set_auto_vowel();
             cm.config.fixed.auto_chandra_position = s.get_set_auto_chandra();
             cm.config.fixed.traditional_kar = s.get_set_traditional_kar();
@@ -783,6 +812,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             cm.config.phonetic.include_english = app.get_set_include_eng();
             cm.config.phonetic.enter_key_closes_candidate_window = app.get_set_enter_closes();
             cm.config.phonetic.enable_predictive_next_words = app.get_set_predictive_next();
+            cm.config.phonetic.enable_code_shield = app.get_set_code_shield();
+            cm.config.phonetic.enable_word_segmentation = app.get_set_word_segmentation();
+            cm.config.phonetic.enable_colloquial_dialects = app.get_set_colloquial_dialects();
+            cm.config.phonetic.enable_banglish_shorthand = app.get_set_banglish_shorthand();
+            cm.config.phonetic.enable_reduplication = app.get_set_reduplication();
+            cm.config.phonetic.enable_phrase_prediction = app.get_set_phrase_prediction();
+            cm.config.phonetic.enable_dynamic_macros = app.get_set_dynamic_macros();
             cm.config.fixed.auto_vowel_forming = app.get_set_auto_vowel();
             cm.config.fixed.auto_chandra_position = app.get_set_auto_chandra();
             cm.config.fixed.traditional_kar = app.get_set_traditional_kar();

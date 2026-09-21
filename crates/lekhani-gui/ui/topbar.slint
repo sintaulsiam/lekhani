@@ -452,6 +452,13 @@ export component TopBarWindow inherits Window {
     in-out property <bool> set-include-eng: true;
     in-out property <bool> set-enter-closes: false;
     in-out property <bool> set-predictive-next: true;
+    in-out property <bool> set-code-shield: false;
+    in-out property <bool> set-word-segmentation: false;
+    in-out property <bool> set-colloquial-dialects: false;
+    in-out property <bool> set-banglish-shorthand: true;
+    in-out property <bool> set-reduplication: true;
+    in-out property <bool> set-phrase-prediction: true;
+    in-out property <bool> set-dynamic-macros: false;
     in-out property <bool> set-auto-vowel: true;
     in-out property <bool> set-auto-chandra: true;
     in-out property <bool> set-traditional-kar: false;
@@ -1245,80 +1252,138 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                // Section 1: Phonetic Options
-                Rectangle {
-                    background: #0c0d14;
-                    border-radius: 10px;
-                    border-width: 1px;
-                    border-color: #242638;
+                // Scrollable Settings Sections
+                ScrollView {
+                    max-height: 440px;
 
                     VerticalLayout {
-                        padding: 12px;
-                        spacing: 8px;
-                        Text { text: "PHONETIC & TYPING BEHAVIOR"; color: #89b4fa; font-size: 9.5px; font-weight: 700; }
-                        ModernToggleSwitch { label: "Enable Dictionary Suggestions"; checked: root.set-use-dict; toggled(v) => { root.set-use-dict = v; } }
-                        ModernToggleSwitch { label: "Include English in Candidate List"; checked: root.set-include-eng; toggled(v) => { root.set-include-eng = v; } }
-                        ModernToggleSwitch { label: "Enter Key Closes Candidate Window"; checked: root.set-enter-closes; toggled(v) => { root.set-enter-closes = v; } }
-                        ModernToggleSwitch { label: "AI Next-Word Prediction"; checked: root.set-predictive-next; toggled(v) => { root.set-predictive-next = v; } }
-                        ModernToggleSwitch { label: "Auto-Expand Double Period (..) to Dāri (।)"; checked: root.set-auto-dari; toggled(v) => { root.set-auto-dari = v; } }
-                        ModernToggleSwitch { label: "Show Mode-Switch HUD Overlay"; checked: root.set-show-osd; toggled(v) => { root.set-show-osd = v; } }
+                        spacing: 10px;
 
-                        HorizontalLayout {
-                            spacing: 8px;
-                            Text { text: "Mode Toggle Hotkey:"; color: #cdd6f4; font-size: 11.5px; vertical-alignment: center; }
-                            SegmentButton {
-                                label: "F12";
-                                active: root.set-toggle-key == "F12";
-                                active-color: #89b4fa;
-                                clicked => { root.set-toggle-key = "F12"; }
-                            }
-                            SegmentButton {
-                                label: "Ctrl+Space";
-                                active: root.set-toggle-key == "Ctrl+Space";
-                                active-color: #89b4fa;
-                                clicked => { root.set-toggle-key = "Ctrl+Space"; }
-                            }
-                            SegmentButton {
-                                label: "Shift+Space";
-                                active: root.set-toggle-key == "Shift+Space";
-                                active-color: #89b4fa;
-                                clicked => { root.set-toggle-key = "Shift+Space"; }
+                        // Section 1: Phonetic & Basic Typing
+                        Rectangle {
+                            background: #0c0d14;
+                            border-radius: 10px;
+                            border-width: 1px;
+                            border-color: #242638;
+
+                            VerticalLayout {
+                                padding: 12px;
+                                spacing: 8px;
+                                Text { text: "PHONETIC & BASIC TYPING"; color: #89b4fa; font-size: 9.5px; font-weight: 700; }
+                                ModernToggleSwitch { label: "Enable Dictionary Suggestions"; checked: root.set-use-dict; toggled(v) => { root.set-use-dict = v; } }
+                                ModernToggleSwitch { label: "Include English in Candidate List"; checked: root.set-include-eng; toggled(v) => { root.set-include-eng = v; } }
+                                ModernToggleSwitch { label: "Enter Key Closes Candidate Window"; checked: root.set-enter-closes; toggled(v) => { root.set-enter-closes = v; } }
+                                ModernToggleSwitch { label: "Auto-Expand Double Period (..) to Dāri (।)"; checked: root.set-auto-dari; toggled(v) => { root.set-auto-dari = v; } }
+                                ModernToggleSwitch { label: "Show Mode-Switch HUD Overlay"; checked: root.set-show-osd; toggled(v) => { root.set-show-osd = v; } }
+
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    Text { text: "Mode Toggle Hotkey:"; color: #cdd6f4; font-size: 11.5px; vertical-alignment: center; }
+                                    SegmentButton {
+                                        label: "F12";
+                                        active: root.set-toggle-key == "F12";
+                                        active-color: #89b4fa;
+                                        clicked => { root.set-toggle-key = "F12"; }
+                                    }
+                                    SegmentButton {
+                                        label: "Ctrl+Space";
+                                        active: root.set-toggle-key == "Ctrl+Space";
+                                        active-color: #89b4fa;
+                                        clicked => { root.set-toggle-key = "Ctrl+Space"; }
+                                    }
+                                    SegmentButton {
+                                        label: "Shift+Space";
+                                        active: root.set-toggle-key == "Shift+Space";
+                                        active-color: #89b4fa;
+                                        clicked => { root.set-toggle-key = "Shift+Space"; }
+                                    }
+                                }
                             }
                         }
-                    }
-                }
 
-                // Section 2: Fixed Layout Automations
-                Rectangle {
-                    background: #0c0d14;
-                    border-radius: 10px;
-                    border-width: 1px;
-                    border-color: #242638;
+                        // Section 2: Smart Assistance & Developer Tools
+                        Rectangle {
+                            background: #0c0d14;
+                            border-radius: 10px;
+                            border-width: 1px;
+                            border-color: #242638;
 
-                    VerticalLayout {
-                        padding: 12px;
-                        spacing: 8px;
-                        Text { text: "FIXED LAYOUT AUTOMATION"; color: #a6e3a1; font-size: 9.5px; font-weight: 700; }
-                        ModernToggleSwitch { label: "Automatic Vowel Forming (অ + া ➔ আ)"; checked: root.set-auto-vowel; toggled(v) => { root.set-auto-vowel = v; } }
-                        ModernToggleSwitch { label: "Automatic Chandra Position (কঁ + া ➔ কাঁ)"; checked: root.set-auto-chandra; toggled(v) => { root.set-auto-chandra = v; } }
-                        ModernToggleSwitch { label: "Traditional Kar Joining"; checked: root.set-traditional-kar; toggled(v) => { root.set-traditional-kar = v; } }
-                        ModernToggleSwitch { label: "Smart Reph (র্) Insertion"; checked: root.set-old-reph; toggled(v) => { root.set-old-reph = v; } }
-                        ModernToggleSwitch { label: "Map Numeric Keypad to Bengali (০-৯)"; checked: root.set-numberpad; toggled(v) => { root.set-numberpad = v; } }
-                    }
-                }
+                            VerticalLayout {
+                                padding: 12px;
+                                spacing: 8px;
+                                Text { text: "SMART ASSISTANCE & DEVELOPER TOOLS"; color: #cba6f7; font-size: 9.5px; font-weight: 700; }
+                                ModernToggleSwitch { label: "Developer Code Shield (CLI flags, camelCase, keywords)"; checked: root.set-code-shield; toggled(v) => { root.set-code-shield = v; } }
+                                ModernToggleSwitch { label: "Concatenated Word Segmentation (kemonaso ➔ কেমন আছো)"; checked: root.set-word-segmentation; toggled(v) => { root.set-word-segmentation = v; } }
+                                ModernToggleSwitch { label: "Colloquial Dialect Normalization (khamu ➔ খাব, korsi ➔ করেছি)"; checked: root.set-colloquial-dialects; toggled(v) => { root.set-colloquial-dialects = v; } }
+                                ModernToggleSwitch { label: "Banglish Chat Contractions (amr ➔ আমার, tmr ➔ তোমার)"; checked: root.set-banglish-shorthand; toggled(v) => { root.set-banglish-shorthand = v; } }
+                            }
+                        }
 
-                // Section 3: System & Startup (Windows)
-                if root.is-windows : Rectangle {
-                    background: #0c0d14;
-                    border-radius: 10px;
-                    border-width: 1px;
-                    border-color: #242638;
+                        // Section 3: Predictive Intelligence
+                        Rectangle {
+                            background: #0c0d14;
+                            border-radius: 10px;
+                            border-width: 1px;
+                            border-color: #242638;
 
-                    VerticalLayout {
-                        padding: 12px;
-                        spacing: 8px;
-                        Text { text: "SYSTEM"; color: #f9e2af; font-size: 9.5px; font-weight: 700; }
-                        ModernToggleSwitch { label: "Launch on system startup"; checked: root.set-autostart; toggled(v) => { root.set-autostart = v; } }
+                            VerticalLayout {
+                                padding: 12px;
+                                spacing: 8px;
+                                Text { text: "PREDICTIVE INTELLIGENCE"; color: #f38ba8; font-size: 9.5px; font-weight: 700; }
+                                ModernToggleSwitch { label: "AI Next-Word Prediction"; checked: root.set-predictive-next; toggled(v) => { root.set-predictive-next = v; } }
+                                ModernToggleSwitch { label: "Reduplicated Words Prediction (ধীরে ➔ ধীরে, মাঝে ➔ মাঝে)"; checked: root.set-reduplication; toggled(v) => { root.set-reduplication = v; } }
+                                ModernToggleSwitch { label: "Multi-Word Idiom & Phrase Completion (অনেক অনেক ➔ ধন্যবাদ)"; checked: root.set-phrase-prediction; toggled(v) => { root.set-phrase-prediction = v; } }
+                            }
+                        }
+
+                        // Section 4: Productivity Shortcuts
+                        Rectangle {
+                            background: #0c0d14;
+                            border-radius: 10px;
+                            border-width: 1px;
+                            border-color: #242638;
+
+                            VerticalLayout {
+                                padding: 12px;
+                                spacing: 8px;
+                                Text { text: "PRODUCTIVITY SHORTCUTS"; color: #fab387; font-size: 9.5px; font-weight: 700; }
+                                ModernToggleSwitch { label: "Dynamic Math & Date Macros (!date, !sum(2+2))"; checked: root.set-dynamic-macros; toggled(v) => { root.set-dynamic-macros = v; } }
+                            }
+                        }
+
+                        // Section 5: Fixed Layout Automations
+                        Rectangle {
+                            background: #0c0d14;
+                            border-radius: 10px;
+                            border-width: 1px;
+                            border-color: #242638;
+
+                            VerticalLayout {
+                                padding: 12px;
+                                spacing: 8px;
+                                Text { text: "FIXED LAYOUT AUTOMATION"; color: #a6e3a1; font-size: 9.5px; font-weight: 700; }
+                                ModernToggleSwitch { label: "Automatic Vowel Forming (অ + া ➔ আ)"; checked: root.set-auto-vowel; toggled(v) => { root.set-auto-vowel = v; } }
+                                ModernToggleSwitch { label: "Automatic Chandra Position (কঁ + া ➔ কাঁ)"; checked: root.set-auto-chandra; toggled(v) => { root.set-auto-chandra = v; } }
+                                ModernToggleSwitch { label: "Traditional Kar Joining"; checked: root.set-traditional-kar; toggled(v) => { root.set-traditional-kar = v; } }
+                                ModernToggleSwitch { label: "Smart Reph (র্) Insertion"; checked: root.set-old-reph; toggled(v) => { root.set-old-reph = v; } }
+                                ModernToggleSwitch { label: "Map Numeric Keypad to Bengali (০-৯)"; checked: root.set-numberpad; toggled(v) => { root.set-numberpad = v; } }
+                            }
+                        }
+
+                        // Section 6: System & Startup (Windows)
+                        if root.is-windows : Rectangle {
+                            background: #0c0d14;
+                            border-radius: 10px;
+                            border-width: 1px;
+                            border-color: #242638;
+
+                            VerticalLayout {
+                                padding: 12px;
+                                spacing: 8px;
+                                Text { text: "SYSTEM"; color: #f9e2af; font-size: 9.5px; font-weight: 700; }
+                                ModernToggleSwitch { label: "Launch on system startup"; checked: root.set-autostart; toggled(v) => { root.set-autostart = v; } }
+                            }
+                        }
                     }
                 }
 
@@ -1818,6 +1883,17 @@ export component StandaloneDialogWindow inherits Window {
     in property <[HeatmapEntry]> stats-top-characters: [];
 
     // Settings State
+    in-out property <bool> set-use-dict: true;
+    in-out property <bool> set-include-eng: true;
+    in-out property <bool> set-enter-closes: false;
+    in-out property <bool> set-predictive-next: true;
+    in-out property <bool> set-code-shield: false;
+    in-out property <bool> set-word-segmentation: false;
+    in-out property <bool> set-colloquial-dialects: false;
+    in-out property <bool> set-banglish-shorthand: true;
+    in-out property <bool> set-reduplication: true;
+    in-out property <bool> set-phrase-prediction: true;
+    in-out property <bool> set-dynamic-macros: false;
     in-out property <bool> set-auto-vowel: true;
     in-out property <bool> set-auto-chandra: true;
     in-out property <bool> set-traditional-kar: false;
@@ -2222,7 +2298,7 @@ export component StandaloneDialogWindow inherits Window {
                             spacing: 10px;
                             horizontal-stretch: 1;
 
-                            // Section 1: Phonetic Options
+                            // Section 1: Phonetic & Basic Typing
                             Rectangle {
                                 background: #0c0d14;
                                 border-radius: 10px;
@@ -2232,36 +2308,56 @@ export component StandaloneDialogWindow inherits Window {
                                 VerticalLayout {
                                     padding: 12px;
                                     spacing: 8px;
-                                    Text { text: "PHONETIC ENGINE"; color: #89b4fa; font-size: 10px; font-weight: 700; }
+                                    Text { text: "PHONETIC & BASIC TYPING"; color: #89b4fa; font-size: 10px; font-weight: 700; }
                                     ModernToggleSwitch {
-                                        label: "Auto Vowel Forming (o / i / u)";
-                                        checked <=> root.set-auto-vowel;
+                                        label: "Enable Dictionary Suggestions";
+                                        checked <=> root.set-use-dict;
                                     }
                                     ModernToggleSwitch {
-                                        label: "Auto Chandra Position Adjustment";
-                                        checked <=> root.set-auto-chandra;
+                                        label: "Include English in Candidate List";
+                                        checked <=> root.set-include-eng;
                                     }
-                                }
-                            }
-
-                            // Section 3: General & Hotkey Options
-                            Rectangle {
-                                background: #0c0d14;
-                                border-radius: 10px;
-                                border-width: 1px;
-                                border-color: #242638;
-
-                                VerticalLayout {
-                                    padding: 12px;
-                                    spacing: 8px;
-                                    Text { text: "BEHAVIOR & SHORTCUTS"; color: #f9e2af; font-size: 10px; font-weight: 700; }
                                     ModernToggleSwitch {
-                                        label: "Show On-Screen Display (OSD) Overlay";
+                                        label: "Enter Key Closes Window";
+                                        checked <=> root.set-enter-closes;
+                                    }
+                                    ModernToggleSwitch {
+                                        label: "Show Mode-Switch HUD Overlay";
                                         checked <=> root.set-show-osd;
                                     }
                                     ModernToggleSwitch {
                                         label: "Auto Dari Substitution (. ➔ ।)";
                                         checked <=> root.set-auto-dari;
+                                    }
+                                }
+                            }
+
+                            // Section 2: Smart Assistance & Developer Tools
+                            Rectangle {
+                                background: #0c0d14;
+                                border-radius: 10px;
+                                border-width: 1px;
+                                border-color: #242638;
+
+                                VerticalLayout {
+                                    padding: 12px;
+                                    spacing: 8px;
+                                    Text { text: "SMART ASSISTANCE & DEV TOOLS"; color: #cba6f7; font-size: 10px; font-weight: 700; }
+                                    ModernToggleSwitch {
+                                        label: "Developer Code Shield (onClick, --help, const)";
+                                        checked <=> root.set-code-shield;
+                                    }
+                                    ModernToggleSwitch {
+                                        label: "Word Segmentation (kemonaso ➔ কেমন আছো)";
+                                        checked <=> root.set-word-segmentation;
+                                    }
+                                    ModernToggleSwitch {
+                                        label: "Dialect Normalization (khamu ➔ খাব)";
+                                        checked <=> root.set-colloquial-dialects;
+                                    }
+                                    ModernToggleSwitch {
+                                        label: "Banglish Contractions (amr ➔ আমার)";
+                                        checked <=> root.set-banglish-shorthand;
                                     }
                                 }
                             }
@@ -2272,7 +2368,37 @@ export component StandaloneDialogWindow inherits Window {
                             spacing: 10px;
                             horizontal-stretch: 1;
 
-                            // Section 2: Fixed Layout Options
+                            // Section 3: Predictive & Productivity
+                            Rectangle {
+                                background: #0c0d14;
+                                border-radius: 10px;
+                                border-width: 1px;
+                                border-color: #242638;
+
+                                VerticalLayout {
+                                    padding: 12px;
+                                    spacing: 8px;
+                                    Text { text: "PREDICTIVE & PRODUCTIVITY"; color: #f38ba8; font-size: 10px; font-weight: 700; }
+                                    ModernToggleSwitch {
+                                        label: "AI Next-Word Prediction";
+                                        checked <=> root.set-predictive-next;
+                                    }
+                                    ModernToggleSwitch {
+                                        label: "Reduplicated Words (ধীরে ➔ ধীরে)";
+                                        checked <=> root.set-reduplication;
+                                    }
+                                    ModernToggleSwitch {
+                                        label: "Idiom & Phrase Completion";
+                                        checked <=> root.set-phrase-prediction;
+                                    }
+                                    ModernToggleSwitch {
+                                        label: "Dynamic Macros (!date, !sum(2+2))";
+                                        checked <=> root.set-dynamic-macros;
+                                    }
+                                }
+                            }
+
+                            // Section 4: Fixed Layout Options
                             Rectangle {
                                 background: #0c0d14;
                                 border-radius: 10px;
@@ -2284,15 +2410,23 @@ export component StandaloneDialogWindow inherits Window {
                                     spacing: 8px;
                                     Text { text: "FIXED LAYOUTS (PROBHAT / JATIYA / UNIBIJOY)"; color: #a6e3a1; font-size: 10px; font-weight: 700; }
                                     ModernToggleSwitch {
+                                        label: "Auto Vowel Forming (অ + া ➔ আ)";
+                                        checked <=> root.set-auto-vowel;
+                                    }
+                                    ModernToggleSwitch {
+                                        label: "Auto Chandra Position (কঁ + া ➔ কাঁ)";
+                                        checked <=> root.set-auto-chandra;
+                                    }
+                                    ModernToggleSwitch {
                                         label: "Traditional Kar Placement (ী / ূ)";
                                         checked <=> root.set-traditional-kar;
                                     }
                                     ModernToggleSwitch {
-                                        label: "Old Reph Placement (র্)";
+                                        label: "Smart Reph Placement (র্)";
                                         checked <=> root.set-old-reph;
                                     }
                                     ModernToggleSwitch {
-                                        label: "Bengali Number Pad Mapping";
+                                        label: "Bengali Number Pad Mapping (০-৯)";
                                         checked <=> root.set-numberpad;
                                     }
                                 }

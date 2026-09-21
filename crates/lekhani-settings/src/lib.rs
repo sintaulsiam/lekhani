@@ -36,13 +36,34 @@ fn default_true() -> bool {
     true
 }
 
+fn default_false() -> bool {
+    false
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PhoneticConfig {
+    #[serde(default = "default_true")]
     pub use_dictionary: bool,
+    #[serde(default = "default_true")]
     pub include_english: bool,
+    #[serde(default = "default_false")]
     pub enter_key_closes_candidate_window: bool,
     #[serde(default = "default_true")]
     pub enable_predictive_next_words: bool,
+    #[serde(default = "default_false")]
+    pub enable_code_shield: bool,
+    #[serde(default = "default_false")]
+    pub enable_word_segmentation: bool,
+    #[serde(default = "default_true")]
+    pub enable_colloquial_dialects: bool,
+    #[serde(default = "default_true")]
+    pub enable_banglish_shorthand: bool,
+    #[serde(default = "default_true")]
+    pub enable_reduplication: bool,
+    #[serde(default = "default_true")]
+    pub enable_phrase_prediction: bool,
+    #[serde(default = "default_true")]
+    pub enable_dynamic_macros: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -77,6 +98,13 @@ impl Default for AppConfig {
                 include_english: true,
                 enter_key_closes_candidate_window: false,
                 enable_predictive_next_words: true,
+                enable_code_shield: false,
+                enable_word_segmentation: false,
+                enable_colloquial_dialects: true,
+                enable_banglish_shorthand: true,
+                enable_reduplication: true,
+                enable_phrase_prediction: true,
+                enable_dynamic_macros: true,
             },
             fixed: FixedConfig {
                 auto_vowel_forming: true,
@@ -516,6 +544,13 @@ mod tests {
         assert_eq!(config.general.toggle_key, "F12");
         assert!(config.general.show_osd);
         assert!(config.general.auto_dari);
+        assert!(!config.phonetic.enable_code_shield);
+        assert!(!config.phonetic.enable_word_segmentation);
+        assert!(config.phonetic.enable_colloquial_dialects);
+        assert!(config.phonetic.enable_banglish_shorthand);
+        assert!(config.phonetic.enable_reduplication);
+        assert!(config.phonetic.enable_phrase_prediction);
+        assert!(config.phonetic.enable_dynamic_macros);
     }
 
     #[test]
