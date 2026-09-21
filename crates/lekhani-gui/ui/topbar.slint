@@ -507,6 +507,7 @@ export component TopBarWindow inherits Window {
     in-out property <bool> set-show-osd: true;
     in-out property <bool> set-auto-dari: true;
     in-out property <string> settings-status-text: "All changes saved automatically";
+    in-out property <string> learned-stats-text: "Loading...";
 
     // Mode-Switch OSD HUD properties
     in-out property <bool> show-osd: false;
@@ -553,6 +554,7 @@ export component TopBarWindow inherits Window {
     callback save-settings();
     callback auto-save-settings();
     callback reset-default-settings();
+    callback clear-learned-data();
 
     VerticalLayout {
         alignment: start;
@@ -1503,6 +1505,24 @@ export component TopBarWindow inherits Window {
                                     checked: root.set-phrase-prediction;
                                     toggled(v) => { root.set-phrase-prediction = v; root.auto-save-settings(); }
                                 }
+
+                                HorizontalLayout {
+                                    spacing: 8px;
+                                    padding-top: 4px;
+                                    Text {
+                                        text: "Autonomous Learning Profile:";
+                                        color: #64748b;
+                                        font-size: 11px;
+                                        vertical-alignment: center;
+                                    }
+                                    Text {
+                                        text: root.learned-stats-text;
+                                        color: #38bdf8;
+                                        font-size: 11px;
+                                        font-weight: 600;
+                                        vertical-alignment: center;
+                                    }
+                                }
                             }
                         }
 
@@ -1628,6 +1648,12 @@ export component TopBarWindow inherits Window {
                     HorizontalLayout {
                         spacing: 8px;
                         alignment: center;
+
+                        ModernButton {
+                            text: "Clear Learning";
+                            primary: false;
+                            clicked => { root.clear-learned-data(); }
+                        }
 
                         ModernButton {
                             text: "Restore Defaults";
@@ -2261,6 +2287,7 @@ export component StandaloneDialogWindow inherits Window {
     in-out property <bool> is-windows: false;
     in property <bool> needs-client-decorations: false;
     in-out property <string> settings-status-text: "All changes saved automatically";
+    in-out property <string> learned-stats-text: "Loading...";
 
     // Layout Viewer State
     in-out property <int> viewer-mode: 0;
@@ -2293,6 +2320,7 @@ export component StandaloneDialogWindow inherits Window {
     callback save-settings();
     callback auto-save-settings();
     callback reset-default-settings();
+    callback clear-learned-data();
     callback viewer-mode-changed(int);
     callback select-viewer-layout(string);
 
@@ -2727,6 +2755,24 @@ export component StandaloneDialogWindow inherits Window {
                                             toggled(_) => { root.auto-save-settings(); }
                                         }
 
+                                        HorizontalLayout {
+                                            spacing: 8px;
+                                            padding-top: 4px;
+                                            Text {
+                                                text: "Autonomous Learning Profile:";
+                                                color: #64748b;
+                                                font-size: 11px;
+                                                vertical-alignment: center;
+                                            }
+                                            Text {
+                                                text: root.learned-stats-text;
+                                                color: #38bdf8;
+                                                font-size: 11px;
+                                                font-weight: 600;
+                                                vertical-alignment: center;
+                                            }
+                                        }
+
                                         ModernToggleSwitch {
                                             label: "Include English in Candidate List";
                                             checked <=> root.set-include-eng;
@@ -2994,6 +3040,12 @@ export component StandaloneDialogWindow inherits Window {
                 HorizontalLayout {
                         spacing: 10px;
                         alignment: center;
+
+                        ModernButton {
+                            text: "Clear Learning";
+                            primary: false;
+                            clicked => { root.clear-learned-data(); }
+                        }
 
                         ModernButton {
                             text: "Restore Defaults";

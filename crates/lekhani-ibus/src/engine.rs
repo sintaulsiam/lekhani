@@ -36,13 +36,19 @@ pub struct IBusEngineState {
     pub mapper: KeycodeMapper,
     pub alt_gr: bool,
     pub active_layout_name: String,
+    pub commit_count: usize,
 }
 
 impl IBusEngineState {
     pub fn commit(&mut self, idx: usize) -> Option<String> {
         let committed = self.session.commit(idx)?;
-        let stats_path = self.config_mgr.get_user_stats_path();
-        let _ = self.session.save_stats(&stats_path);
+        self.commit_count += 1;
+        if self.commit_count % 3 == 0 {
+            let user_learned = self.config_mgr.get_user_learned_path();
+            let stats_path = self.config_mgr.get_user_stats_path();
+            let _ = self.session.save_user_learned(&user_learned);
+            let _ = self.session.save_stats(&stats_path);
+        }
         Some(committed)
     }
 }
@@ -92,6 +98,7 @@ impl LekhaniIBusEngine {
             mapper: KeycodeMapper::new(),
             alt_gr: false,
             active_layout_name: active_name,
+            commit_count: 0,
         };
 
         Self {

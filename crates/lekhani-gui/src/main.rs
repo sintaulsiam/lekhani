@@ -135,6 +135,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     apply_settings_to_app(&app, &config_mgr.config);
     apply_settings_to_standalone(&standalone, &config_mgr.config);
 
+    // Initialize Autonomous Learning Profile state
+    let learned_path = config_mgr.get_user_learned_path();
+    let learner_init = lekhani_core::AutonomousLearner::load_from_path(&learned_path);
+    let learned_stats_init = format!(
+        "{} learned words • {} phrases",
+        learner_init.learned_words.len(),
+        learner_init.user_bigrams.len()
+    );
+    app.set_learned_stats_text(learned_stats_init.clone().into());
+    standalone.set_learned_stats_text(learned_stats_init.into());
+
     // Initialize Conjunct Assistant state
     let all_conjuncts = ConjunctCatalog::all();
     let slint_conjuncts: Vec<ConjunctEntry> = all_conjuncts
@@ -831,6 +842,56 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 apply_settings_to_standalone(&s, &cm.config);
                 s.set_settings_status_text("✓ Defaults restored!".into());
             }
+        }
+    });
+
+    // Settings: Clear Learned Data (Standalone)
+    let cm_clear_s = config_mgr_rc.clone();
+    let s_weak_clear = standalone_weak.clone();
+    let app_weak_clear_sync = app_weak.clone();
+    standalone.on_clear_learned_data(move || {
+        let cm = cm_clear_s.borrow();
+        let p = cm.get_user_learned_path();
+        let mut learner = lekhani_core::AutonomousLearner::load_from_path(&p);
+        learner.clear_user_data();
+        let _ = learner.save_to_path(&p);
+        let stats_str = format!(
+            "{} learned words • {} phrases",
+            learner.learned_words.len(),
+            learner.user_bigrams.len()
+        );
+        if let Some(s) = s_weak_clear.upgrade() {
+            s.set_learned_stats_text(stats_str.clone().into());
+            s.set_settings_status_text("✓ Learned data reset to baseline".into());
+        }
+        if let Some(app) = app_weak_clear_sync.upgrade() {
+            app.set_learned_stats_text(stats_str.into());
+            app.set_settings_status_text("✓ Learned data reset to baseline".into());
+        }
+    });
+
+    // Settings: Clear Learned Data (Popover)
+    let cm_clear_app = config_mgr_rc.clone();
+    let app_weak_clear = app_weak.clone();
+    let s_weak_clear_sync = standalone_weak.clone();
+    app.on_clear_learned_data(move || {
+        let cm = cm_clear_app.borrow();
+        let p = cm.get_user_learned_path();
+        let mut learner = lekhani_core::AutonomousLearner::load_from_path(&p);
+        learner.clear_user_data();
+        let _ = learner.save_to_path(&p);
+        let stats_str = format!(
+            "{} learned words • {} phrases",
+            learner.learned_words.len(),
+            learner.user_bigrams.len()
+        );
+        if let Some(app) = app_weak_clear.upgrade() {
+            app.set_learned_stats_text(stats_str.clone().into());
+            app.set_settings_status_text("✓ Learned data reset to baseline".into());
+        }
+        if let Some(s) = s_weak_clear_sync.upgrade() {
+            s.set_learned_stats_text(stats_str.into());
+            s.set_settings_status_text("✓ Learned data reset to baseline".into());
         }
     });
 
