@@ -298,6 +298,8 @@ component KeyCapButton inherits Rectangle {
 
 component ModernButton inherits Rectangle {
     in property <string> text;
+    in property <image> icon;
+    in property <bool> has-icon: false;
     in property <color> btn-color: #89b4fa;
     in property <bool> primary: false;
     in property <bool> danger: false;
@@ -306,7 +308,7 @@ component ModernButton inherits Rectangle {
 
     height: 30px;
     border-radius: 7px;
-    background: root.danger ? (ta.has-hover ? #dc2626 : #991b1b) :
+    background: root.danger ? (ta.has-hover ? #dc2626 : #8a1919) :
                 root.primary ? (ta.has-hover ? #3b82f6 : #2563eb) :
                 (ta.has-hover ? #22293a : #151822);
     border-width: 1px;
@@ -325,11 +327,21 @@ component ModernButton inherits Rectangle {
         HorizontalLayout {
             padding-left: 12px;
             padding-right: 12px;
+            spacing: 6px;
             alignment: center;
+
+            if (root.has-icon): Image {
+                width: 13px;
+                height: 13px;
+                source: root.icon;
+                colorize: (root.primary || root.danger) ? #ffffff : (ta.has-hover ? #ffffff : #94a3b8);
+                vertical-alignment: center;
+            }
+
             Text {
                 text: root.text;
                 color: (root.primary || root.danger) ? #ffffff : (ta.has-hover ? #ffffff : #f1f5f9);
-                font-size: 12px;
+                font-size: 11.5px;
                 font-weight: (root.primary || root.danger) ? 700 : 600;
                 vertical-alignment: center;
             }
@@ -345,55 +357,90 @@ component ConfirmModal inherits Rectangle {
     callback confirm();
     callback cancel();
 
-    background: #000000dd;
+    background: #000000bd;
 
     TouchArea {
         // block clicks from passing through
     }
 
     Rectangle {
-        width: min(parent.width - 32px, 390px);
-        background: #0f121dfa;
+        width: min(parent.width - 40px, 430px);
+        height: card-layout.preferred-height;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        background: #0f111a;
         border-radius: 14px;
         border-width: 1.2px;
-        border-color: root.is-danger ? #ef444488 : #3b82f688;
-        drop-shadow-blur: 32px;
-        drop-shadow-color: #000000ff;
+        border-color: root.is-danger ? #f38ba866 : #89b4fa66;
+        drop-shadow-blur: 36px;
+        drop-shadow-color: #000000f0;
 
-        VerticalLayout {
-            padding: 18px;
-            spacing: 12px;
+        card-layout := VerticalLayout {
+            padding: 20px;
+            spacing: 14px;
 
+            // Header: Warning Badge + Titles
             HorizontalLayout {
-                spacing: 10px;
+                spacing: 12px;
                 alignment: start;
 
-                Text {
-                    text: root.is-danger ? "⚠️" : "ℹ️";
-                    font-size: 20px;
-                    vertical-alignment: center;
+                Rectangle {
+                    width: 38px;
+                    height: 38px;
+                    border-radius: 10px;
+                    background: root.is-danger ? #f38ba818 : #89b4fa18;
+                    border-width: 1px;
+                    border-color: root.is-danger ? #f38ba844 : #89b4fa44;
+
+                    Image {
+                        width: 20px;
+                        height: 20px;
+                        source: root.is-danger ? @image-url("../../../data/icons/ui/warning.svg") : @image-url("../../../data/icons/ui/settings.svg");
+                    }
                 }
 
-                Text {
-                    text: root.title;
-                    color: #f8fafc;
-                    font-size: 14px;
-                    font-weight: 700;
-                    vertical-alignment: center;
+                VerticalLayout {
+                    alignment: center;
+                    spacing: 2px;
+                    Text {
+                        text: root.title;
+                        color: #f8fafc;
+                        font-size: 14px;
+                        font-weight: 700;
+                    }
+                    Text {
+                        text: root.is-danger ? "Irreversible Operation" : "Preference Change";
+                        color: root.is-danger ? #f38ba8 : #89b4fa;
+                        font-size: 10.5px;
+                        font-weight: 600;
+                    }
                 }
             }
 
-            Text {
-                text: root.message;
-                color: #94a3b8;
-                font-size: 12px;
-                wrap: word-wrap;
+            // Body callout box
+            Rectangle {
+                background: root.is-danger ? #1f1319 : #141724;
+                border-radius: 9px;
+                border-width: 1px;
+                border-color: root.is-danger ? #f38ba833 : #89b4fa33;
+
+                VerticalLayout {
+                    padding: 12px;
+                    spacing: 6px;
+                    Text {
+                        text: root.message;
+                        color: #cbd5e1;
+                        font-size: 12px;
+                        wrap: word-wrap;
+                    }
+                }
             }
 
+            // Actions
             HorizontalLayout {
                 spacing: 10px;
                 alignment: end;
-                padding-top: 8px;
+                padding-top: 4px;
 
                 ModernButton {
                     text: "Cancel";
@@ -403,6 +450,8 @@ component ConfirmModal inherits Rectangle {
 
                 ModernButton {
                     text: root.confirm-text;
+                    icon: root.is-danger ? @image-url("../../../data/icons/ui/trash.svg") : @image-url("../../../data/icons/ui/settings.svg");
+                    has-icon: true;
                     danger: root.is-danger;
                     primary: !root.is-danger;
                     clicked => { root.confirm(); }
@@ -1732,8 +1781,8 @@ export component TopBarWindow inherits Window {
                             border-color: #242638;
 
                             VerticalLayout {
-                                padding: 12px;
-                                spacing: 10px;
+                                padding: 14px;
+                                spacing: 12px;
                                 alignment: start;
 
                                 Text {
@@ -1743,49 +1792,187 @@ export component TopBarWindow inherits Window {
                                     font-weight: 700;
                                 }
 
-                                HorizontalLayout {
-                                    spacing: 8px;
-                                    alignment: start;
+                                // Card 1: Full System Backup
+                                Rectangle {
+                                    background: #0f111a;
+                                    border-radius: 8px;
+                                    border-width: 1px;
+                                    border-color: #23273a;
 
-                                    ModernButton {
-                                        text: "Export Full Backup...";
-                                        primary: false;
-                                        clicked => { root.export-full-backup(); }
-                                    }
+                                    VerticalLayout {
+                                        padding: 12px;
+                                        spacing: 8px;
 
-                                    ModernButton {
-                                        text: "Import Full Backup...";
-                                        primary: false;
-                                        clicked => { root.import-full-backup(); }
+                                        HorizontalLayout {
+                                            spacing: 9px;
+                                            alignment: start;
+                                            Rectangle {
+                                                width: 26px;
+                                                height: 26px;
+                                                border-radius: 6px;
+                                                background: #89b4fa15;
+                                                border-width: 1px;
+                                                border-color: #89b4fa33;
+                                                Image {
+                                                    width: 14px;
+                                                    height: 14px;
+                                                    source: @image-url("../../../data/icons/ui/database.svg");
+                                                }
+                                            }
+                                            VerticalLayout {
+                                                alignment: center;
+                                                spacing: 1px;
+                                                Text {
+                                                    text: "Full Workspace Archive";
+                                                    color: #f1f5f9;
+                                                    font-size: 11.5px;
+                                                    font-weight: 700;
+                                                }
+                                                Text {
+                                                    text: "Complete config, layouts, autocorrect & stats (.json)";
+                                                    color: #89b4fa;
+                                                    font-size: 10px;
+                                                }
+                                            }
+                                        }
+
+                                        HorizontalLayout {
+                                            spacing: 8px;
+                                            alignment: start;
+                                            ModernButton {
+                                                text: "Export Backup...";
+                                                icon: @image-url("../../../data/icons/ui/download.svg");
+                                                has-icon: true;
+                                                clicked => { root.export-full-backup(); }
+                                            }
+                                            ModernButton {
+                                                text: "Restore Backup...";
+                                                icon: @image-url("../../../data/icons/ui/upload.svg");
+                                                has-icon: true;
+                                                clicked => { root.import-full-backup(); }
+                                            }
+                                        }
                                     }
                                 }
 
-                                HorizontalLayout {
-                                    spacing: 8px;
-                                    alignment: start;
+                                // Card 2: Learned Words & Phrases
+                                Rectangle {
+                                    background: #0f111a;
+                                    border-radius: 8px;
+                                    border-width: 1px;
+                                    border-color: #23273a;
 
-                                    ModernButton {
-                                        text: "Export Learned Words...";
-                                        primary: false;
-                                        clicked => { root.export-learned-data(); }
-                                    }
+                                    VerticalLayout {
+                                        padding: 12px;
+                                        spacing: 8px;
 
-                                    ModernButton {
-                                        text: "Import Learned Words...";
-                                        primary: false;
-                                        clicked => { root.import-learned-data(); }
+                                        HorizontalLayout {
+                                            spacing: 9px;
+                                            alignment: start;
+                                            Rectangle {
+                                                width: 26px;
+                                                height: 26px;
+                                                border-radius: 6px;
+                                                background: #cba6f715;
+                                                border-width: 1px;
+                                                border-color: #cba6f733;
+                                                Image {
+                                                    width: 14px;
+                                                    height: 14px;
+                                                    source: @image-url("../../../data/icons/ui/book.svg");
+                                                }
+                                            }
+                                            VerticalLayout {
+                                                alignment: center;
+                                                spacing: 1px;
+                                                Text {
+                                                    text: "Learned Words & Phrases";
+                                                    color: #f1f5f9;
+                                                    font-size: 11.5px;
+                                                    font-weight: 700;
+                                                }
+                                                Text {
+                                                    text: "Personalized vocabulary and bigram memory (.json)";
+                                                    color: #cba6f7;
+                                                    font-size: 10px;
+                                                }
+                                            }
+                                        }
+
+                                        HorizontalLayout {
+                                            spacing: 8px;
+                                            alignment: start;
+                                            ModernButton {
+                                                text: "Export Words...";
+                                                icon: @image-url("../../../data/icons/ui/download.svg");
+                                                has-icon: true;
+                                                clicked => { root.export-learned-data(); }
+                                            }
+                                            ModernButton {
+                                                text: "Import Words...";
+                                                icon: @image-url("../../../data/icons/ui/upload.svg");
+                                                has-icon: true;
+                                                clicked => { root.import-learned-data(); }
+                                            }
+                                        }
                                     }
                                 }
 
-                                HorizontalLayout {
-                                    spacing: 8px;
-                                    alignment: start;
-                                    padding-top: 4px;
+                                // Card 3: Danger Zone
+                                Rectangle {
+                                    background: #191016;
+                                    border-radius: 8px;
+                                    border-width: 1px;
+                                    border-color: #f38ba833;
 
-                                    ModernButton {
-                                        text: "⚠️ Reset Learned Data...";
-                                        danger: true;
-                                        clicked => { root.request-clear-learned-data(); }
+                                    VerticalLayout {
+                                        padding: 12px;
+                                        spacing: 8px;
+
+                                        HorizontalLayout {
+                                            spacing: 9px;
+                                            alignment: start;
+                                            Rectangle {
+                                                width: 26px;
+                                                height: 26px;
+                                                border-radius: 6px;
+                                                background: #f38ba818;
+                                                border-width: 1px;
+                                                border-color: #f38ba844;
+                                                Image {
+                                                    width: 14px;
+                                                    height: 14px;
+                                                    source: @image-url("../../../data/icons/ui/warning.svg");
+                                                }
+                                            }
+                                            VerticalLayout {
+                                                alignment: center;
+                                                spacing: 1px;
+                                                Text {
+                                                    text: "Danger Zone";
+                                                    color: #f38ba8;
+                                                    font-size: 11.5px;
+                                                    font-weight: 700;
+                                                }
+                                                Text {
+                                                    text: "Reset learned models or restore factory defaults";
+                                                    color: #fca5a5a0;
+                                                    font-size: 10px;
+                                                }
+                                            }
+                                        }
+
+                                        HorizontalLayout {
+                                            spacing: 8px;
+                                            alignment: start;
+                                            ModernButton {
+                                                text: "Reset Learned Data...";
+                                                icon: @image-url("../../../data/icons/ui/trash.svg");
+                                                has-icon: true;
+                                                danger: true;
+                                                clicked => { root.request-clear-learned-data(); }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -3196,68 +3383,250 @@ export component StandaloneDialogWindow inherits Window {
                                             toggled(_) => { root.auto-save-settings(); }
                                         }
                                     }
-                                    // Section 6: Data & Backup Management
+                                }
+                            }
+                        }
+
+                        // Section 6: Data & Backup Management (Full-Width Modern Cards)
+                        Rectangle {
+                            background: #0c0d14;
+                            border-radius: 10px;
+                            border-width: 1px;
+                            border-color: #242638;
+
+                            VerticalLayout {
+                                padding: 16px;
+                                spacing: 14px;
+                                alignment: start;
+
+                                Text {
+                                    text: "DATA & BACKUP MANAGEMENT";
+                                    color: #38bdf8;
+                                    font-size: 10px;
+                                    font-weight: 700;
+                                }
+
+                                // Row 1: Full Workspace Archive & Learned Words & Phrases side by side
+                                HorizontalLayout {
+                                    spacing: 12px;
+
+                                    // Card 1: Full Workspace Backup
                                     Rectangle {
-                                        background: #0c0d14;
-                                        border-radius: 10px;
+                                        horizontal-stretch: 1;
+                                        background: #0f111a;
+                                        border-radius: 9px;
                                         border-width: 1px;
-                                        border-color: #242638;
+                                        border-color: #23273a;
 
                                         VerticalLayout {
                                             padding: 14px;
                                             spacing: 10px;
-                                            alignment: start;
+                                            alignment: space-between;
 
-                                            Text {
-                                                text: "DATA & BACKUP MANAGEMENT";
-                                                color: #38bdf8;
-                                                font-size: 9.5px;
-                                                font-weight: 700;
+                                            VerticalLayout {
+                                                spacing: 6px;
+                                                HorizontalLayout {
+                                                    spacing: 10px;
+                                                    alignment: start;
+                                                    Rectangle {
+                                                        width: 30px;
+                                                        height: 30px;
+                                                        border-radius: 7px;
+                                                        background: #89b4fa15;
+                                                        border-width: 1px;
+                                                        border-color: #89b4fa33;
+                                                        Image {
+                                                            width: 16px;
+                                                            height: 16px;
+                                                            source: @image-url("../../../data/icons/ui/database.svg");
+                                                        }
+                                                    }
+                                                    VerticalLayout {
+                                                        alignment: center;
+                                                        spacing: 2px;
+                                                        Text {
+                                                            text: "Full Workspace Archive";
+                                                            color: #f1f5f9;
+                                                            font-size: 12px;
+                                                            font-weight: 700;
+                                                        }
+                                                        Text {
+                                                            text: "Complete system backup (.json)";
+                                                            color: #89b4fa;
+                                                            font-size: 10.5px;
+                                                            font-weight: 600;
+                                                        }
+                                                    }
+                                                }
+
+                                                Text {
+                                                    text: "Archive your complete configuration, custom layouts, autocorrect table, typing memory, and statistics.";
+                                                    color: #94a3b8;
+                                                    font-size: 11px;
+                                                    wrap: word-wrap;
+                                                }
                                             }
 
                                             HorizontalLayout {
                                                 spacing: 8px;
                                                 alignment: start;
-
                                                 ModernButton {
-                                                    text: "Export Full Backup...";
-                                                    primary: false;
+                                                    text: "Export Backup...";
+                                                    icon: @image-url("../../../data/icons/ui/download.svg");
+                                                    has-icon: true;
                                                     clicked => { root.export-full-backup(); }
                                                 }
-
                                                 ModernButton {
-                                                    text: "Import Full Backup...";
-                                                    primary: false;
+                                                    text: "Restore Backup...";
+                                                    icon: @image-url("../../../data/icons/ui/upload.svg");
+                                                    has-icon: true;
                                                     clicked => { root.import-full-backup(); }
                                                 }
                                             }
+                                        }
+                                    }
 
-                                            HorizontalLayout {
-                                                spacing: 8px;
-                                                alignment: start;
+                                    // Card 2: Learned Words & Phrases
+                                    Rectangle {
+                                        horizontal-stretch: 1;
+                                        background: #0f111a;
+                                        border-radius: 9px;
+                                        border-width: 1px;
+                                        border-color: #23273a;
 
-                                                ModernButton {
-                                                    text: "Export Learned Words...";
-                                                    primary: false;
-                                                    clicked => { root.export-learned-data(); }
+                                        VerticalLayout {
+                                            padding: 14px;
+                                            spacing: 10px;
+                                            alignment: space-between;
+
+                                            VerticalLayout {
+                                                spacing: 6px;
+                                                HorizontalLayout {
+                                                    spacing: 10px;
+                                                    alignment: start;
+                                                    Rectangle {
+                                                        width: 30px;
+                                                        height: 30px;
+                                                        border-radius: 7px;
+                                                        background: #cba6f715;
+                                                        border-width: 1px;
+                                                        border-color: #cba6f733;
+                                                        Image {
+                                                            width: 16px;
+                                                            height: 16px;
+                                                            source: @image-url("../../../data/icons/ui/book.svg");
+                                                        }
+                                                    }
+                                                    VerticalLayout {
+                                                        alignment: center;
+                                                        spacing: 2px;
+                                                        Text {
+                                                            text: "Learned Vocabulary";
+                                                            color: #f1f5f9;
+                                                            font-size: 12px;
+                                                            font-weight: 700;
+                                                        }
+                                                        Text {
+                                                            text: "Personalized language model (.json)";
+                                                            color: #cba6f7;
+                                                            font-size: 10.5px;
+                                                            font-weight: 600;
+                                                        }
+                                                    }
                                                 }
 
-                                                ModernButton {
-                                                    text: "Import Learned Words...";
-                                                    primary: false;
-                                                    clicked => { root.import-learned-data(); }
+                                                Text {
+                                                    text: "Export or import only your autonomously learned vocabulary, candidate memory, and dynamic bigram transitions.";
+                                                    color: #94a3b8;
+                                                    font-size: 11px;
+                                                    wrap: word-wrap;
                                                 }
                                             }
 
                                             HorizontalLayout {
                                                 spacing: 8px;
                                                 alignment: start;
-                                                padding-top: 4px;
-
                                                 ModernButton {
-                                                    text: "⚠️ Reset Learned Data...";
+                                                    text: "Export Vocabulary...";
+                                                    icon: @image-url("../../../data/icons/ui/download.svg");
+                                                    has-icon: true;
+                                                    clicked => { root.export-learned-data(); }
+                                                }
+                                                ModernButton {
+                                                    text: "Import Vocabulary...";
+                                                    icon: @image-url("../../../data/icons/ui/upload.svg");
+                                                    has-icon: true;
+                                                    clicked => { root.import-learned-data(); }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Row 2: Danger Zone Card
+                                Rectangle {
+                                    background: #191016;
+                                    border-radius: 9px;
+                                    border-width: 1px;
+                                    border-color: #f38ba833;
+
+                                    VerticalLayout {
+                                        padding: 14px;
+                                        spacing: 10px;
+
+                                        HorizontalLayout {
+                                            alignment: space-between;
+                                            spacing: 12px;
+
+                                            HorizontalLayout {
+                                                spacing: 10px;
+                                                alignment: start;
+                                                Rectangle {
+                                                    width: 30px;
+                                                    height: 30px;
+                                                    border-radius: 7px;
+                                                    background: #f38ba818;
+                                                    border-width: 1px;
+                                                    border-color: #f38ba844;
+                                                    Image {
+                                                        width: 16px;
+                                                        height: 16px;
+                                                        source: @image-url("../../../data/icons/ui/warning.svg");
+                                                    }
+                                                }
+                                                VerticalLayout {
+                                                    alignment: center;
+                                                    spacing: 2px;
+                                                    Text {
+                                                        text: "Danger Zone";
+                                                        color: #f38ba8;
+                                                        font-size: 12px;
+                                                        font-weight: 700;
+                                                    }
+                                                    Text {
+                                                        text: "Permanently erase learned models or restore all settings back to defaults";
+                                                        color: #fca5a5a0;
+                                                        font-size: 11px;
+                                                    }
+                                                }
+                                            }
+
+                                            HorizontalLayout {
+                                                spacing: 8px;
+                                                alignment: end;
+                                                ModernButton {
+                                                    text: "Reset Learned Data...";
+                                                    icon: @image-url("../../../data/icons/ui/trash.svg");
+                                                    has-icon: true;
                                                     danger: true;
                                                     clicked => { root.request-clear-learned-data(); }
+                                                }
+                                                ModernButton {
+                                                    text: "Restore Defaults...";
+                                                    icon: @image-url("../../../data/icons/ui/refresh.svg");
+                                                    has-icon: true;
+                                                    danger: false;
+                                                    clicked => { root.request-restore-defaults(); }
                                                 }
                                             }
                                         }
