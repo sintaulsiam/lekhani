@@ -1,4 +1,11 @@
-import { Button, LineEdit, TextEdit, CheckBox, ListView, ScrollView } from "std-widgets.slint";
+import {
+    Button,
+    LineEdit,
+    TextEdit,
+    CheckBox,
+    ListView,
+    ScrollView,
+} from "std-widgets.slint";
 
 // Struct for AutoCorrect list display
 export struct AcEntry {
@@ -108,17 +115,35 @@ component PopoutButton inherits Rectangle {
     }
 }
 
+component HeaderIcon inherits Rectangle {
+    in property <image> source;
+    in property <color> colorize: #89b4fa;
+    in property <length> icon-size: 16px;
+
+    width: root.icon-size + 2px;
+    height: 24px;
+
+    Image {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: root.source;
+        width: root.icon-size;
+        height: root.icon-size;
+        colorize: root.colorize;
+    }
+}
+
 component SegmentButton inherits Rectangle {
     in property <string> label;
     in property <bool> active: false;
-    in property <color> active-color: #89b4fa;
+    in property <color> active-color: #3b82f6;
     callback clicked;
 
-    height: 24px;
+    height: 26px;
     border-radius: 6px;
-    background: root.active ? #2b2e46 : (ta.has-hover ? #1a1c2b : transparent);
+    background: root.active ? #1e293b : (ta.has-hover ? #151a24 : transparent);
     border-width: 1px;
-    border-color: root.active ? #454a66 : transparent;
+    border-color: root.active ? #38bdf888 : (ta.has-hover ? #252e42 : transparent);
     animate background, border-color { duration: 100ms; }
 
     ta := TouchArea {
@@ -129,12 +154,12 @@ component SegmentButton inherits Rectangle {
     VerticalLayout {
         alignment: center;
         HorizontalLayout {
-            padding-left: 14px;
-            padding-right: 14px;
+            padding-left: 12px;
+            padding-right: 12px;
             alignment: center;
             Text {
                 text: root.label;
-                color: root.active ? #ffffff : (ta.has-hover ? #cdd6f4 : #9399b2);
+                color: root.active ? #ffffff : (ta.has-hover ? #e2e8f0 : #94a3b8);
                 font-size: 11.5px;
                 font-weight: root.active ? 700 : 500;
             }
@@ -280,9 +305,9 @@ component ModernButton inherits Rectangle {
 
     height: 30px;
     border-radius: 7px;
-    background: root.primary ? (ta.has-hover ? #89b4fa : #729ded) : (ta.has-hover ? #282b40 : #191a28);
+    background: root.primary ? (ta.has-hover ? #3b82f6 : #2563eb) : (ta.has-hover ? #22293a : #151822);
     border-width: 1px;
-    border-color: root.primary ? #b4befe88 : (ta.has-hover ? #50567a : #2e3148);
+    border-color: root.primary ? #60a5fa88 : (ta.has-hover ? #3d4963 : #222838);
     animate background, border-color { duration: 100ms; }
 
     ta := TouchArea {
@@ -298,7 +323,7 @@ component ModernButton inherits Rectangle {
             alignment: center;
             Text {
                 text: root.text;
-                color: root.primary ? #0f101a : (ta.has-hover ? #ffffff : #cdd6f4);
+                color: root.primary ? #ffffff : (ta.has-hover ? #ffffff : #f1f5f9);
                 font-size: 12px;
                 font-weight: root.primary ? 700 : 600;
                 vertical-alignment: center;
@@ -326,25 +351,28 @@ component ModernToggleSwitch inherits Rectangle {
         alignment: space-between;
         Text {
             text: root.label;
-            color: ta.has-hover ? #ffffff : #cdd6f4;
-            font-size: 11.5px;
+            color: ta.has-hover ? #ffffff : #e2e8f0;
+            font-size: 12px;
             font-weight: 500;
             vertical-alignment: center;
         }
 
         Rectangle {
-            width: 34px;
-            height: 18px;
-            border-radius: 9px;
-            background: root.checked ? #89b4fa : #2a2d42;
-            animate background { duration: 120ms; }
+            width: 36px;
+            height: 20px;
+            border-radius: 10px;
+            y: (parent.height - self.height) / 2;
+            background: root.checked ? #3b82f6 : #1a1f2c;
+            border-width: 1px;
+            border-color: root.checked ? #60a5fa : #2a3348;
+            animate background, border-color { duration: 120ms; }
 
             Rectangle {
                 width: 14px;
                 height: 14px;
                 border-radius: 7px;
                 background: #ffffff;
-                x: root.checked ? parent.width - self.width - 2px : 2px;
+                x: root.checked ? parent.width - self.width - 3px : 3px;
                 y: 2px;
                 animate x { duration: 120ms; }
             }
@@ -392,16 +420,24 @@ export component TopBarWindow inherits Window {
     no-frame: true;
     background: transparent;
     default-font-family: "Noto Sans, Noto Sans Bengali, Inter, Roboto, sans-serif";
-    
+
     in-out property <string> active-layout-name: "Avro Phonetic";
-    in-out property <[string]> available-layouts: ["Avro Phonetic", "Probhat", "National (Jatiya)", "Unijoy", "Munir Optima", "Borno", "Avro Easy"];
+    in-out property <[string]> available-layouts: [
+        "Avro Phonetic",
+        "Probhat",
+        "National (Jatiya)",
+        "Unijoy",
+        "Munir Optima",
+        "Borno",
+        "Avro Easy"
+    ];
     in-out property <bool> is-bengali-mode: true;
-    
+
     // Converter direction and copy state
     in-out property <int> conv-direction: 0; // 0: Bijoy -> Unicode, 1: Unicode -> Bijoy
     in-out property <bool> conv-copied: false;
     callback copy-to-clipboard(string);
-    
+
     // Dialog state: 0: None, 1: Layout Menu, 2: Layout Viewer, 3: AutoCorrect, 4: Converter, 5: Settings, 6: About, 7: Conjuncts, 8: Stats
     in-out property <int> active-dialog: 0;
 
@@ -440,6 +476,7 @@ export component TopBarWindow inherits Window {
     // Conjunct Assistant properties
     in-out property <string> conjunct-search-query: "";
     in-out property <[ConjunctEntry]> conjunct-list: [];
+    in-out property <int> conjunct-zoom: 1;
 
     // Stats Dashboard properties
     in-out property <int> stats-total-words: 0;
@@ -493,7 +530,7 @@ export component TopBarWindow inherits Window {
     callback start-drag-window();
     callback end-drag-window();
     callback detach-dialog(int);
-    
+
     // AutoCorrect Callbacks
     callback ac-search-changed(string);
     callback ac-add-or-update(string, string);
@@ -673,7 +710,7 @@ export component TopBarWindow inherits Window {
                 }
 
                 // 10. Minimize to System Tray Button (Windows)
-                if root.is-windows : btn_minimize := VectorIconButton {
+                if root.is-windows: btn_minimize := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/minimize.svg");
                     icon-color: #fab387;
                     active: false;
@@ -699,7 +736,7 @@ export component TopBarWindow inherits Window {
         // ---------------------------------------------------------------------
         // 1. Layout Dropdown Popup Panel
         // ---------------------------------------------------------------------
-        if (root.active-dialog == 1) : HorizontalLayout {
+        if (root.active-dialog == 1): HorizontalLayout {
             padding-left: 95px;
             alignment: start;
             Rectangle {
@@ -725,11 +762,14 @@ export component TopBarWindow inherits Window {
                             color: #89b4fa;
                             font-size: 9.5px;
                             font-weight: 800;
+                            vertical-alignment: center;
                         }
+
                         CloseButton {
                             clicked => { root.active-dialog = 0; }
                         }
                     }
+
                     for layout[idx] in root.available-layouts: Rectangle {
                         height: 30px;
                         border-radius: 7px;
@@ -758,7 +798,8 @@ export component TopBarWindow inherits Window {
                                 font-weight: layout == root.active-layout-name ? 700 : 500;
                                 vertical-alignment: center;
                             }
-                            if (layout == root.active-layout-name) : Text {
+
+                            if (layout == root.active-layout-name): Text {
                                 text: "✓";
                                 color: #a6e3a1;
                                 font-size: 13px;
@@ -774,7 +815,7 @@ export component TopBarWindow inherits Window {
         // ---------------------------------------------------------------------
         // 2. Visual Keyboard Layout Viewer Dialog (Matching Mockup Card)
         // ---------------------------------------------------------------------
-        if (root.active-dialog == 2) : Rectangle {
+        if (root.active-dialog == 2): Rectangle {
             width: 480px;
             background: #11121dfa;
             border-radius: 18px;
@@ -792,13 +833,11 @@ export component TopBarWindow inherits Window {
                     alignment: space-between;
                     HorizontalLayout {
                         spacing: 8px;
-                        Image {
+                        HeaderIcon {
                             source: @image-url("../../../data/icons/ui/keyboard.svg");
-                            width: 16px;
-                            height: 16px;
                             colorize: #89b4fa;
-                            vertical-alignment: center;
                         }
+
                         Text {
                             text: "Keyboard Viewer — " + root.active-layout-name;
                             color: #f1f5f9;
@@ -807,6 +846,7 @@ export component TopBarWindow inherits Window {
                             vertical-alignment: center;
                         }
                     }
+
                     HorizontalLayout {
                         spacing: 4px;
                         PopoutButton {
@@ -815,6 +855,7 @@ export component TopBarWindow inherits Window {
                                 root.detach-dialog(2);
                             }
                         }
+
                         CloseButton {
                             clicked => { root.active-dialog = 0; }
                         }
@@ -837,12 +878,14 @@ export component TopBarWindow inherits Window {
                             active-color: #89b4fa;
                             clicked => { root.viewer-mode = 0; root.viewer-mode-changed(0); }
                         }
+
                         SegmentButton {
                             label: "Shift";
                             active: root.viewer-mode == 1;
                             active-color: #a6e3a1;
                             clicked => { root.viewer-mode = 1; root.viewer-mode-changed(1); }
                         }
+
                         SegmentButton {
                             label: "AltGr";
                             active: root.viewer-mode == 2;
@@ -903,7 +946,7 @@ export component TopBarWindow inherits Window {
         // ---------------------------------------------------------------------
         // 3. AutoCorrect & Custom Word Dictionary Dialog
         // ---------------------------------------------------------------------
-        if (root.active-dialog == 3) : Rectangle {
+        if (root.active-dialog == 3): Rectangle {
             width: 480px;
             background: #11121dfa;
             border-radius: 18px;
@@ -921,15 +964,20 @@ export component TopBarWindow inherits Window {
                     alignment: space-between;
                     HorizontalLayout {
                         spacing: 8px;
-                        Image {
+                        HeaderIcon {
                             source: @image-url("../../../data/icons/ui/pen.svg");
-                            width: 16px;
-                            height: 16px;
                             colorize: #a6e3a1;
+                        }
+
+                        Text {
+                            text: "AutoCorrect";
+                            color: #f1f5f9;
+                            font-size: 13.5px;
+                            font-weight: 700;
                             vertical-alignment: center;
                         }
-                        Text { text: "AutoCorrect"; color: #f1f5f9; font-size: 13.5px; font-weight: 700; vertical-alignment: center; }
                     }
+
                     HorizontalLayout {
                         spacing: 4px;
                         PopoutButton {
@@ -938,6 +986,7 @@ export component TopBarWindow inherits Window {
                                 root.detach-dialog(3);
                             }
                         }
+
                         CloseButton {
                             clicked => { root.active-dialog = 0; }
                         }
@@ -964,7 +1013,13 @@ export component TopBarWindow inherits Window {
                     VerticalLayout {
                         padding: 10px;
                         spacing: 6px;
-                        Text { text: "ADD WORD"; color: #89b4fa; font-size: 9.5px; font-weight: 700; }
+                        Text {
+                            text: "ADD WORD";
+                            color: #89b4fa;
+                            font-size: 9.5px;
+                            font-weight: 700;
+                        }
+
                         HorizontalLayout {
                             spacing: 6px;
                             in_replace := LineEdit {
@@ -975,6 +1030,7 @@ export component TopBarWindow inherits Window {
                                     root.ac-input-changed(t, in_with.text);
                                 }
                             }
+
                             in_with := LineEdit {
                                 text: root.ac-with-input;
                                 placeholder-text: "Bengali (e.g. কথা)";
@@ -983,6 +1039,7 @@ export component TopBarWindow inherits Window {
                                     root.ac-input-changed(in_replace.text, t);
                                 }
                             }
+
                             ModernButton {
                                 text: "+ Add";
                                 primary: true;
@@ -999,7 +1056,11 @@ export component TopBarWindow inherits Window {
                 // Status bar
                 HorizontalLayout {
                     alignment: space-between;
-                    Text { text: root.ac-status-text; color: #585b70; font-size: 10.5px; }
+                    Text {
+                        text: root.ac-status-text;
+                        color: #585b70;
+                        font-size: 10.5px;
+                    }
                 }
             }
         }
@@ -1007,7 +1068,7 @@ export component TopBarWindow inherits Window {
         // ---------------------------------------------------------------------
         // 4. Bijoy ⇄ Unicode Converter Dialog
         // ---------------------------------------------------------------------
-        if (root.active-dialog == 4) : Rectangle {
+        if (root.active-dialog == 4): Rectangle {
             width: 480px;
             background: #11121dfa;
             border-radius: 18px;
@@ -1025,15 +1086,20 @@ export component TopBarWindow inherits Window {
                     alignment: space-between;
                     HorizontalLayout {
                         spacing: 8px;
-                        Image {
+                        HeaderIcon {
                             source: @image-url("../../../data/icons/ui/exchange.svg");
-                            width: 16px;
-                            height: 16px;
                             colorize: #fab387;
+                        }
+
+                        Text {
+                            text: "Bijoy ⇄ Unicode Converter";
+                            color: #f1f5f9;
+                            font-size: 13.5px;
+                            font-weight: 700;
                             vertical-alignment: center;
                         }
-                        Text { text: "Bijoy ⇄ Unicode Converter"; color: #f1f5f9; font-size: 13.5px; font-weight: 700; vertical-alignment: center; }
                     }
+
                     HorizontalLayout {
                         spacing: 4px;
                         PopoutButton {
@@ -1042,6 +1108,7 @@ export component TopBarWindow inherits Window {
                                 root.detach-dialog(4);
                             }
                         }
+
                         CloseButton {
                             clicked => { root.active-dialog = 0; }
                         }
@@ -1062,6 +1129,7 @@ export component TopBarWindow inherits Window {
                             }
                         }
                     }
+
                     SegmentButton {
                         label: "Unicode ➔ Bijoy";
                         active: root.conv-direction == 1;
@@ -1086,7 +1154,8 @@ export component TopBarWindow inherits Window {
                             font-size: 11px;
                             font-weight: 700;
                         }
-                        if (in_conv_edit.text != "") : Text {
+
+                        if (in_conv_edit.text != ""): Text {
                             text: "Instant conversion active";
                             color: #6c7086;
                             font-size: 10px;
@@ -1103,7 +1172,7 @@ export component TopBarWindow inherits Window {
                             padding: 6px;
                             in_conv_edit := LineEdit {
                                 text: root.conv-input-text;
-                                placeholder-text: root.conv-direction == 0 ? "Paste or type Bijoy text (e.g. Avwg evsjvq Mvb MvB)..." : "Paste or type Unicode text (e.g. আমি বাংলায় গান গাই)...";
+                                placeholder-text: root.conv-direction == 0 ? "Paste or type Bijoy text" : "Paste or type Unicode text";
                                 edited(t) => {
                                     root.conv-input-text = t;
                                     root.conv-copied = false;
@@ -1132,6 +1201,7 @@ export component TopBarWindow inherits Window {
                             }
                         }
                     }
+
                     ModernButton {
                         text: "Clear";
                         primary: false;
@@ -1154,7 +1224,8 @@ export component TopBarWindow inherits Window {
                             font-size: 11px;
                             font-weight: 700;
                         }
-                        if (root.conv-output-text != "") : Rectangle {
+
+                        if (root.conv-output-text != ""): Rectangle {
                             height: 18px;
                             border-radius: 4px;
                             background: #a6e3a120;
@@ -1199,7 +1270,7 @@ export component TopBarWindow inherits Window {
                                 wrap: word-wrap;
                             }
 
-                            if (root.conv-output-text != "") : CopyButton {
+                            if (root.conv-output-text != ""): CopyButton {
                                 copied: root.conv-copied;
                                 clicked => {
                                     root.copy-to-clipboard(root.conv-output-text);
@@ -1214,7 +1285,7 @@ export component TopBarWindow inherits Window {
         // ---------------------------------------------------------------------
         // 5. Settings Dialog Window
         // ---------------------------------------------------------------------
-        if (root.active-dialog == 5) : Rectangle {
+        if (root.active-dialog == 5): Rectangle {
             width: 515px;
             background: #11121dfa;
             border-radius: 18px;
@@ -1232,15 +1303,20 @@ export component TopBarWindow inherits Window {
                     alignment: space-between;
                     HorizontalLayout {
                         spacing: 8px;
-                        Image {
+                        HeaderIcon {
                             source: @image-url("../../../data/icons/ui/settings.svg");
-                            width: 16px;
-                            height: 16px;
                             colorize: #cba6f7;
+                        }
+
+                        Text {
+                            text: "Settings";
+                            color: #f1f5f9;
+                            font-size: 13.5px;
+                            font-weight: 700;
                             vertical-alignment: center;
                         }
-                        Text { text: "Settings"; color: #f1f5f9; font-size: 13.5px; font-weight: 700; vertical-alignment: center; }
                     }
+
                     HorizontalLayout {
                         spacing: 4px;
                         PopoutButton {
@@ -1249,6 +1325,7 @@ export component TopBarWindow inherits Window {
                                 root.detach-dialog(5);
                             }
                         }
+
                         CloseButton {
                             clicked => { root.active-dialog = 0; }
                         }
@@ -1276,29 +1353,67 @@ export component TopBarWindow inherits Window {
                                 padding: 12px;
                                 spacing: 8px;
                                 alignment: start;
-                                Text { text: "PHONETIC & BASIC TYPING"; color: #89b4fa; font-size: 9.5px; font-weight: 700; }
-                                ModernToggleSwitch { label: "Enable Dictionary Suggestions"; checked: root.set-use-dict; toggled(v) => { root.set-use-dict = v; root.auto-save-settings(); } }
-                                ModernToggleSwitch { label: "Include English in Candidate List"; checked: root.set-include-eng; toggled(v) => { root.set-include-eng = v; root.auto-save-settings(); } }
-                                ModernToggleSwitch { label: "Enter Key Closes Candidate Window"; checked: root.set-enter-closes; toggled(v) => { root.set-enter-closes = v; root.auto-save-settings(); } }
-                                ModernToggleSwitch { label: "Auto-Expand Double Period (..) to Dāri (।)"; checked: root.set-auto-dari; toggled(v) => { root.set-auto-dari = v; root.auto-save-settings(); } }
-                                ModernToggleSwitch { label: "Show Mode-Switch HUD Overlay"; checked: root.set-show-osd; toggled(v) => { root.set-show-osd = v; root.auto-save-settings(); } }
+                                Text {
+                                    text: "PHONETIC & BASIC TYPING";
+                                    color: #89b4fa;
+                                    font-size: 9.5px;
+                                    font-weight: 700;
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Enable Dictionary Suggestions";
+                                    checked: root.set-use-dict;
+                                    toggled(v) => { root.set-use-dict = v; root.auto-save-settings(); }
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Include English in Candidate List";
+                                    checked: root.set-include-eng;
+                                    toggled(v) => { root.set-include-eng = v; root.auto-save-settings(); }
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Enter Key Closes Candidate Window";
+                                    checked: root.set-enter-closes;
+                                    toggled(v) => { root.set-enter-closes = v; root.auto-save-settings(); }
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Auto-Expand Double Period (..) to Dāri (।)";
+                                    checked: root.set-auto-dari;
+                                    toggled(v) => { root.set-auto-dari = v; root.auto-save-settings(); }
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Show Mode-Switch HUD Overlay";
+                                    checked: root.set-show-osd;
+                                    toggled(v) => { root.set-show-osd = v; root.auto-save-settings(); }
+                                }
 
                                 HorizontalLayout {
                                     spacing: 8px;
                                     padding-top: 4px;
-                                    Text { text: "Mode Toggle Hotkey:"; color: #cdd6f4; font-size: 11.5px; vertical-alignment: center; }
+                                    Text {
+                                        text: "Mode Toggle Hotkey:";
+                                        color: #cdd6f4;
+                                        font-size: 11.5px;
+                                        vertical-alignment: center;
+                                    }
+
                                     SegmentButton {
                                         label: "F12";
                                         active: root.set-toggle-key == "F12";
                                         active-color: #89b4fa;
                                         clicked => { root.set-toggle-key = "F12"; root.auto-save-settings(); }
                                     }
+
                                     SegmentButton {
                                         label: "Ctrl+Space";
                                         active: root.set-toggle-key == "Ctrl+Space";
                                         active-color: #89b4fa;
                                         clicked => { root.set-toggle-key = "Ctrl+Space"; root.auto-save-settings(); }
                                     }
+
                                     SegmentButton {
                                         label: "Shift+Space";
                                         active: root.set-toggle-key == "Shift+Space";
@@ -1320,11 +1435,36 @@ export component TopBarWindow inherits Window {
                                 padding: 12px;
                                 spacing: 8px;
                                 alignment: start;
-                                Text { text: "SMART ASSISTANCE & DEVELOPER TOOLS"; color: #cba6f7; font-size: 9.5px; font-weight: 700; }
-                                ModernToggleSwitch { label: "Developer Code Shield (CLI flags, camelCase, keywords)"; checked: root.set-code-shield; toggled(v) => { root.set-code-shield = v; root.auto-save-settings(); } }
-                                ModernToggleSwitch { label: "Concatenated Word Segmentation (kemonaso ➔ কেমন আছো)"; checked: root.set-word-segmentation; toggled(v) => { root.set-word-segmentation = v; root.auto-save-settings(); } }
-                                ModernToggleSwitch { label: "Colloquial Dialect Normalization (khamu ➔ খাব, korsi ➔ করেছি)"; checked: root.set-colloquial-dialects; toggled(v) => { root.set-colloquial-dialects = v; root.auto-save-settings(); } }
-                                ModernToggleSwitch { label: "Banglish Chat Contractions (amr ➔ আমার, tmr ➔ তোমার)"; checked: root.set-banglish-shorthand; toggled(v) => { root.set-banglish-shorthand = v; root.auto-save-settings(); } }
+                                Text {
+                                    text: "SMART ASSISTANCE & DEVELOPER TOOLS";
+                                    color: #cba6f7;
+                                    font-size: 9.5px;
+                                    font-weight: 700;
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Developer Code Shield";
+                                    checked: root.set-code-shield;
+                                    toggled(v) => { root.set-code-shield = v; root.auto-save-settings(); }
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Concatenated Word Segmentation";
+                                    checked: root.set-word-segmentation;
+                                    toggled(v) => { root.set-word-segmentation = v; root.auto-save-settings(); }
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Colloquial Dialect Normalization";
+                                    checked: root.set-colloquial-dialects;
+                                    toggled(v) => { root.set-colloquial-dialects = v; root.auto-save-settings(); }
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Banglish Chat Contractions";
+                                    checked: root.set-banglish-shorthand;
+                                    toggled(v) => { root.set-banglish-shorthand = v; root.auto-save-settings(); }
+                                }
                             }
                         }
 
@@ -1339,10 +1479,30 @@ export component TopBarWindow inherits Window {
                                 padding: 12px;
                                 spacing: 8px;
                                 alignment: start;
-                                Text { text: "PREDICTIVE INTELLIGENCE"; color: #f38ba8; font-size: 9.5px; font-weight: 700; }
-                                ModernToggleSwitch { label: "AI Next-Word Prediction"; checked: root.set-predictive-next; toggled(v) => { root.set-predictive-next = v; root.auto-save-settings(); } }
-                                ModernToggleSwitch { label: "Reduplicated Words Prediction (ধীরে ➔ ধীরে, মাঝে ➔ মাঝে)"; checked: root.set-reduplication; toggled(v) => { root.set-reduplication = v; root.auto-save-settings(); } }
-                                ModernToggleSwitch { label: "Multi-Word Idiom & Phrase Completion (অনেক অনেক ➔ ধন্যবাদ)"; checked: root.set-phrase-prediction; toggled(v) => { root.set-phrase-prediction = v; root.auto-save-settings(); } }
+                                Text {
+                                    text: "PREDICTIVE INTELLIGENCE";
+                                    color: #f38ba8;
+                                    font-size: 9.5px;
+                                    font-weight: 700;
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "AI Next-Word Prediction";
+                                    checked: root.set-predictive-next;
+                                    toggled(v) => { root.set-predictive-next = v; root.auto-save-settings(); }
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Reduplicated Words Prediction";
+                                    checked: root.set-reduplication;
+                                    toggled(v) => { root.set-reduplication = v; root.auto-save-settings(); }
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Multi-Word Phrase Completion";
+                                    checked: root.set-phrase-prediction;
+                                    toggled(v) => { root.set-phrase-prediction = v; root.auto-save-settings(); }
+                                }
                             }
                         }
 
@@ -1357,8 +1517,18 @@ export component TopBarWindow inherits Window {
                                 padding: 12px;
                                 spacing: 8px;
                                 alignment: start;
-                                Text { text: "PRODUCTIVITY SHORTCUTS"; color: #fab387; font-size: 9.5px; font-weight: 700; }
-                                ModernToggleSwitch { label: "Dynamic Math & Date Macros (!date, !sum(2+2))"; checked: root.set-dynamic-macros; toggled(v) => { root.set-dynamic-macros = v; root.auto-save-settings(); } }
+                                Text {
+                                    text: "PRODUCTIVITY SHORTCUTS";
+                                    color: #fab387;
+                                    font-size: 9.5px;
+                                    font-weight: 700;
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Dynamic Math & Date Macros";
+                                    checked: root.set-dynamic-macros;
+                                    toggled(v) => { root.set-dynamic-macros = v; root.auto-save-settings(); }
+                                }
                             }
                         }
 
@@ -1373,17 +1543,47 @@ export component TopBarWindow inherits Window {
                                 padding: 12px;
                                 spacing: 8px;
                                 alignment: start;
-                                Text { text: "FIXED LAYOUT AUTOMATION"; color: #a6e3a1; font-size: 9.5px; font-weight: 700; }
-                                ModernToggleSwitch { label: "Automatic Vowel Forming (অ + া ➔ আ)"; checked: root.set-auto-vowel; toggled(v) => { root.set-auto-vowel = v; root.auto-save-settings(); } }
-                                ModernToggleSwitch { label: "Automatic Chandra Position (কঁ + া ➔ কাঁ)"; checked: root.set-auto-chandra; toggled(v) => { root.set-auto-chandra = v; root.auto-save-settings(); } }
-                                ModernToggleSwitch { label: "Traditional Kar Joining"; checked: root.set-traditional-kar; toggled(v) => { root.set-traditional-kar = v; root.auto-save-settings(); } }
-                                ModernToggleSwitch { label: "Smart Reph (র্) Insertion"; checked: root.set-old-reph; toggled(v) => { root.set-old-reph = v; root.auto-save-settings(); } }
-                                ModernToggleSwitch { label: "Map Numeric Keypad to Bengali (০-৯)"; checked: root.set-numberpad; toggled(v) => { root.set-numberpad = v; root.auto-save-settings(); } }
+                                Text {
+                                    text: "FIXED LAYOUT AUTOMATION";
+                                    color: #a6e3a1;
+                                    font-size: 9.5px;
+                                    font-weight: 700;
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Automatic Vowel Forming";
+                                    checked: root.set-auto-vowel;
+                                    toggled(v) => { root.set-auto-vowel = v; root.auto-save-settings(); }
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Automatic Chandra Position";
+                                    checked: root.set-auto-chandra;
+                                    toggled(v) => { root.set-auto-chandra = v; root.auto-save-settings(); }
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Traditional Kar Placement";
+                                    checked: root.set-traditional-kar;
+                                    toggled(v) => { root.set-traditional-kar = v; root.auto-save-settings(); }
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Smart Reph Placement";
+                                    checked: root.set-old-reph;
+                                    toggled(v) => { root.set-old-reph = v; root.auto-save-settings(); }
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Bengali Number Pad Mapping";
+                                    checked: root.set-numberpad;
+                                    toggled(v) => { root.set-numberpad = v; root.auto-save-settings(); }
+                                }
                             }
                         }
 
                         // Section 6: System & Startup (Windows)
-                        if root.is-windows : Rectangle {
+                        if root.is-windows: Rectangle {
                             background: #0c0d14;
                             border-radius: 10px;
                             border-width: 1px;
@@ -1393,8 +1593,18 @@ export component TopBarWindow inherits Window {
                                 padding: 12px;
                                 spacing: 8px;
                                 alignment: start;
-                                Text { text: "SYSTEM"; color: #f9e2af; font-size: 9.5px; font-weight: 700; }
-                                ModernToggleSwitch { label: "Launch on system startup"; checked: root.set-autostart; toggled(v) => { root.set-autostart = v; root.auto-save-settings(); } }
+                                Text {
+                                    text: "SYSTEM";
+                                    color: #f9e2af;
+                                    font-size: 9.5px;
+                                    font-weight: 700;
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Launch on system startup";
+                                    checked: root.set-autostart;
+                                    toggled(v) => { root.set-autostart = v; root.auto-save-settings(); }
+                                }
                             }
                         }
                     }
@@ -1406,18 +1616,11 @@ export component TopBarWindow inherits Window {
                     padding-top: 4px;
 
                     HorizontalLayout {
-                        spacing: 6px;
-                        alignment: center;
-                        Rectangle {
-                            width: 6px;
-                            height: 6px;
-                            border-radius: 3px;
-                            background: #a6e3a1;
-                        }
+                        spacing: 7px;
                         Text {
                             text: root.settings-status-text;
-                            color: #a6adc8;
-                            font-size: 11px;
+                            color: #94a3b8;
+                            font-size: 11.5px;
                             vertical-alignment: center;
                         }
                     }
@@ -1445,7 +1648,7 @@ export component TopBarWindow inherits Window {
         // ---------------------------------------------------------------------
         // 6. About Dialog Window
         // ---------------------------------------------------------------------
-        if (root.active-dialog == 6) : Rectangle {
+        if (root.active-dialog == 6): Rectangle {
             width: 480px;
             background: #11121dfa;
             border-radius: 18px;
@@ -1468,7 +1671,7 @@ export component TopBarWindow inherits Window {
                     border-color: #89b4fa55;
                     drop-shadow-blur: 14px;
                     drop-shadow-color: #89b4fa33;
-                    
+
                     Image {
                         source: @image-url("../../../data/icons/128.png");
                         width: 40px;
@@ -1478,10 +1681,38 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                Text { text: "Lekhani (লেখনী)"; color: #f1f5f9; font-size: 17px; font-weight: 800; horizontal-alignment: center; }
-                Text { text: "Version 1.0.0 • Pure Rust Architecture"; color: #89b4fa; font-size: 12px; font-weight: 600; horizontal-alignment: center; }
-                Text { text: "Author: Sintaul Mahdi Siam • Syntenieum (2026)"; color: #a6e3a1; font-size: 11px; font-weight: 600; horizontal-alignment: center; }
-                Text { text: "© 2026 Syntenieum. All rights reserved."; color: #89dceb; font-size: 10.5px; font-weight: 500; horizontal-alignment: center; }
+                Text {
+                    text: "Lekhani (লেখনী)";
+                    color: #f1f5f9;
+                    font-size: 17px;
+                    font-weight: 800;
+                    horizontal-alignment: center;
+                }
+
+                Text {
+                    text: "Version 1.0.0 • Pure Rust Architecture";
+                    color: #89b4fa;
+                    font-size: 12px;
+                    font-weight: 600;
+                    horizontal-alignment: center;
+                }
+
+                Text {
+                    text: "Author: Sintaul Mahdi Siam • Syntenieum (2026)";
+                    color: #a6e3a1;
+                    font-size: 11px;
+                    font-weight: 600;
+                    horizontal-alignment: center;
+                }
+
+                Text {
+                    text: "© 2026 Syntenieum. All rights reserved.";
+                    color: #89dceb;
+                    font-size: 10.5px;
+                    font-weight: 500;
+                    horizontal-alignment: center;
+                }
+
                 Text {
                     text: "Modern, Ultra-Fast Bengali Input Method Framework & Desktop Suite for Linux & Windows";
                     color: #a6adc8;
@@ -1513,7 +1744,7 @@ export component TopBarWindow inherits Window {
         // ---------------------------------------------------------------------
         // 7. Bengali Conjunct Assistant ("যুক্তবর্ণ সহায়িকা")
         // ---------------------------------------------------------------------
-        if (root.active-dialog == 7) : Rectangle {
+        if (root.active-dialog == 7): Rectangle {
             width: 480px;
             background: #11121dfa;
             border-radius: 18px;
@@ -1531,15 +1762,20 @@ export component TopBarWindow inherits Window {
                     alignment: space-between;
                     HorizontalLayout {
                         spacing: 8px;
-                        Image {
+                        HeaderIcon {
                             source: @image-url("../../../data/icons/ui/puzzle.svg");
-                            width: 16px;
-                            height: 16px;
                             colorize: #89dceb;
+                        }
+
+                        Text {
+                            text: "যুক্তবর্ণ সহায়িকা";
+                            color: #f1f5f9;
+                            font-size: 13.5px;
+                            font-weight: 700;
                             vertical-alignment: center;
                         }
-                        Text { text: "যুক্তবর্ণ সহায়িকা"; color: #f1f5f9; font-size: 13.5px; font-weight: 700; vertical-alignment: center; }
                     }
+
                     HorizontalLayout {
                         spacing: 4px;
                         PopoutButton {
@@ -1548,6 +1784,7 @@ export component TopBarWindow inherits Window {
                                 root.detach-dialog(7);
                             }
                         }
+
                         CloseButton {
                             clicked => { root.active-dialog = 0; }
                         }
@@ -1557,7 +1794,7 @@ export component TopBarWindow inherits Window {
                 // Search Bar
                 LineEdit {
                     text: root.conjunct-search-query;
-                    placeholder-text: "Search conjunct, breakdown, or phonetic keys (e.g. ক্ষ, kkh, হ + ্ + ম)...";
+                    placeholder-text: "Search conjuncts, components, or phonetic keys...";
                     edited(t) => {
                         root.conjunct-search-query = t;
                         root.conjunct-search-changed(t);
@@ -1574,7 +1811,7 @@ export component TopBarWindow inherits Window {
                     clip: true;
 
                     ListView {
-                        for item[idx] in root.conjunct-list : Rectangle {
+                        for item[idx] in root.conjunct-list: Rectangle {
                             height: 48px;
                             background: Math.mod(idx, 2) == 0 ? #14152288 : transparent;
 
@@ -1614,6 +1851,7 @@ export component TopBarWindow inherits Window {
                                             font-size: 12px;
                                             font-weight: 600;
                                         }
+
                                         Text {
                                             text: item.examples;
                                             color: #a6adc8;
@@ -1644,6 +1882,7 @@ export component TopBarWindow inherits Window {
                                             }
                                         }
                                     }
+
                                     CopyButton {
                                         clicked => {
                                             root.copy-conjunct(item.conjunct);
@@ -1660,7 +1899,7 @@ export component TopBarWindow inherits Window {
         // ---------------------------------------------------------------------
         // 8. Personal Typing Analytics & Speed Heatmap Dashboard
         // ---------------------------------------------------------------------
-        if (root.active-dialog == 8) : Rectangle {
+        if (root.active-dialog == 8): Rectangle {
             width: 480px;
             background: #11121dfa;
             border-radius: 18px;
@@ -1678,15 +1917,20 @@ export component TopBarWindow inherits Window {
                     alignment: space-between;
                     HorizontalLayout {
                         spacing: 8px;
-                        Image {
+                        HeaderIcon {
                             source: @image-url("../../../data/icons/ui/chart.svg");
-                            width: 16px;
-                            height: 16px;
                             colorize: #f9e2af;
+                        }
+
+                        Text {
+                            text: "Typing Analytics";
+                            color: #f1f5f9;
+                            font-size: 13.5px;
+                            font-weight: 700;
                             vertical-alignment: center;
                         }
-                        Text { text: "Typing Analytics"; color: #f1f5f9; font-size: 13.5px; font-weight: 700; vertical-alignment: center; }
                     }
+
                     HorizontalLayout {
                         spacing: 6px;
                         Rectangle {
@@ -1700,6 +1944,7 @@ export component TopBarWindow inherits Window {
                                 mouse-cursor: pointer;
                                 clicked => { root.refresh-stats(); }
                             }
+
                             Image {
                                 source: @image-url("../../../data/icons/ui/refresh.svg");
                                 width: 12px;
@@ -1709,12 +1954,14 @@ export component TopBarWindow inherits Window {
                                 y: (parent.height - self.height) / 2;
                             }
                         }
+
                         PopoutButton {
                             clicked => {
                                 root.active-dialog = 0;
                                 root.detach-dialog(8);
                             }
                         }
+
                         CloseButton {
                             clicked => { root.active-dialog = 0; }
                         }
@@ -1736,8 +1983,21 @@ export component TopBarWindow inherits Window {
                             alignment: center;
                             spacing: 2px;
                             padding: 6px;
-                            Text { text: "WORDS"; color: #89b4fa; font-size: 9px; font-weight: 700; horizontal-alignment: center; }
-                            Text { text: root.stats-total-words; color: #f1f5f9; font-size: 18px; font-weight: 700; horizontal-alignment: center; }
+                            Text {
+                                text: "WORDS";
+                                color: #89b4fa;
+                                font-size: 9px;
+                                font-weight: 700;
+                                horizontal-alignment: center;
+                            }
+
+                            Text {
+                                text: root.stats-total-words;
+                                color: #f1f5f9;
+                                font-size: 18px;
+                                font-weight: 700;
+                                horizontal-alignment: center;
+                            }
                         }
                     }
 
@@ -1752,8 +2012,21 @@ export component TopBarWindow inherits Window {
                             alignment: center;
                             spacing: 2px;
                             padding: 6px;
-                            Text { text: "SAVED KEYS"; color: #a6e3a1; font-size: 9px; font-weight: 700; horizontal-alignment: center; }
-                            Text { text: root.stats-keystrokes-saved; color: #f1f5f9; font-size: 18px; font-weight: 700; horizontal-alignment: center; }
+                            Text {
+                                text: "SAVED KEYS";
+                                color: #a6e3a1;
+                                font-size: 9px;
+                                font-weight: 700;
+                                horizontal-alignment: center;
+                            }
+
+                            Text {
+                                text: root.stats-keystrokes-saved;
+                                color: #f1f5f9;
+                                font-size: 18px;
+                                font-weight: 700;
+                                horizontal-alignment: center;
+                            }
                         }
                     }
 
@@ -1768,8 +2041,21 @@ export component TopBarWindow inherits Window {
                             alignment: center;
                             spacing: 2px;
                             padding: 6px;
-                            Text { text: "EFFICIENCY"; color: #fab387; font-size: 9px; font-weight: 700; horizontal-alignment: center; }
-                            Text { text: root.stats-efficiency-ratio; color: #f1f5f9; font-size: 18px; font-weight: 700; horizontal-alignment: center; }
+                            Text {
+                                text: "EFFICIENCY";
+                                color: #fab387;
+                                font-size: 9px;
+                                font-weight: 700;
+                                horizontal-alignment: center;
+                            }
+
+                            Text {
+                                text: root.stats-efficiency-ratio;
+                                color: #f1f5f9;
+                                font-size: 18px;
+                                font-weight: 700;
+                                horizontal-alignment: center;
+                            }
                         }
                     }
                 }
@@ -1786,18 +2072,41 @@ export component TopBarWindow inherits Window {
                     VerticalLayout {
                         padding: 8px;
                         spacing: 4px;
-                        Text { text: "FREQUENT CHARACTERS"; color: #f9e2af; font-size: 9.5px; font-weight: 700; }
+                        Text {
+                            text: "FREQUENT CHARACTERS";
+                            color: #f9e2af;
+                            font-size: 9.5px;
+                            font-weight: 700;
+                        }
+
                         ListView {
-                            for char_entry in root.stats-top-chars : HorizontalLayout {
+                            for char_entry in root.stats-top-chars: HorizontalLayout {
                                 padding-top: 2px;
                                 padding-bottom: 2px;
                                 alignment: space-between;
                                 HorizontalLayout {
                                     spacing: 10px;
-                                    Text { text: char_entry.character; color: #89b4fa; font-size: 13px; font-weight: 700; width: 28px; }
-                                    Text { text: char_entry.count + "x"; color: #a6adc8; font-size: 11px; }
+                                    Text {
+                                        text: char_entry.character;
+                                        color: #89b4fa;
+                                        font-size: 13px;
+                                        font-weight: 700;
+                                        width: 28px;
+                                    }
+
+                                    Text {
+                                        text: char_entry.count + "x";
+                                        color: #a6adc8;
+                                        font-size: 11px;
+                                    }
                                 }
-                                Text { text: char_entry.percentage; color: #a6e3a1; font-size: 11px; font-weight: 600; }
+
+                                Text {
+                                    text: char_entry.percentage;
+                                    color: #a6e3a1;
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                }
                             }
                         }
                     }
@@ -1808,7 +2117,7 @@ export component TopBarWindow inherits Window {
         // ---------------------------------------------------------------------
         // 9. Mode-Switch OSD HUD Overlay (Activated on F12 / Layout Toggle)
         // ---------------------------------------------------------------------
-        if (root.show-osd) : HorizontalLayout {
+        if (root.show-osd): HorizontalLayout {
             alignment: center;
             Rectangle {
                 width: 320px;
@@ -1851,6 +2160,7 @@ export component TopBarWindow inherits Window {
                             font-weight: 800;
                             color: #cdd6f4;
                         }
+
                         Text {
                             text: root.osd-subtitle;
                             font-size: 10.5px;
@@ -1899,7 +2209,7 @@ export component StandaloneDialogWindow inherits Window {
     min-height: 440px;
     preferred-width: 720px;
     preferred-height: 520px;
-    background: #11121dfa;
+    background: #0a0c10;
 
     in-out property <int> dialog-type: 4; // 2=Viewer, 3=AutoCorrect, 4=Converter, 5=Settings, 7=Conjuncts, 8=Stats
     in property <string> active-layout-name: "Avro Phonetic";
@@ -1920,6 +2230,7 @@ export component StandaloneDialogWindow inherits Window {
     // Conjunct State
     in property <[ConjunctEntry]> conjunct-list: [];
     in-out property <string> conjunct-search-query: "";
+    in-out property <int> conjunct-zoom: 1;
 
     // Stats State
     in property <int> stats-total-words: 0;
@@ -1948,6 +2259,7 @@ export component StandaloneDialogWindow inherits Window {
     in-out property <bool> set-auto-dari: true;
     in-out property <bool> set-autostart: false;
     in-out property <bool> is-windows: false;
+    in property <bool> needs-client-decorations: false;
     in-out property <string> settings-status-text: "All changes saved automatically";
 
     // Layout Viewer State
@@ -1960,11 +2272,11 @@ export component StandaloneDialogWindow inherits Window {
     in property <[string]> available-layouts: [];
 
     property <string> dialog-title: root.dialog-type == 2 ? "Lekhani - Keyboard Layout Viewer (" + root.viewer-selected-layout + ")" :
-                                   root.dialog-type == 3 ? "Lekhani - AutoCorrect Manager" :
-                                   root.dialog-type == 4 ? "Lekhani - Bijoy ⇄ Unicode Converter" :
-                                   root.dialog-type == 5 ? "Lekhani - Settings" :
-                                   root.dialog-type == 7 ? "Lekhani - যুক্তবর্ণ সহায়িকা (Conjunct Assistant)" :
-                                   root.dialog-type == 8 ? "Lekhani - Typing Telemetry & Speed" : "Lekhani Desktop Suite";
+        root.dialog-type == 3 ? "Lekhani - AutoCorrect Manager" :
+        root.dialog-type == 4 ? "Lekhani - Bijoy ⇄ Unicode Converter" :
+        root.dialog-type == 5 ? "Lekhani - Settings" :
+        root.dialog-type == 7 ? "Lekhani - যুক্তবর্ণ সহায়িকা (Conjunct Assistant)" :
+        root.dialog-type == 8 ? "Lekhani - Typing Telemetry & Speed" : "Lekhani Desktop Suite";
 
     // Callbacks
     callback close-window();
@@ -1984,832 +2296,1005 @@ export component StandaloneDialogWindow inherits Window {
     callback viewer-mode-changed(int);
     callback select-viewer-layout(string);
 
-    VerticalLayout {
-        padding: 16px;
-        spacing: 12px;
+    property <length> max-content-width: root.dialog-type == 4 ? 1160px : 880px;
 
-        // Clean Header Bar
-        HorizontalLayout {
-            alignment: space-between;
+    Rectangle {
+        width: min(parent.width - 32px, root.max-content-width);
+        x: (parent.width - self.width) / 2;
+        y: 16px;
+        height: parent.height - 32px;
+
+        VerticalLayout {
+            spacing: 12px;
+
+            // Clean Header Bar
             HorizontalLayout {
-                spacing: 8px;
-                alignment: center;
-                Image {
-                    source: root.dialog-type == 2 ? @image-url("../../../data/icons/ui/keyboard.svg") :
+                alignment: space-between;
+                HorizontalLayout {
+                    spacing: 10px;
+                    HeaderIcon {
+                        source: root.dialog-type == 2 ? @image-url("../../../data/icons/ui/keyboard.svg") :
                             root.dialog-type == 3 ? @image-url("../../../data/icons/ui/pen.svg") :
                             root.dialog-type == 4 ? @image-url("../../../data/icons/ui/exchange.svg") :
                             root.dialog-type == 5 ? @image-url("../../../data/icons/ui/settings.svg") :
                             root.dialog-type == 7 ? @image-url("../../../data/icons/ui/puzzle.svg") :
                             root.dialog-type == 8 ? @image-url("../../../data/icons/ui/chart.svg") :
                             @image-url("../../../data/icons/ui/logo.svg");
-                    width: 18px;
-                    height: 18px;
-                    colorize: root.dialog-type == 2 ? #89b4fa :
-                              root.dialog-type == 3 ? #a6e3a1 :
-                              root.dialog-type == 4 ? #fab387 :
-                              root.dialog-type == 5 ? #cba6f7 :
-                              root.dialog-type == 7 ? #89dceb :
-                              root.dialog-type == 8 ? #f9e2af : #89b4fa;
-                    vertical-alignment: center;
-                }
-                Text {
-                    text: root.dialog-title;
-                    color: #f1f5f9;
-                    font-size: 14px;
-                    font-weight: 700;
-                    vertical-alignment: center;
-                }
-            }
-
-            CloseButton {
-                clicked => { root.close-window(); }
-            }
-        }
-
-        // ---------------------------------------------------------------------
-        // 4. BIJOY ⇄ UNICODE CONVERTER (Standalone Multi-line Resizable)
-        // ---------------------------------------------------------------------
-        if root.dialog-type == 4: VerticalLayout {
-            spacing: 10px;
-            vertical-stretch: 1;
-
-            // Mode Selector
-            HorizontalLayout {
-                spacing: 8px;
-                SegmentButton {
-                    label: "Bijoy (ANSI) ➔ Unicode Bengali";
-                    active: root.conv-direction == 0;
-                    active-color: #fab387;
-                    clicked => {
-                        root.conv-direction = 0;
-                        if (root.conv-input-text != "") {
-                            root.convert-bijoy-to-unicode(root.conv-input-text);
-                        }
-                    }
-                }
-                SegmentButton {
-                    label: "Unicode Bengali ➔ Bijoy (ANSI)";
-                    active: root.conv-direction == 1;
-                    active-color: #fab387;
-                    clicked => {
-                        root.conv-direction = 1;
-                        if (root.conv-input-text != "") {
-                            root.convert-unicode-to-bijoy(root.conv-input-text);
-                        }
-                    }
-                }
-            }
-
-            // Dual Pane Layout
-            HorizontalLayout {
-                spacing: 12px;
-                vertical-stretch: 1;
-
-                // Left Column: Source
-                VerticalLayout {
-                    spacing: 6px;
-                    horizontal-stretch: 1;
-                    vertical-stretch: 1;
-
-                    HorizontalLayout {
-                        alignment: space-between;
-                        Text {
-                            text: root.conv-direction == 0 ? "Bijoy (ANSI) Source Text:" : "Unicode Bengali Source Text:";
-                            color: #89b4fa;
-                            font-size: 12px;
-                            font-weight: 700;
-                            vertical-alignment: center;
-                        }
-                        ModernButton {
-                            text: "Clear";
-                            clicked => {
-                                root.conv-input-text = "";
-                                root.conv-output-text = "";
-                                root.conv-copied = false;
-                            }
-                        }
+                        icon-size: 18px;
+                        colorize: root.dialog-type == 2 ? #89b4fa :
+                            root.dialog-type == 3 ? #a6e3a1 :
+                            root.dialog-type == 4 ? #fab387 :
+                            root.dialog-type == 5 ? #cba6f7 :
+                            root.dialog-type == 7 ? #89dceb :
+                            root.dialog-type == 8 ? #f9e2af : #89b4fa;
                     }
 
-                    Rectangle {
-                        background: #0b0c14;
-                        border-radius: 8px;
-                        border-width: 1px;
-                        border-color: #2a2d42;
-                        vertical-stretch: 1;
-
-                        VerticalLayout {
-                            padding: 8px;
-                            vertical-stretch: 1;
-                            TextEdit {
-                                text <=> root.conv-input-text;
-                                vertical-stretch: 1;
-                                edited => {
-                                    root.conv-copied = false;
-                                    if (root.conv-direction == 0) {
-                                        root.convert-bijoy-to-unicode(root.conv-input-text);
-                                    } else {
-                                        root.convert-unicode-to-bijoy(root.conv-input-text);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Middle Column: Actions
-                VerticalLayout {
-                    spacing: 8px;
-                    alignment: center;
-                    vertical-stretch: 0;
-
-                    ModernButton {
-                        text: "➔ Convert";
-                        primary: true;
-                        clicked => {
-                            if (root.conv-direction == 0) {
-                                root.convert-bijoy-to-unicode(root.conv-input-text);
-                            } else {
-                                root.convert-unicode-to-bijoy(root.conv-input-text);
-                            }
-                        }
-                    }
-
-                    ModernButton {
-                        text: "⇄ Swap";
-                        clicked => {
-                            root.conv-direction = root.conv-direction == 0 ? 1 : 0;
-                            let tmp = root.conv-input-text;
-                            root.conv-input-text = root.conv-output-text;
-                            root.conv-output-text = "";
-                            if (root.conv-direction == 0) {
-                                root.convert-bijoy-to-unicode(root.conv-input-text);
-                            } else {
-                                root.convert-unicode-to-bijoy(root.conv-input-text);
-                            }
-                        }
-                    }
-
-                    if (root.conv-output-text != ""): CopyButton {
-                        copied: root.conv-copied;
-                        clicked => {
-                            root.copy-to-clipboard(root.conv-output-text);
-                        }
-                    }
-                }
-
-                // Right Column: Output
-                VerticalLayout {
-                    spacing: 6px;
-                    horizontal-stretch: 1;
-                    vertical-stretch: 1;
-
-                    HorizontalLayout {
-                        alignment: space-between;
-                        Text {
-                            text: root.conv-direction == 0 ? "Unicode Bengali Result:" : "Bijoy (ANSI) Result:";
-                            color: #a6e3a1;
-                            font-size: 12px;
-                            font-weight: 700;
-                            vertical-alignment: center;
-                        }
-                        if (root.conv-output-text != ""): Text {
-                            text: root.conv-copied ? "Copied! ✓" : "Converted ✓";
-                            color: #a6e3a1;
-                            font-size: 11px;
-                            font-weight: 600;
-                            vertical-alignment: center;
-                        }
-                    }
-
-                    Rectangle {
-                        background: #0b0c14;
-                        border-radius: 8px;
-                        border-width: 1px;
-                        border-color: #2a2d42;
-                        vertical-stretch: 1;
-
-                        VerticalLayout {
-                            padding: 8px;
-                            vertical-stretch: 1;
-                            TextEdit {
-                                text: root.conv-output-text;
-                                read-only: true;
-                                vertical-stretch: 1;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // ---------------------------------------------------------------------
-        // 3. AUTOCORRECT MANAGER (Standalone Resizable)
-        // ---------------------------------------------------------------------
-        if root.dialog-type == 3: VerticalLayout {
-            spacing: 10px;
-            vertical-stretch: 1;
-
-            // Search Bar
-            search_input_standalone := LineEdit {
-                text: root.ac-search-query;
-                placeholder-text: "Search words or triggers...";
-                edited(t) => {
-                    root.ac-search-query = t;
-                    root.ac-search-changed(t);
-                }
-            }
-
-            // Add Entry Form
-            Rectangle {
-                background: #0c0d14;
-                border-radius: 10px;
-                border-width: 1px;
-                border-color: #242638;
-
-                VerticalLayout {
-                    padding: 10px;
-                    spacing: 6px;
-                    Text { text: "ADD OR UPDATE WORD"; color: #89b4fa; font-size: 9.5px; font-weight: 700; }
-                    HorizontalLayout {
-                        spacing: 6px;
-                        in_replace_sa := LineEdit {
-                            text: root.ac-replace-input;
-                            placeholder-text: "Trigger (e.g. kothaa)";
-                            edited(t) => { root.ac-replace-input = t; }
-                        }
-                        Text { text: "➔"; color: #89b4fa; vertical-alignment: center; }
-                        in_with_sa := LineEdit {
-                            text: root.ac-with-input;
-                            placeholder-text: "Bengali (e.g. কথা)";
-                            edited(t) => { root.ac-with-input = t; }
-                        }
-                        ModernButton {
-                            text: "Save";
-                            primary: true;
-                            clicked => {
-                                if (in_replace_sa.text != "" && in_with_sa.text != "") {
-                                    root.ac-add-or-update(in_replace_sa.text, in_with_sa.text);
-                                    in_replace_sa.text = "";
-                                    in_with_sa.text = "";
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Word List Table
-            Rectangle {
-                background: #0c0d14;
-                border-radius: 10px;
-                border-width: 1px;
-                border-color: #242638;
-                vertical-stretch: 1;
-
-                VerticalLayout {
-                    padding: 6px;
-                    vertical-stretch: 1;
-                    ScrollView {
-                        vertical-stretch: 1;
-                        VerticalLayout {
-                            spacing: 4px;
-                            for entry in root.ac-entries: Rectangle {
-                                height: 32px;
-                                border-radius: 6px;
-                                background: #13141f;
-                                border-width: 1px;
-                                border-color: #1e2030;
-
-                                HorizontalLayout {
-                                    padding-left: 12px;
-                                    padding-right: 8px;
-                                    alignment: space-between;
-
-                                    HorizontalLayout {
-                                        spacing: 12px;
-                                        alignment: center;
-                                        Text { text: entry.trigger; color: #89b4fa; font-weight: 600; font-size: 12px; }
-                                        Text { text: "➔"; color: #585b70; font-size: 11px; }
-                                        Text { text: entry.replacement; color: #f1f5f9; font-weight: 600; font-size: 12px; }
-                                    }
-
-                                    Rectangle {
-                                        width: 22px;
-                                        height: 22px;
-                                        border-radius: 5px;
-                                        background: del_ta_sa.has-hover ? #f38ba833 : transparent;
-                                        del_ta_sa := TouchArea {
-                                            mouse-cursor: pointer;
-                                            clicked => { root.ac-delete-entry(entry.trigger); }
-                                        }
-                                        Image {
-                                            x: (parent.width - self.width) / 2;
-                                            y: (parent.height - self.height) / 2;
-                                            source: @image-url("../../../data/icons/ui/trash.svg");
-                                            width: 12px;
-                                            height: 12px;
-                                            colorize: del_ta_sa.has-hover ? #f38ba8 : #6c7086;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Status Bar
-            Text {
-                text: root.ac-status-text;
-                color: #6c7086;
-                font-size: 10.5px;
-                horizontal-alignment: center;
-            }
-        }
-
-        // ---------------------------------------------------------------------
-        // 5. SETTINGS (Standalone Resizable)
-        // ---------------------------------------------------------------------
-        if root.dialog-type == 5: VerticalLayout {
-            spacing: 12px;
-            vertical-stretch: 1;
-
-            ScrollView {
-                vertical-stretch: 1;
-                VerticalLayout {
-                    spacing: 12px;
-                    alignment: start;
-
-                    HorizontalLayout {
-                        spacing: 14px;
-                        alignment: start;
-
-                        // Left Column
-                        VerticalLayout {
-                            spacing: 12px;
-                            horizontal-stretch: 1;
-                            alignment: start;
-
-                            // Section 1: Phonetic & Basic Typing
-                            Rectangle {
-                                background: #0c0d14;
-                                border-radius: 10px;
-                                border-width: 1px;
-                                border-color: #242638;
-                                vertical-stretch: 0;
-
-                                VerticalLayout {
-                                    padding: 14px;
-                                    spacing: 9px;
-                                    alignment: start;
-                                    Text { text: "PHONETIC & BASIC TYPING"; color: #89b4fa; font-size: 10px; font-weight: 700; }
-                                    ModernToggleSwitch {
-                                        label: "Enable Dictionary Suggestions";
-                                        checked <=> root.set-use-dict;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                    ModernToggleSwitch {
-                                        label: "Include English in Candidate List";
-                                        checked <=> root.set-include-eng;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                    ModernToggleSwitch {
-                                        label: "Enter Key Closes Candidate Window";
-                                        checked <=> root.set-enter-closes;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                    ModernToggleSwitch {
-                                        label: "Auto-Expand Double Period (..) to Dāri (।)";
-                                        checked <=> root.set-auto-dari;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                    ModernToggleSwitch {
-                                        label: "Show Mode-Switch HUD Overlay";
-                                        checked <=> root.set-show-osd;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                    HorizontalLayout {
-                                        spacing: 8px;
-                                        padding-top: 4px;
-                                        Text { text: "Mode Toggle Hotkey:"; color: #cdd6f4; font-size: 11.5px; vertical-alignment: center; }
-                                        SegmentButton {
-                                            label: "F12";
-                                            active: root.set-toggle-key == "F12";
-                                            active-color: #89b4fa;
-                                            clicked => {
-                                                root.set-toggle-key = "F12";
-                                                root.auto-save-settings();
-                                            }
-                                        }
-                                        SegmentButton {
-                                            label: "Ctrl+Space";
-                                            active: root.set-toggle-key == "Ctrl+Space";
-                                            active-color: #89b4fa;
-                                            clicked => {
-                                                root.set-toggle-key = "Ctrl+Space";
-                                                root.auto-save-settings();
-                                            }
-                                        }
-                                        SegmentButton {
-                                            label: "Shift+Space";
-                                            active: root.set-toggle-key == "Shift+Space";
-                                            active-color: #89b4fa;
-                                            clicked => {
-                                                root.set-toggle-key = "Shift+Space";
-                                                root.auto-save-settings();
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Section 2: Smart Assistance & Developer Tools
-                            Rectangle {
-                                background: #0c0d14;
-                                border-radius: 10px;
-                                border-width: 1px;
-                                border-color: #242638;
-                                vertical-stretch: 0;
-
-                                VerticalLayout {
-                                    padding: 14px;
-                                    spacing: 9px;
-                                    alignment: start;
-                                    Text { text: "SMART ASSISTANCE & DEVELOPER TOOLS"; color: #cba6f7; font-size: 10px; font-weight: 700; }
-                                    ModernToggleSwitch {
-                                        label: "Developer Code Shield (CLI flags, camelCase, keywords)";
-                                        checked <=> root.set-code-shield;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                    ModernToggleSwitch {
-                                        label: "Concatenated Word Segmentation (kemonaso ➔ কেমন আছো)";
-                                        checked <=> root.set-word-segmentation;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                    ModernToggleSwitch {
-                                        label: "Colloquial Dialect Normalization (khamu ➔ খাব, korsi ➔ করেছি)";
-                                        checked <=> root.set-colloquial-dialects;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                    ModernToggleSwitch {
-                                        label: "Banglish Chat Contractions (amr ➔ আমার, tmr ➔ তোমার)";
-                                        checked <=> root.set-banglish-shorthand;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Right Column
-                        VerticalLayout {
-                            spacing: 12px;
-                            horizontal-stretch: 1;
-                            alignment: start;
-
-                            // Section 3: Predictive Intelligence & Productivity
-                            Rectangle {
-                                background: #0c0d14;
-                                border-radius: 10px;
-                                border-width: 1px;
-                                border-color: #242638;
-                                vertical-stretch: 0;
-
-                                VerticalLayout {
-                                    padding: 14px;
-                                    spacing: 9px;
-                                    alignment: start;
-                                    Text { text: "PREDICTIVE INTELLIGENCE & PRODUCTIVITY"; color: #f38ba8; font-size: 10px; font-weight: 700; }
-                                    ModernToggleSwitch {
-                                        label: "AI Next-Word Prediction";
-                                        checked <=> root.set-predictive-next;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                    ModernToggleSwitch {
-                                        label: "Reduplicated Words Prediction (ধীরে ➔ ধীরে, মাঝে ➔ মাঝে)";
-                                        checked <=> root.set-reduplication;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                    ModernToggleSwitch {
-                                        label: "Multi-Word Idiom & Phrase Completion (অনেক অনেক ➔ ধন্যবাদ)";
-                                        checked <=> root.set-phrase-prediction;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                    ModernToggleSwitch {
-                                        label: "Dynamic Math & Date Macros (!date, !sum(2+2))";
-                                        checked <=> root.set-dynamic-macros;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                }
-                            }
-
-                            // Section 4: Fixed Layout Options
-                            Rectangle {
-                                background: #0c0d14;
-                                border-radius: 10px;
-                                border-width: 1px;
-                                border-color: #242638;
-                                vertical-stretch: 0;
-
-                                VerticalLayout {
-                                    padding: 14px;
-                                    spacing: 9px;
-                                    alignment: start;
-                                    Text { text: "FIXED LAYOUT AUTOMATIONS"; color: #a6e3a1; font-size: 10px; font-weight: 700; }
-                                    ModernToggleSwitch {
-                                        label: "Automatic Vowel Forming (অ + া ➔ আ)";
-                                        checked <=> root.set-auto-vowel;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                    ModernToggleSwitch {
-                                        label: "Automatic Chandra Position (কঁ + া ➔ কাঁ)";
-                                        checked <=> root.set-auto-chandra;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                    ModernToggleSwitch {
-                                        label: "Traditional Kar Placement (ী / ূ)";
-                                        checked <=> root.set-traditional-kar;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                    ModernToggleSwitch {
-                                        label: "Smart Reph Placement (র্)";
-                                        checked <=> root.set-old-reph;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                    ModernToggleSwitch {
-                                        label: "Bengali Number Pad Mapping (০-৯)";
-                                        checked <=> root.set-numberpad;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                }
-                            }
-
-                            // Section 5: System & Startup (Windows)
-                            if root.is-windows : Rectangle {
-                                background: #0c0d14;
-                                border-radius: 10px;
-                                border-width: 1px;
-                                border-color: #242638;
-                                vertical-stretch: 0;
-
-                                VerticalLayout {
-                                    padding: 14px;
-                                    spacing: 9px;
-                                    alignment: start;
-                                    Text { text: "SYSTEM"; color: #f9e2af; font-size: 10px; font-weight: 700; }
-                                    ModernToggleSwitch {
-                                        label: "Launch on system startup";
-                                        checked <=> root.set-autostart;
-                                        toggled(_) => { root.auto-save-settings(); }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Settings Footer: Auto-save status feedback + Action buttons
-            HorizontalLayout {
-                alignment: space-between;
-                padding-top: 4px;
-                padding-bottom: 2px;
-
-                // Left: Auto-save status feedback
-                HorizontalLayout {
-                    spacing: 7px;
-                    alignment: center;
-                    Rectangle {
-                        width: 7px;
-                        height: 7px;
-                        border-radius: 3.5px;
-                        background: #a6e3a1;
-                    }
                     Text {
-                        text: root.settings-status-text;
-                        color: #a6adc8;
-                        font-size: 11.5px;
+                        text: root.dialog-title;
+                        color: #f1f5f9;
+                        font-size: 15px;
+                        font-weight: 700;
                         vertical-alignment: center;
                     }
                 }
 
-                // Right: Action buttons
-                HorizontalLayout {
-                    spacing: 10px;
-                    alignment: center;
+                if root.needs-client-decorations: CloseButton {
+                    clicked => { root.close-window(); }
+                }
+            }
 
-                    ModernButton {
-                        text: "Restore Defaults";
-                        primary: false;
-                        clicked => { root.reset-default-settings(); }
+            // ---------------------------------------------------------------------
+        // 4. BIJOY ⇄ UNICODE CONVERTER (Standalone Multi-line Resizable)
+        // ---------------------------------------------------------------------
+        if root.dialog-type == 4: VerticalLayout {
+                spacing: 10px;
+                vertical-stretch: 1;
+
+                // Mode Selector
+            HorizontalLayout {
+                    spacing: 8px;
+                    SegmentButton {
+                        label: "Bijoy (ANSI) ➔ Unicode Bengali";
+                        active: root.conv-direction == 0;
+                        active-color: #fab387;
+                        clicked => {
+                            root.conv-direction = 0;
+                            if (root.conv-input-text != "") {
+                                root.convert-bijoy-to-unicode(root.conv-input-text);
+                            }
+                        }
                     }
 
-                    ModernButton {
-                        text: "Done";
-                        primary: true;
-                        clicked => { root.close-window(); }
+                    SegmentButton {
+                        label: "Unicode Bengali ➔ Bijoy (ANSI)";
+                        active: root.conv-direction == 1;
+                        active-color: #fab387;
+                        clicked => {
+                            root.conv-direction = 1;
+                            if (root.conv-input-text != "") {
+                                root.convert-unicode-to-bijoy(root.conv-input-text);
+                            }
+                        }
+                    }
+                }
+
+                // Dual Pane Layout
+            HorizontalLayout {
+                    spacing: 12px;
+                    vertical-stretch: 1;
+
+                    // Left Column: Source
+                VerticalLayout {
+                        spacing: 6px;
+                        horizontal-stretch: 1;
+                        vertical-stretch: 1;
+
+                        HorizontalLayout {
+                            alignment: space-between;
+                            Text {
+                                text: root.conv-direction == 0 ? "Bijoy (ANSI) Source Text:" : "Unicode Bengali Source Text:";
+                                color: #89b4fa;
+                                font-size: 12px;
+                                font-weight: 700;
+                                vertical-alignment: center;
+                            }
+
+                            ModernButton {
+                                text: "Clear";
+                                clicked => {
+                                    root.conv-input-text = "";
+                                    root.conv-output-text = "";
+                                    root.conv-copied = false;
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            background: #0b0c14;
+                            border-radius: 8px;
+                            border-width: 1px;
+                            border-color: #2a2d42;
+                            vertical-stretch: 1;
+
+                            VerticalLayout {
+                                padding: 8px;
+                                vertical-stretch: 1;
+                                TextEdit {
+                                    text <=> root.conv-input-text;
+                                    font-size: 14.5px;
+                                    vertical-stretch: 1;
+                                    edited => {
+                                        root.conv-copied = false;
+                                        if (root.conv-direction == 0) {
+                                            root.convert-bijoy-to-unicode(root.conv-input-text);
+                                        } else {
+                                            root.convert-unicode-to-bijoy(root.conv-input-text);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Middle Column: Actions
+                VerticalLayout {
+                        spacing: 8px;
+                        alignment: center;
+                        vertical-stretch: 0;
+
+                        ModernButton {
+                            text: "➔ Convert";
+                            primary: true;
+                            clicked => {
+                                if (root.conv-direction == 0) {
+                                    root.convert-bijoy-to-unicode(root.conv-input-text);
+                                } else {
+                                    root.convert-unicode-to-bijoy(root.conv-input-text);
+                                }
+                            }
+                        }
+
+                        ModernButton {
+                            text: "⇄ Swap";
+                            clicked => {
+                                root.conv-direction = root.conv-direction == 0 ? 1 : 0;
+                                let tmp = root.conv-input-text;
+                                root.conv-input-text = root.conv-output-text;
+                                root.conv-output-text = "";
+                                if (root.conv-direction == 0) {
+                                    root.convert-bijoy-to-unicode(root.conv-input-text);
+                                } else {
+                                    root.convert-unicode-to-bijoy(root.conv-input-text);
+                                }
+                            }
+                        }
+
+                        if (root.conv-output-text != ""): CopyButton {
+                            copied: root.conv-copied;
+                            clicked => {
+                                root.copy-to-clipboard(root.conv-output-text);
+                            }
+                        }
+                    }
+
+                    // Right Column: Output
+                VerticalLayout {
+                        spacing: 6px;
+                        horizontal-stretch: 1;
+                        vertical-stretch: 1;
+
+                        HorizontalLayout {
+                            alignment: space-between;
+                            Text {
+                                text: root.conv-direction == 0 ? "Unicode Bengali Result:" : "Bijoy (ANSI) Result:";
+                                color: #a6e3a1;
+                                font-size: 12px;
+                                font-weight: 700;
+                                vertical-alignment: center;
+                            }
+
+                            if (root.conv-output-text != ""): Text {
+                                text: root.conv-copied ? "Copied! ✓" : "Converted ✓";
+                                color: #a6e3a1;
+                                font-size: 11px;
+                                font-weight: 600;
+                                vertical-alignment: center;
+                            }
+                        }
+
+                        Rectangle {
+                            background: #0b0c14;
+                            border-radius: 8px;
+                            border-width: 1px;
+                            border-color: #2a2d42;
+                            vertical-stretch: 1;
+
+                            VerticalLayout {
+                                padding: 8px;
+                                vertical-stretch: 1;
+                                TextEdit {
+                                    text: root.conv-output-text;
+                                    font-size: 14.5px;
+                                    read-only: true;
+                                    vertical-stretch: 1;
+                                }
+                            }
+                        }
                     }
                 }
             }
-        }
 
+            // ---------------------------------------------------------------------
+        // 3. AUTOCORRECT MANAGER (Standalone Resizable)
         // ---------------------------------------------------------------------
+        if root.dialog-type == 3: VerticalLayout {
+                spacing: 10px;
+                vertical-stretch: 1;
+
+                // Search Bar
+            search_input_standalone := LineEdit {
+                    text: root.ac-search-query;
+                    placeholder-text: "Search words or triggers...";
+                    edited(t) => {
+                        root.ac-search-query = t;
+                        root.ac-search-changed(t);
+                    }
+                }
+
+                // Add Entry Form
+            Rectangle {
+                    background: #0c0d14;
+                    border-radius: 10px;
+                    border-width: 1px;
+                    border-color: #242638;
+
+                    VerticalLayout {
+                        padding: 10px;
+                        spacing: 6px;
+                        Text {
+                            text: "ADD OR UPDATE WORD";
+                            color: #89b4fa;
+                            font-size: 9.5px;
+                            font-weight: 700;
+                        }
+
+                        HorizontalLayout {
+                            spacing: 6px;
+                            in_replace_sa := LineEdit {
+                                text: root.ac-replace-input;
+                                placeholder-text: "Trigger (e.g. kothaa)";
+                                edited(t) => { root.ac-replace-input = t; }
+                            }
+
+                            Text {
+                                text: "➔";
+                                color: #89b4fa;
+                                vertical-alignment: center;
+                            }
+
+                            in_with_sa := LineEdit {
+                                text: root.ac-with-input;
+                                placeholder-text: "Bengali (e.g. কথা)";
+                                edited(t) => { root.ac-with-input = t; }
+                            }
+
+                            ModernButton {
+                                text: "Save";
+                                primary: true;
+                                clicked => {
+                                    if (in_replace_sa.text != "" && in_with_sa.text != "") {
+                                        root.ac-add-or-update(in_replace_sa.text, in_with_sa.text);
+                                        in_replace_sa.text = "";
+                                        in_with_sa.text = "";
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Word List Table
+            Rectangle {
+                    background: #0c0d14;
+                    border-radius: 10px;
+                    border-width: 1px;
+                    border-color: #242638;
+                    vertical-stretch: 1;
+
+                    VerticalLayout {
+                        padding: 6px;
+                        vertical-stretch: 1;
+                        ScrollView {
+                            vertical-stretch: 1;
+                            VerticalLayout {
+                                spacing: 4px;
+                                for entry in root.ac-entries: Rectangle {
+                                    height: 32px;
+                                    border-radius: 6px;
+                                    background: #13141f;
+                                    border-width: 1px;
+                                    border-color: #1e2030;
+
+                                    HorizontalLayout {
+                                        padding-left: 12px;
+                                        padding-right: 8px;
+                                        alignment: space-between;
+
+                                        HorizontalLayout {
+                                            spacing: 12px;
+                                            alignment: center;
+                                            Text {
+                                                text: entry.trigger;
+                                                color: #89b4fa;
+                                                font-weight: 600;
+                                                font-size: 12px;
+                                            }
+
+                                            Text {
+                                                text: "➔";
+                                                color: #585b70;
+                                                font-size: 11px;
+                                            }
+
+                                            Text {
+                                                text: entry.replacement;
+                                                color: #f1f5f9;
+                                                font-weight: 600;
+                                                font-size: 12px;
+                                            }
+                                        }
+
+                                        Rectangle {
+                                            width: 22px;
+                                            height: 22px;
+                                            border-radius: 5px;
+                                            background: del_ta_sa.has-hover ? #f38ba833 : transparent;
+                                            del_ta_sa := TouchArea {
+                                                mouse-cursor: pointer;
+                                                clicked => { root.ac-delete-entry(entry.trigger); }
+                                            }
+
+                                            Image {
+                                                x: (parent.width - self.width) / 2;
+                                                y: (parent.height - self.height) / 2;
+                                                source: @image-url("../../../data/icons/ui/trash.svg");
+                                                width: 12px;
+                                                height: 12px;
+                                                colorize: del_ta_sa.has-hover ? #f38ba8 : #6c7086;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Status Bar
+            Text {
+                    text: root.ac-status-text;
+                    color: #6c7086;
+                    font-size: 10.5px;
+                    horizontal-alignment: center;
+                }
+            }
+
+            // ---------------------------------------------------------------------
+        // 5. SETTINGS (Standalone Resizable)
+        // ---------------------------------------------------------------------
+        if root.dialog-type == 5: VerticalLayout {
+                spacing: 12px;
+                vertical-stretch: 1;
+
+                ScrollView {
+                    vertical-stretch: 1;
+                    VerticalLayout {
+                        spacing: 12px;
+                        alignment: start;
+
+                        HorizontalLayout {
+                            spacing: 14px;
+                            alignment: start;
+
+                            // Left Column
+                        VerticalLayout {
+                                spacing: 12px;
+                                horizontal-stretch: 1;
+                                alignment: start;
+
+                                // Section 1: Phonetic & Basic Typing
+                            Rectangle {
+                                    background: #0c0d14;
+                                    border-radius: 10px;
+                                    border-width: 1px;
+                                    border-color: #242638;
+                                    vertical-stretch: 0;
+
+                                    VerticalLayout {
+                                        padding: 14px;
+                                        spacing: 9px;
+                                        alignment: start;
+                                        Text {
+                                            text: "PHONETIC & BASIC TYPING";
+                                            color: #89b4fa;
+                                            font-size: 10px;
+                                            font-weight: 700;
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Enable Dictionary Suggestions";
+                                            checked <=> root.set-use-dict;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Include English in Candidate List";
+                                            checked <=> root.set-include-eng;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Enter Key Closes Candidate Window";
+                                            checked <=> root.set-enter-closes;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Auto-Expand Double Period (..) to Dāri (।)";
+                                            checked <=> root.set-auto-dari;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Show Mode-Switch HUD Overlay";
+                                            checked <=> root.set-show-osd;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        HorizontalLayout {
+                                            spacing: 8px;
+                                            padding-top: 4px;
+                                            Text {
+                                                text: "Mode Toggle Hotkey:";
+                                                color: #cdd6f4;
+                                                font-size: 11.5px;
+                                                vertical-alignment: center;
+                                            }
+
+                                            SegmentButton {
+                                                label: "F12";
+                                                active: root.set-toggle-key == "F12";
+                                                active-color: #89b4fa;
+                                                clicked => {
+                                                    root.set-toggle-key = "F12";
+                                                    root.auto-save-settings();
+                                                }
+                                            }
+
+                                            SegmentButton {
+                                                label: "Ctrl+Space";
+                                                active: root.set-toggle-key == "Ctrl+Space";
+                                                active-color: #89b4fa;
+                                                clicked => {
+                                                    root.set-toggle-key = "Ctrl+Space";
+                                                    root.auto-save-settings();
+                                                }
+                                            }
+
+                                            SegmentButton {
+                                                label: "Shift+Space";
+                                                active: root.set-toggle-key == "Shift+Space";
+                                                active-color: #89b4fa;
+                                                clicked => {
+                                                    root.set-toggle-key = "Shift+Space";
+                                                    root.auto-save-settings();
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Section 2: Smart Assistance & Developer Tools
+                            Rectangle {
+                                    background: #0c0d14;
+                                    border-radius: 10px;
+                                    border-width: 1px;
+                                    border-color: #242638;
+                                    vertical-stretch: 0;
+
+                                    VerticalLayout {
+                                        padding: 14px;
+                                        spacing: 9px;
+                                        alignment: start;
+                                        Text {
+                                            text: "SMART ASSISTANCE & DEVELOPER TOOLS";
+                                            color: #cba6f7;
+                                            font-size: 10px;
+                                            font-weight: 700;
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Developer Code Shield";
+                                            checked <=> root.set-code-shield;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Concatenated Word Segmentation";
+                                            checked <=> root.set-word-segmentation;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Colloquial Dialect Normalization";
+                                            checked <=> root.set-colloquial-dialects;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Banglish Chat Contractions";
+                                            checked <=> root.set-banglish-shorthand;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Right Column
+                        VerticalLayout {
+                                spacing: 12px;
+                                horizontal-stretch: 1;
+                                alignment: start;
+
+                                // Section 3: Predictive Intelligence & Productivity
+                            Rectangle {
+                                    background: #0c0d14;
+                                    border-radius: 10px;
+                                    border-width: 1px;
+                                    border-color: #242638;
+                                    vertical-stretch: 0;
+
+                                    VerticalLayout {
+                                        padding: 14px;
+                                        spacing: 9px;
+                                        alignment: start;
+                                        Text {
+                                            text: "PREDICTIVE INTELLIGENCE & PRODUCTIVITY";
+                                            color: #f38ba8;
+                                            font-size: 10px;
+                                            font-weight: 700;
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "AI Next-Word Prediction";
+                                            checked <=> root.set-predictive-next;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Reduplicated Words Prediction";
+                                            checked <=> root.set-reduplication;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Multi-Word Phrase Completion";
+                                            checked <=> root.set-phrase-prediction;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Dynamic Math & Date Macros";
+                                            checked <=> root.set-dynamic-macros;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+                                    }
+                                }
+
+                                // Section 4: Fixed Layout Options
+                            Rectangle {
+                                    background: #0c0d14;
+                                    border-radius: 10px;
+                                    border-width: 1px;
+                                    border-color: #242638;
+                                    vertical-stretch: 0;
+
+                                    VerticalLayout {
+                                        padding: 14px;
+                                        spacing: 9px;
+                                        alignment: start;
+                                        Text {
+                                            text: "FIXED LAYOUT AUTOMATIONS";
+                                            color: #a6e3a1;
+                                            font-size: 10px;
+                                            font-weight: 700;
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Automatic Vowel Forming";
+                                            checked <=> root.set-auto-vowel;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Automatic Chandra Position";
+                                            checked <=> root.set-auto-chandra;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Traditional Kar Placement";
+                                            checked <=> root.set-traditional-kar;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Smart Reph Placement";
+                                            checked <=> root.set-old-reph;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Bengali Number Pad Mapping";
+                                            checked <=> root.set-numberpad;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+                                    }
+                                }
+
+                                // Section 5: System & Startup (Windows)
+                            if root.is-windows: Rectangle {
+                                    background: #0c0d14;
+                                    border-radius: 10px;
+                                    border-width: 1px;
+                                    border-color: #242638;
+                                    vertical-stretch: 0;
+
+                                    VerticalLayout {
+                                        padding: 14px;
+                                        spacing: 9px;
+                                        alignment: start;
+                                        Text {
+                                            text: "SYSTEM";
+                                            color: #f9e2af;
+                                            font-size: 10px;
+                                            font-weight: 700;
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Launch on system startup";
+                                            checked <=> root.set-autostart;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Settings Footer: Auto-save status feedback + Action buttons
+            HorizontalLayout {
+                    alignment: space-between;
+                    padding-top: 4px;
+                    padding-bottom: 2px;
+
+                    // Left: Auto-save status feedback
+                HorizontalLayout {
+                        spacing: 7px;
+                        Text {
+                            text: root.settings-status-text;
+                            color: #94a3b8;
+                            font-size: 12px;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    // Right: Action buttons
+                HorizontalLayout {
+                        spacing: 10px;
+                        alignment: center;
+
+                        ModernButton {
+                            text: "Restore Defaults";
+                            primary: false;
+                            clicked => { root.reset-default-settings(); }
+                        }
+
+                        ModernButton {
+                            text: "Done";
+                            primary: true;
+                            clicked => { root.close-window(); }
+                        }
+                    }
+                }
+            }
+
+            // ---------------------------------------------------------------------
         // 2. KEYBOARD LAYOUT VIEWER (Standalone Resizable)
         // ---------------------------------------------------------------------
         if root.dialog-type == 2: VerticalLayout {
-            spacing: 10px;
-            vertical-stretch: 1;
-
-            // Top Control Bar: Layout Selection & Mode Switcher
-            HorizontalLayout {
                 spacing: 10px;
-                alignment: space-between;
+                vertical-stretch: 1;
 
-                // Layout Selector
+                // Top Control Bar: Layout Selection & Mode Switcher
+            HorizontalLayout {
+                    spacing: 10px;
+                    alignment: space-between;
+
+                    // Layout Selector
                 ScrollView {
-                    horizontal-stretch: 1;
-                    HorizontalLayout {
-                        spacing: 6px;
-                        Text {
-                            text: "LAYOUT:";
-                            color: #6c7086;
-                            font-size: 10px;
-                            font-weight: 700;
-                            vertical-alignment: center;
-                        }
-                        for lay in root.available-layouts: Rectangle {
-                            height: 28px;
-                            border-radius: 6px;
-                            background: root.viewer-selected-layout == lay ? #89b4fa28 : (lay_sa_ta.has-hover ? #25283d : #141522);
-                            border-width: 1px;
-                            border-color: root.viewer-selected-layout == lay ? #89b4fa : (lay_sa_ta.has-hover ? #454866 : #23253a);
-                            lay_sa_ta := TouchArea {
-                                mouse-cursor: pointer;
-                                clicked => {
-                                    root.viewer-selected-layout = lay;
-                                    root.select-viewer-layout(lay);
-                                }
+                        horizontal-stretch: 1;
+                        HorizontalLayout {
+                            spacing: 6px;
+                            Text {
+                                text: "LAYOUT:";
+                                color: #6c7086;
+                                font-size: 10px;
+                                font-weight: 700;
+                                vertical-alignment: center;
                             }
-                            HorizontalLayout {
-                                padding-left: 9px;
-                                padding-right: 9px;
-                                alignment: center;
-                                Text {
-                                    text: lay;
-                                    color: root.viewer-selected-layout == lay ? #89b4fa : #cdd6f4;
-                                    font-size: 11px;
-                                    font-weight: root.viewer-selected-layout == lay ? 700 : 500;
-                                    vertical-alignment: center;
-                                }
-                            }
-                        }
-                    }
-                }
 
-                // Mode Selector
-                Rectangle {
-                    height: 30px;
-                    background: #0c0d14;
-                    border-radius: 8px;
-                    border-width: 1px;
-                    border-color: #242638;
-                    HorizontalLayout {
-                        padding: 2px;
-                        spacing: 4px;
-                        SegmentButton {
-                            label: "Normal";
-                            active: root.viewer-mode == 0;
-                            active-color: #89b4fa;
-                            clicked => { root.viewer-mode = 0; root.viewer-mode-changed(0); }
-                        }
-                        SegmentButton {
-                            label: "Shift";
-                            active: root.viewer-mode == 1;
-                            active-color: #a6e3a1;
-                            clicked => { root.viewer-mode = 1; root.viewer-mode-changed(1); }
-                        }
-                        SegmentButton {
-                            label: "AltGr";
-                            active: root.viewer-mode == 2;
-                            active-color: #fab387;
-                            clicked => { root.viewer-mode = 2; root.viewer-mode-changed(2); }
-                        }
-                    }
-                }
-            }
-
-            // Keycap Grid
-            Rectangle {
-                background: #0c0d14;
-                border-radius: 12px;
-                border-width: 1.2px;
-                border-color: #242638;
-                vertical-stretch: 1;
-
-                VerticalLayout {
-                    padding: 14px;
-                    spacing: 6px;
-                    vertical-stretch: 1;
-
-                    // Row 1: Numbers / Symbols
-                    HorizontalLayout {
-                        spacing: 4px;
-                        vertical-stretch: 1;
-                        for key in root.viewer-row-1: KeyCapButton {
-                            key-char: key;
-                            text-color: #89b4fa;
-                            flex-stretch: 1;
-                        }
-                    }
-
-                    // Row 2: QWERTY
-                    HorizontalLayout {
-                        spacing: 4px;
-                        vertical-stretch: 1;
-                        for key in root.viewer-row-2: KeyCapButton {
-                            key-char: key;
-                            text-color: #f1f5f9;
-                            flex-stretch: 1;
-                        }
-                    }
-
-                    // Row 3: ASDF
-                    HorizontalLayout {
-                        spacing: 4px;
-                        vertical-stretch: 1;
-                        for key in root.viewer-row-3: KeyCapButton {
-                            key-char: key;
-                            text-color: #a6e3a1;
-                            flex-stretch: 1;
-                        }
-                    }
-
-                    // Row 4: ZXCV
-                    HorizontalLayout {
-                        spacing: 4px;
-                        vertical-stretch: 1;
-                        for key in root.viewer-row-4: KeyCapButton {
-                            key-char: key;
-                            text-color: #fab387;
-                            flex-stretch: 1;
-                        }
-                    }
-                }
-            }
-        }
-
-        // ---------------------------------------------------------------------
-        // 7. CONJUNCT ASSISTANT (Standalone Resizable)
-        // ---------------------------------------------------------------------
-        if root.dialog-type == 7: VerticalLayout {
-            spacing: 10px;
-            vertical-stretch: 1;
-
-            LineEdit {
-                text: root.conjunct-search-query;
-                placeholder-text: "Search conjunct, breakdown, or phonetic keys (e.g. ক্ষ, kkh, হ + ্ + ম)...";
-                edited(t) => {
-                    root.conjunct-search-query = t;
-                    root.conjunct-search-changed(t);
-                }
-            }
-
-            Rectangle {
-                background: #0c0d14;
-                border-radius: 10px;
-                border-width: 1px;
-                border-color: #242638;
-                vertical-stretch: 1;
-
-                VerticalLayout {
-                    padding: 8px;
-                    vertical-stretch: 1;
-                    ScrollView {
-                        vertical-stretch: 1;
-                        VerticalLayout {
-                            spacing: 4px;
-                            for c in root.conjunct-list: Rectangle {
-                                height: 38px;
+                            for lay in root.available-layouts: Rectangle {
+                                height: 28px;
                                 border-radius: 6px;
-                                background: #13141f;
+                                background: root.viewer-selected-layout == lay ? #89b4fa28 : (lay_sa_ta.has-hover ? #25283d : #141522);
                                 border-width: 1px;
-                                border-color: #1e2030;
+                                border-color: root.viewer-selected-layout == lay ? #89b4fa : (lay_sa_ta.has-hover ? #454866 : #23253a);
+                                lay_sa_ta := TouchArea {
+                                    mouse-cursor: pointer;
+                                    clicked => {
+                                        root.viewer-selected-layout = lay;
+                                        root.select-viewer-layout(lay);
+                                    }
+                                }
 
                                 HorizontalLayout {
-                                    padding-left: 12px;
-                                    padding-right: 8px;
-                                    alignment: space-between;
+                                    padding-left: 9px;
+                                    padding-right: 9px;
+                                    alignment: center;
+                                    Text {
+                                        text: lay;
+                                        color: root.viewer-selected-layout == lay ? #89b4fa : #cdd6f4;
+                                        font-size: 11px;
+                                        font-weight: root.viewer-selected-layout == lay ? 700 : 500;
+                                        vertical-alignment: center;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Mode Selector
+                Rectangle {
+                        height: 30px;
+                        background: #0c0d14;
+                        border-radius: 8px;
+                        border-width: 1px;
+                        border-color: #242638;
+                        HorizontalLayout {
+                            padding: 2px;
+                            spacing: 4px;
+                            SegmentButton {
+                                label: "Normal";
+                                active: root.viewer-mode == 0;
+                                active-color: #89b4fa;
+                                clicked => { root.viewer-mode = 0; root.viewer-mode-changed(0); }
+                            }
+
+                            SegmentButton {
+                                label: "Shift";
+                                active: root.viewer-mode == 1;
+                                active-color: #a6e3a1;
+                                clicked => { root.viewer-mode = 1; root.viewer-mode-changed(1); }
+                            }
+
+                            SegmentButton {
+                                label: "AltGr";
+                                active: root.viewer-mode == 2;
+                                active-color: #fab387;
+                                clicked => { root.viewer-mode = 2; root.viewer-mode-changed(2); }
+                            }
+                        }
+                    }
+                }
+
+                // Keycap Grid
+            Rectangle {
+                    background: #0c0d14;
+                    border-radius: 12px;
+                    border-width: 1.2px;
+                    border-color: #242638;
+                    vertical-stretch: 1;
+
+                    VerticalLayout {
+                        padding: 14px;
+                        spacing: 6px;
+                        vertical-stretch: 1;
+
+                        // Row 1: Numbers / Symbols
+                    HorizontalLayout {
+                            spacing: 4px;
+                            vertical-stretch: 1;
+                            for key in root.viewer-row-1: KeyCapButton {
+                                key-char: key;
+                                text-color: #89b4fa;
+                                flex-stretch: 1;
+                            }
+                        }
+
+                        // Row 2: QWERTY
+                    HorizontalLayout {
+                            spacing: 4px;
+                            vertical-stretch: 1;
+                            for key in root.viewer-row-2: KeyCapButton {
+                                key-char: key;
+                                text-color: #f1f5f9;
+                                flex-stretch: 1;
+                            }
+                        }
+
+                        // Row 3: ASDF
+                    HorizontalLayout {
+                            spacing: 4px;
+                            vertical-stretch: 1;
+                            for key in root.viewer-row-3: KeyCapButton {
+                                key-char: key;
+                                text-color: #a6e3a1;
+                                flex-stretch: 1;
+                            }
+                        }
+
+                        // Row 4: ZXCV
+                    HorizontalLayout {
+                            spacing: 4px;
+                            vertical-stretch: 1;
+                            for key in root.viewer-row-4: KeyCapButton {
+                                key-char: key;
+                                text-color: #fab387;
+                                flex-stretch: 1;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ---------------------------------------------------------------------
+        // 7. CONJUNCT ASSISTANT (Standalone Resizable with Zoom)
+        // ---------------------------------------------------------------------
+        if root.dialog-type == 7: VerticalLayout {
+                spacing: 12px;
+                vertical-stretch: 1;
+
+                HorizontalLayout {
+                    spacing: 12px;
+
+                    LineEdit {
+                        text: root.conjunct-search-query;
+                        placeholder-text: "Search conjuncts, components, or phonetic keys...";
+                        horizontal-stretch: 1;
+                        edited(t) => {
+                            root.conjunct-search-query = t;
+                            root.conjunct-search-changed(t);
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 4px;
+                        alignment: center;
+                        SegmentButton {
+                            label: "100%";
+                            active: root.conjunct-zoom == 0;
+                            clicked => { root.conjunct-zoom = 0; }
+                        }
+
+                        SegmentButton {
+                            label: "135%";
+                            active: root.conjunct-zoom == 1;
+                            clicked => { root.conjunct-zoom = 1; }
+                        }
+
+                        SegmentButton {
+                            label: "175%";
+                            active: root.conjunct-zoom == 2;
+                            clicked => { root.conjunct-zoom = 2; }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    background: #0d1017;
+                    border-radius: 10px;
+                    border-width: 1px;
+                    border-color: #212636;
+                    vertical-stretch: 1;
+
+                    VerticalLayout {
+                        padding: 8px;
+                        vertical-stretch: 1;
+                        ScrollView {
+                            vertical-stretch: 1;
+                            VerticalLayout {
+                                spacing: 6px;
+                                for c in root.conjunct-list: Rectangle {
+                                    height: root.conjunct-zoom == 2 ? 72px : (root.conjunct-zoom == 1 ? 56px : 44px);
+                                    border-radius: 8px;
+                                    background: #131722;
+                                    border-width: 1px;
+                                    border-color: #1f2536;
 
                                     HorizontalLayout {
-                                        spacing: 14px;
-                                        alignment: center;
-                                        Text { text: c.conjunct; color: #89dceb; font-size: 15px; font-weight: 700; }
-                                        Text { text: c.breakdown; color: #cdd6f4; font-size: 12px; }
-                                        Text { text: "Phonetic: " + c.phonetic; color: #89b4fa; font-size: 11px; }
-                                    }
+                                        padding-left: 14px;
+                                        padding-right: 12px;
+                                        alignment: space-between;
 
-                                    ModernButton {
-                                        text: "Copy";
-                                        clicked => { root.copy-conjunct(c.conjunct); }
+                                        HorizontalLayout {
+                                            spacing: root.conjunct-zoom == 2 ? 18px : 14px;
+                                            alignment: center;
+
+                                            // Prominent Hero Glyph Tile
+                                        Rectangle {
+                                                width: root.conjunct-zoom == 2 ? 58px : (root.conjunct-zoom == 1 ? 46px : 36px);
+                                                height: root.conjunct-zoom == 2 ? 58px : (root.conjunct-zoom == 1 ? 46px : 36px);
+                                                border-radius: 8px;
+                                                background: #1a2030;
+                                                border-width: 1px;
+                                                border-color: #2c364e;
+                                                y: (parent.height - self.height) / 2;
+
+                                                Text {
+                                                    text: c.conjunct;
+                                                    color: #ffffff;
+                                                    font-size: root.conjunct-zoom == 2 ? 36px : (root.conjunct-zoom == 1 ? 26px : 19px);
+                                                    font-weight: 700;
+                                                    horizontal-alignment: center;
+                                                    vertical-alignment: center;
+                                                }
+                                            }
+
+                                            // Component Breakdown and Phonetic Badge
+                                        VerticalLayout {
+                                                alignment: center;
+                                                spacing: 3px;
+
+                                                Text {
+                                                    text: c.breakdown;
+                                                    color: #f1f5f9;
+                                                    font-size: root.conjunct-zoom == 2 ? 18px : (root.conjunct-zoom == 1 ? 15px : 13px);
+                                                    font-weight: 600;
+                                                    vertical-alignment: center;
+                                                }
+
+                                                HorizontalLayout {
+                                                    spacing: 6px;
+                                                    alignment: start;
+                                                    Rectangle {
+                                                        border-radius: 4px;
+                                                        background: #19202f;
+                                                        border-width: 1px;
+                                                        border-color: #2b364e;
+                                                        height: root.conjunct-zoom == 2 ? 22px : 18px;
+                                                        HorizontalLayout {
+                                                            padding-left: 6px;
+                                                            padding-right: 6px;
+                                                            alignment: center;
+                                                            Text {
+                                                                text: c.phonetic;
+                                                                color: #93c5fd;
+                                                                font-size: root.conjunct-zoom == 2 ? 12px : (root.conjunct-zoom == 1 ? 11px : 10px);
+                                                                font-weight: 600;
+                                                                vertical-alignment: center;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        ModernButton {
+                                            text: "Copy";
+                                            clicked => { root.copy-conjunct(c.conjunct); }
+                                        }
                                     }
                                 }
                             }
@@ -2817,87 +3302,130 @@ export component StandaloneDialogWindow inherits Window {
                     }
                 }
             }
-        }
 
-        // ---------------------------------------------------------------------
+            // ---------------------------------------------------------------------
         // 8. TYPING TELEMETRY & STATS (Standalone Resizable)
         // ---------------------------------------------------------------------
         if root.dialog-type == 8: VerticalLayout {
-            spacing: 12px;
-            vertical-stretch: 1;
-
-            HorizontalLayout {
-                spacing: 10px;
-                Rectangle {
-                    height: 70px;
-                    border-radius: 8px;
-                    background: #181926bb;
-                    border-width: 1px;
-                    border-color: #89b4fa44;
-                    vertical-stretch: 0;
-
-                    VerticalLayout {
-                        alignment: center;
-                        Text { text: "Total Words Typed"; color: #89b4fa; font-size: 10.5px; font-weight: 700; horizontal-alignment: center; }
-                        Text { text: root.stats-total-words; color: #f1f5f9; font-size: 22px; font-weight: 800; horizontal-alignment: center; }
-                    }
-                }
-
-                Rectangle {
-                    height: 70px;
-                    border-radius: 8px;
-                    background: #181926bb;
-                    border-width: 1px;
-                    border-color: #a6e3a144;
-                    vertical-stretch: 0;
-
-                    VerticalLayout {
-                        alignment: center;
-                        Text { text: "Keystrokes Saved"; color: #a6e3a1; font-size: 10.5px; font-weight: 700; horizontal-alignment: center; }
-                        Text { text: root.stats-keystrokes-saved; color: #a6e3a1; font-size: 22px; font-weight: 800; horizontal-alignment: center; }
-                    }
-                }
-            }
-
-            Rectangle {
-                background: #0c0d14;
-                border-radius: 10px;
-                border-width: 1px;
-                border-color: #242638;
+                spacing: 12px;
                 vertical-stretch: 1;
 
-                VerticalLayout {
-                    padding: 10px;
-                    spacing: 6px;
-                    vertical-stretch: 1;
-                    Text { text: "FREQUENTLY TYPED CHARACTERS"; color: #f9e2af; font-size: 10px; font-weight: 700; }
+                HorizontalLayout {
+                    spacing: 10px;
+                    Rectangle {
+                        height: 70px;
+                        border-radius: 8px;
+                        background: #181926bb;
+                        border-width: 1px;
+                        border-color: #89b4fa44;
+                        vertical-stretch: 0;
 
-                    ScrollView {
-                        vertical-stretch: 1;
                         VerticalLayout {
-                            spacing: 4px;
-                            for row in root.stats-top-characters: Rectangle {
-                                height: 28px;
-                                border-radius: 5px;
-                                background: #13141f;
+                            alignment: center;
+                            Text {
+                                text: "Total Words Typed";
+                                color: #89b4fa;
+                                font-size: 10.5px;
+                                font-weight: 700;
+                                horizontal-alignment: center;
+                            }
 
-                                HorizontalLayout {
-                                    padding-left: 10px;
-                                    padding-right: 10px;
-                                    alignment: space-between;
+                            Text {
+                                text: root.stats-total-words;
+                                color: #f1f5f9;
+                                font-size: 22px;
+                                font-weight: 800;
+                                horizontal-alignment: center;
+                            }
+                        }
+                    }
 
-                                    Text { text: row.character; color: #f1f5f9; font-size: 13px; font-weight: 700; vertical-alignment: center; }
-                                    Text { text: row.count + " times (" + row.percentage + ")"; color: #a6adc8; font-size: 11px; vertical-alignment: center; }
+                    Rectangle {
+                        height: 70px;
+                        border-radius: 8px;
+                        background: #181926bb;
+                        border-width: 1px;
+                        border-color: #a6e3a144;
+                        vertical-stretch: 0;
+
+                        VerticalLayout {
+                            alignment: center;
+                            Text {
+                                text: "Keystrokes Saved";
+                                color: #a6e3a1;
+                                font-size: 10.5px;
+                                font-weight: 700;
+                                horizontal-alignment: center;
+                            }
+
+                            Text {
+                                text: root.stats-keystrokes-saved;
+                                color: #a6e3a1;
+                                font-size: 22px;
+                                font-weight: 800;
+                                horizontal-alignment: center;
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    background: #0c0d14;
+                    border-radius: 10px;
+                    border-width: 1px;
+                    border-color: #242638;
+                    vertical-stretch: 1;
+
+                    VerticalLayout {
+                        padding: 10px;
+                        spacing: 6px;
+                        vertical-stretch: 1;
+                        Text {
+                            text: "FREQUENTLY TYPED CHARACTERS";
+                            color: #f9e2af;
+                            font-size: 10px;
+                            font-weight: 700;
+                        }
+
+                        ScrollView {
+                            vertical-stretch: 1;
+                            VerticalLayout {
+                                spacing: 4px;
+                                for row in root.stats-top-characters: Rectangle {
+                                    height: 28px;
+                                    border-radius: 5px;
+                                    background: #13141f;
+
+                                    HorizontalLayout {
+                                        padding-left: 10px;
+                                        padding-right: 10px;
+                                        alignment: space-between;
+
+                                        Text {
+                                            text: row.character;
+                                            color: #f1f5f9;
+                                            font-size: 13px;
+                                            font-weight: 700;
+                                            vertical-alignment: center;
+                                        }
+
+                                        Text {
+                                            text: row.count + " times (" + row.percentage + ")";
+                                            color: #a6adc8;
+                                            font-size: 11px;
+                                            vertical-alignment: center;
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            ModernButton {
-                text: "Refresh Stats";
-                clicked => { root.refresh-stats(); }
+                ModernButton {
+                    text: "Refresh Stats";
+                    clicked => { root.refresh-stats(); }
+                }
             }
         }
     }

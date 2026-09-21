@@ -62,6 +62,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "lekhani")
             .unwrap_or(true);
         app.set_is_bengali_mode(is_fcitx5_active);
+
+        // Detect if desktop environment lacks Server-Side Decorations (e.g. GNOME on Wayland)
+        let is_gnome_wayland = std::env::var("XDG_CURRENT_DESKTOP")
+            .map(|d| d.to_lowercase().contains("gnome"))
+            .unwrap_or(false)
+            && std::env::var("WAYLAND_DISPLAY").is_ok();
+        standalone.set_needs_client_decorations(is_gnome_wayland);
     }
     let layout_mgr_rc = std::rc::Rc::new(std::cell::RefCell::new(layout_mgr));
     let layouts = layout_mgr_rc.borrow().get_layout_list();
