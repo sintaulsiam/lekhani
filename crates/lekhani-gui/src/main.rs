@@ -169,9 +169,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tray_handle = tray::spawn_tray(current_layout.clone(), app_weak.clone());
 
     #[cfg(windows)]
-    let win_tray_handle = win_tray::spawn_windows_tray(current_layout.clone());
+    let win_tray_handle = win_tray::spawn_windows_tray(current_layout.clone(), app_weak.clone());
     #[cfg(windows)]
-    win_hook::spawn_windows_hook(current_layout.clone(), win_tray_handle);
+    win_hook::spawn_windows_hook(current_layout.clone(), win_tray_handle.clone());
 
     // Set Native Window Icon on Winit Window
     use i_slint_backend_winit::WinitWindowAccessor;
@@ -843,6 +843,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         },
     );
+
+    // Callbacks: Minimize to System Tray
+    let app_weak_min = app_weak.clone();
+    #[cfg(windows)]
+    let win_tray_for_min = win_tray_handle.clone();
+    app.on_trigger_minimize(move || {
+        if let Some(app) = app_weak_min.upgrade() {
+            use i_slint_backend_winit::WinitWindowAccessor;
+            let _ = app.window().with_winit_window(|winit_window| {
+                winit_window.set_visible(false);
+            });
+            #[cfg(windows)]
+            if let Some(ref tray) = win_tray_for_min {
+                tray.set_topbar_visible(false);
+            }
+        }
+    });
 
     // Callbacks: Quit
     app.on_trigger_quit(move || {

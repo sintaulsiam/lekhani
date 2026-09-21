@@ -1,5 +1,6 @@
 //! Native Linux System Tray Icon (StatusNotifierItem via pure Rust zbus)
 
+use slint::ComponentHandle;
 use std::sync::{Arc, RwLock};
 use zbus::connection::Builder;
 use zbus::interface;
@@ -68,6 +69,12 @@ impl LekhaniTray {
         let app_weak = self.app_weak.clone();
         let _ = slint::invoke_from_event_loop(move || {
             if let Some(app) = app_weak.upgrade() {
+                use i_slint_backend_winit::WinitWindowAccessor;
+                let _ = app.window().with_winit_window(|w| {
+                    w.set_visible(true);
+                    w.focus_window();
+                });
+                let _ = app.show();
                 let cur = app.get_active_dialog();
                 if cur == 0 {
                     app.set_active_dialog(1);

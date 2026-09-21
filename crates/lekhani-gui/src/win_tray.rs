@@ -2,8 +2,9 @@
 
 #![cfg(windows)]
 
+use slint::ComponentHandle;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, WPARAM};
 use windows_sys::Win32::UI::Shell::{
     Shell_NotifyIconW, NIF_ICON, NIF_MESSAGE, NIF_TIP, NIM_ADD, NIM_DELETE, NIM_MODIFY,
@@ -13,16 +14,19 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     AppendMenuW, CreatePopupMenu, CreateWindowExW, DefWindowProcW, DestroyMenu, DestroyWindow,
     DispatchMessageW, GetCursorPos, GetMessageW, LoadIconW, PostQuitMessage, RegisterClassExW,
     SetForegroundWindow, TrackPopupMenu, IDI_APPLICATION, MF_SEPARATOR, MF_STRING, MSG,
-    TPM_BOTTOMALIGN, TPM_LEFTALIGN, WM_APP, WM_COMMAND, WM_DESTROY, WM_LBUTTONUP, WM_RBUTTONUP,
-    WNDCLASSEXW,
+    TPM_BOTTOMALIGN, TPM_LEFTALIGN, WM_APP, WM_COMMAND, WM_DESTROY, WM_LBUTTONDBLCLK,
+    WM_LBUTTONUP, WM_RBUTTONUP, WNDCLASSEXW,
 };
 
 const WM_TRAYICON: u32 = WM_APP + 1;
+const ID_TRAY_RESTORE: usize = 1000;
 const ID_TRAY_TOGGLE: usize = 1001;
 const ID_TRAY_SETTINGS: usize = 1002;
 const ID_TRAY_EXIT: usize = 1003;
 
 static IS_BENGALI: AtomicBool = AtomicBool::new(false);
+static IS_TOPBAR_VISIBLE: AtomicBool = AtomicBool::new(true);
+static APP_WEAK: Mutex<Option<slint::Weak<crate::TopBarWindow>>> = Mutex::new(None);
 
 pub struct WindowsTray {
     hwnd: HWND,
@@ -103,6 +107,10 @@ impl WindowsTray {
         }
     }
 
+    pub fn set_topbar_visible(&self, visible: bool) {
+        IS_TOPBAR_VISIBLE.store(visible, Ordering::SeqCst);
+    }
+
     pub fn set_bengali_active(&self, active: bool, layout_name: &str) {
         IS_BENGALI.store(active, Ordering::SeqCst);
         unsafe {
@@ -163,6 +171,72 @@ impl Drop for WindowsTray {
     }
 }
 
+pub fn restore_topbar() {
+    IS_TOPBAR_VISIBLE.store(true, Ordering::SeqCst);
+    if let Ok(guard) = APP_WEAK.lock() {
+        if let Some(ref weak) = *guard {
+            let weak_clone = weak.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(app) = weak_clone.upgrade() {
+                    use i_slint_backend_winit::WinitWindowAccessor;
+                    let _ = app.window().with_winit_window(|w| {
+                        w.set_visible(true);
+                        w.set_minimized(false);
+                        w.focus_window();
+                    });
+                    let _ = app.show();
+                }
+            });
+        }
+    }
+}
+
+pub fn hide_topbar() {
+    IS_TOPBAR_VISIBLE.store(false, Ordering::SeqCst);
+    if let Ok(guard) = APP_WEAK.lock() {
+        if let Some(ref weak) = *guard {
+            let weak_clone = weak.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(app) = weak_clone.upgrade() {
+                    use i_slint_backend_winit::WinitWindowAccessor;
+                    let _ = app.window().with_winit_window(|w| {
+                        w.set_visible(false);
+                    });
+                }
+            });
+        }
+    }
+}
+
+pub fn toggle_topbar_visibility() {
+    if IS_TOPBAR_VISIBLE.load(Ordering::SeqCst) {
+        hide_topbar();
+    } else {
+        restore_topbar();
+    }
+}
+
+pub fn open_settings() {
+    IS_TOPBAR_VISIBLE.store(true, Ordering::SeqCst);
+    if let Ok(guard) = APP_WEAK.lock() {
+        if let Some(ref weak) = *guard {
+            let weak_clone = weak.clone();
+            let _ = slint::invoke_from_event_loop(move || {
+                if let Some(app) = weak_clone.upgrade() {
+                    use i_slint_backend_winit::WinitWindowAccessor;
+                    let _ = app.window().with_winit_window(|w| {
+                        w.set_visible(true);
+                        w.set_minimized(false);
+                        w.focus_window();
+                    });
+                    let _ = app.show();
+                    app.set_active_dialog(5);
+                }
+            });
+        }
+    }
+}
+
 unsafe extern "system" fn tray_wnd_proc(
     hwnd: HWND,
     msg: u32,
@@ -177,6 +251,11 @@ unsafe extern "system" fn tray_wnd_proc(
                 GetCursorPos(&mut pt);
 
                 let hmenu = CreatePopupMenu();
+                let restore_label: Vec<u16> = if IS_TOPBAR_VISIBLE.load(Ordering::SeqCst) {
+                    "Hide TopBar\0".encode_utf16().collect()
+                } else {
+                    "Show TopBar\0".encode_utf16().collect()
+                };
                 let toggle_label: Vec<u16> = if IS_BENGALI.load(Ordering::SeqCst) {
                     "Switch to English (F12)\0".encode_utf16().collect()
                 } else {
@@ -185,6 +264,8 @@ unsafe extern "system" fn tray_wnd_proc(
                 let settings_label: Vec<u16> = "Settings...\0".encode_utf16().collect();
                 let exit_label: Vec<u16> = "Exit Lekhani\0".encode_utf16().collect();
 
+                AppendMenuW(hmenu, MF_STRING, ID_TRAY_RESTORE, restore_label.as_ptr());
+                AppendMenuW(hmenu, MF_SEPARATOR, 0, std::ptr::null());
                 AppendMenuW(hmenu, MF_STRING, ID_TRAY_TOGGLE, toggle_label.as_ptr());
                 AppendMenuW(hmenu, MF_SEPARATOR, 0, std::ptr::null());
                 AppendMenuW(hmenu, MF_STRING, ID_TRAY_SETTINGS, settings_label.as_ptr());
@@ -203,18 +284,36 @@ unsafe extern "system" fn tray_wnd_proc(
                 );
                 DestroyMenu(hmenu);
             } else if event == WM_LBUTTONUP {
-                // Left click toggles language state
-                crate::win_hook::toggle_bengali_mode();
+                // If topbar is hidden/minimized to tray, left-click restores it!
+                // If topbar is already visible, left-click toggles language state.
+                if !IS_TOPBAR_VISIBLE.load(Ordering::SeqCst) {
+                    restore_topbar();
+                } else {
+                    crate::win_hook::toggle_bengali_mode();
+                }
+            } else if event == WM_LBUTTONDBLCLK {
+                // Double-clicking tray icon always restores TopBar
+                restore_topbar();
             }
             0
         }
         WM_COMMAND => {
             let id = wparam as usize;
             match id {
+                ID_TRAY_RESTORE => {
+                    toggle_topbar_visibility();
+                }
                 ID_TRAY_TOGGLE => {
                     crate::win_hook::toggle_bengali_mode();
                 }
+                ID_TRAY_SETTINGS => {
+                    open_settings();
+                }
                 ID_TRAY_EXIT => {
+                    let _ = slint::invoke_from_event_loop(|| {
+                        let _ = slint::quit_event_loop();
+                    });
+                    std::thread::sleep(std::time::Duration::from_millis(50));
                     std::process::exit(0);
                 }
                 _ => {}
@@ -229,7 +328,13 @@ unsafe extern "system" fn tray_wnd_proc(
     }
 }
 
-pub fn spawn_windows_tray(active_layout: String) -> Option<Arc<WindowsTray>> {
+pub fn spawn_windows_tray(
+    active_layout: String,
+    app_weak: slint::Weak<crate::TopBarWindow>,
+) -> Option<Arc<WindowsTray>> {
+    *APP_WEAK.lock().unwrap() = Some(app_weak);
+    IS_TOPBAR_VISIBLE.store(true, Ordering::SeqCst);
+
     let tray = WindowsTray::new(active_layout)?;
     let tray_arc = Arc::new(tray);
     let tray_clone = Arc::clone(&tray_arc);

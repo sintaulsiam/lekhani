@@ -480,6 +480,7 @@ export component TopBarWindow inherits Window {
     callback trigger-converter();
     callback trigger-settings();
     callback trigger-about();
+    callback trigger-minimize();
     callback trigger-quit();
     callback start-drag-window();
     callback end-drag-window();
@@ -518,7 +519,7 @@ export component TopBarWindow inherits Window {
         // Main Floating TopBar (Sleek Compact Dynamic Island Ribbon)
         // ---------------------------------------------------------------------
         Rectangle {
-            width: 480px;
+            width: 515px;
             height: 40px;
             background: #11121df6;
             border-radius: 20px;
@@ -661,7 +662,18 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                // 10. Exit TopBar Button (Close Vector Icon)
+                // 10. Minimize to System Tray Button (Minus Vector Icon)
+                btn_minimize := VectorIconButton {
+                    icon: @image-url("../../../data/icons/ui/minimize.svg");
+                    icon-color: #fab387;
+                    active: false;
+                    active-color: #fab387;
+                    active-bg: #fab38728;
+                    active-border: #fab38766;
+                    clicked => { root.trigger-minimize(); }
+                }
+
+                // 11. Exit TopBar Button (Close Vector Icon)
                 btn_close := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/close.svg");
                     icon-color: #f38ba8;
