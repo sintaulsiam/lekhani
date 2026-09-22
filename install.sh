@@ -11,6 +11,41 @@ set -e
 
 CHOICE="$1"
 
+ACTUAL_USER="${SUDO_USER:-$USER}"
+ACTUAL_HOME=$(getent passwd "$ACTUAL_USER" 2>/dev/null | cut -d: -f6)
+ACTUAL_HOME="${ACTUAL_HOME:-$HOME}"
+
+install_user_file() {
+    local mode="$1"
+    local src="$2"
+    local dest="$3"
+    install -Dm"$mode" "$src" "$dest"
+    if [ -n "$SUDO_USER" ] && [ "$(id -u)" -eq 0 ]; then
+        chown "$ACTUAL_USER:" "$dest" 2>/dev/null || true
+    fi
+}
+
+install_user_dir() {
+    local dir="$1"
+    install -d "$dir"
+    if [ -n "$SUDO_USER" ] && [ "$(id -u)" -eq 0 ]; then
+        chown "$ACTUAL_USER:" "$dir" 2>/dev/null || true
+    fi
+}
+
+clean_user_stale_binaries() {
+    echo "--> Cleaning up stale user binaries to prevent PATH shadowing..."
+    local dirs=("$ACTUAL_HOME/.cargo/bin" "$ACTUAL_HOME/.local/bin")
+    if [ -n "$HOME" ] && [ "$HOME" != "$ACTUAL_HOME" ]; then
+        dirs+=("$HOME/.cargo/bin" "$HOME/.local/bin")
+    fi
+    for d in "${dirs[@]}"; do
+        if [ -d "$d" ]; then
+            rm -f "$d/lekhani-gui" "$d/lekhani" "$d/ibus-lekhani" 2>/dev/null || true
+        fi
+    done
+}
+
 uninstall_lekhani() {
     echo "=========================================================="
     echo "       Uninstalling Lekhani (লেখনী) from System           "
@@ -23,7 +58,7 @@ uninstall_lekhani() {
 
     echo "--> Removing core binaries..."
     sudo rm -f /usr/bin/lekhani-gui /usr/bin/lekhani /usr/bin/ibus-lekhani
-    rm -f "$HOME/.local/bin/lekhani-gui" "$HOME/.local/bin/lekhani" "$HOME/.local/bin/ibus-lekhani" 2>/dev/null || true
+    clean_user_stale_binaries
 
     echo "--> Removing system shared data assets and layouts..."
     sudo rm -rf /usr/share/lekhani
@@ -31,16 +66,22 @@ uninstall_lekhani() {
     echo "--> Removing desktop applications and AppStream metadata..."
     sudo rm -f /usr/share/applications/io.github.lekhani.keyboard.desktop
     sudo rm -f /usr/share/metainfo/io.github.lekhani.keyboard.metainfo.xml
-    rm -f "$HOME/.local/share/applications/io.github.lekhani.keyboard.desktop" 2>/dev/null || true
-    rm -f "$HOME/.local/share/metainfo/io.github.lekhani.keyboard.metainfo.xml" 2>/dev/null || true
+    rm -f "$ACTUAL_HOME/.local/share/applications/io.github.lekhani.keyboard.desktop" 2>/dev/null || true
+    rm -f "$ACTUAL_HOME/.local/share/metainfo/io.github.lekhani.keyboard.metainfo.xml" 2>/dev/null || true
+    if [ "$HOME" != "$ACTUAL_HOME" ]; then
+        rm -f "$HOME/.local/share/applications/io.github.lekhani.keyboard.desktop" 2>/dev/null || true
+        rm -f "$HOME/.local/share/metainfo/io.github.lekhani.keyboard.metainfo.xml" 2>/dev/null || true
+    fi
 
     echo "--> Removing icons..."
     for size in 16 22 24 32 48 64 128 256 512 1024; do
         sudo rm -f "/usr/share/icons/hicolor/${size}x${size}/apps/lekhani.png"
-        rm -f "$HOME/.local/share/icons/hicolor/${size}x${size}/apps/lekhani.png" 2>/dev/null || true
+        rm -f "$ACTUAL_HOME/.local/share/icons/hicolor/${size}x${size}/apps/lekhani.png" 2>/dev/null || true
+        [ "$HOME" != "$ACTUAL_HOME" ] && rm -f "$HOME/.local/share/icons/hicolor/${size}x${size}/apps/lekhani.png" 2>/dev/null || true
     done
     sudo rm -f /usr/share/icons/hicolor/scalable/apps/lekhani.svg
-    rm -f "$HOME/.local/share/icons/hicolor/scalable/apps/lekhani.svg" 2>/dev/null || true
+    rm -f "$ACTUAL_HOME/.local/share/icons/hicolor/scalable/apps/lekhani.svg" 2>/dev/null || true
+    [ "$HOME" != "$ACTUAL_HOME" ] && rm -f "$HOME/.local/share/icons/hicolor/scalable/apps/lekhani.svg" 2>/dev/null || true
 
     echo "--> Removing Fcitx5 addons, inputmethod configs, and plugins..."
     sudo rm -f /usr/share/fcitx5/addon/lekhani.conf
@@ -48,36 +89,46 @@ uninstall_lekhani() {
     sudo rm -f /usr/lib64/fcitx5/fcitx5-lekhani.so
     sudo rm -f /usr/lib/x86_64-linux-gnu/fcitx5/fcitx5-lekhani.so
     sudo rm -f /usr/lib/fcitx5/fcitx5-lekhani.so
-    rm -f "$HOME/.local/share/fcitx5/addon/lekhani.conf" 2>/dev/null || true
-    rm -f "$HOME/.local/share/fcitx5/inputmethod/lekhani.conf" 2>/dev/null || true
-    rm -f "$HOME/.local/lib/fcitx5/fcitx5-lekhani.so" 2>/dev/null || true
+    rm -f "$ACTUAL_HOME/.local/share/fcitx5/addon/lekhani.conf" 2>/dev/null || true
+    rm -f "$ACTUAL_HOME/.local/share/fcitx5/inputmethod/lekhani.conf" 2>/dev/null || true
+    rm -f "$ACTUAL_HOME/.local/lib/fcitx5/fcitx5-lekhani.so" 2>/dev/null || true
+    if [ "$HOME" != "$ACTUAL_HOME" ]; then
+        rm -f "$HOME/.local/share/fcitx5/addon/lekhani.conf" 2>/dev/null || true
+        rm -f "$HOME/.local/share/fcitx5/inputmethod/lekhani.conf" 2>/dev/null || true
+        rm -f "$HOME/.local/lib/fcitx5/fcitx5-lekhani.so" 2>/dev/null || true
+    fi
 
     echo "--> Removing systemd user services..."
     systemctl --user stop lekhani-gui.service ibus-lekhani.service 2>/dev/null || true
     systemctl --user disable lekhani-gui.service ibus-lekhani.service 2>/dev/null || true
     sudo rm -f /usr/lib/systemd/user/lekhani-gui.service /usr/lib/systemd/user/ibus-lekhani.service
-    rm -f "$HOME/.config/systemd/user/lekhani-gui.service" "$HOME/.config/systemd/user/ibus-lekhani.service" 2>/dev/null || true
-    rm -f "$HOME/.local/share/systemd/user/lekhani-gui.service" "$HOME/.local/share/systemd/user/ibus-lekhani.service" 2>/dev/null || true
+    rm -f "$ACTUAL_HOME/.config/systemd/user/lekhani-gui.service" "$ACTUAL_HOME/.config/systemd/user/ibus-lekhani.service" 2>/dev/null || true
+    rm -f "$ACTUAL_HOME/.local/share/systemd/user/lekhani-gui.service" "$ACTUAL_HOME/.local/share/systemd/user/ibus-lekhani.service" 2>/dev/null || true
+    if [ "$HOME" != "$ACTUAL_HOME" ]; then
+        rm -f "$HOME/.config/systemd/user/lekhani-gui.service" "$HOME/.config/systemd/user/ibus-lekhani.service" 2>/dev/null || true
+        rm -f "$HOME/.local/share/systemd/user/lekhani-gui.service" "$HOME/.local/share/systemd/user/ibus-lekhani.service" 2>/dev/null || true
+    fi
 
     echo "--> Removing IBus component XML..."
     sudo rm -f /usr/share/ibus/component/lekhani.xml
-    rm -f "$HOME/.local/share/ibus/component/lekhani.xml" 2>/dev/null || true
+    rm -f "$ACTUAL_HOME/.local/share/ibus/component/lekhani.xml" 2>/dev/null || true
+    [ "$HOME" != "$ACTUAL_HOME" ] && rm -f "$HOME/.local/share/ibus/component/lekhani.xml" 2>/dev/null || true
 
     echo "--> Updating desktop and icon caches..."
     sudo gtk-update-icon-cache -f -t /usr/share/icons/hicolor 2>/dev/null || true
-    gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+    gtk-update-icon-cache -f -t "$ACTUAL_HOME/.local/share/icons/hicolor" 2>/dev/null || true
     sudo update-desktop-database -q /usr/share/applications 2>/dev/null || true
-    update-desktop-database -q "$HOME/.local/share/applications" 2>/dev/null || true
+    update-desktop-database -q "$ACTUAL_HOME/.local/share/applications" 2>/dev/null || true
     kbuildsycoca6 --noincremental 2>/dev/null || kbuildsycoca5 --noincremental 2>/dev/null || true
 
-    if [ -d "$HOME/.config/lekhani" ] || [ -d "$HOME/.local/share/lekhani" ]; then
+    if [ -d "$ACTUAL_HOME/.config/lekhani" ] || [ -d "$ACTUAL_HOME/.local/share/lekhani" ]; then
         echo ""
         if [ -t 0 ]; then
             read -rp "Do you also want to delete user configurations, stats & learning history (~/.config/lekhani & ~/.local/share/lekhani)? [y/N]: " REMOVE_CONFIG
             case "$REMOVE_CONFIG" in
                 [yY]|[yY][eE][sS])
-                    rm -rf "$HOME/.config/lekhani"
-                    rm -rf "$HOME/.local/share/lekhani"
+                    rm -rf "$ACTUAL_HOME/.config/lekhani"
+                    rm -rf "$ACTUAL_HOME/.local/share/lekhani"
                     echo "--> User configurations and statistics directories removed."
                     ;;
                 *)
@@ -139,6 +190,12 @@ if [ -z "$CHOICE" ]; then
     esac
 fi
 
+# Terminate running instances before updating binaries to avoid running stale memory images
+echo "--> Terminating running Lekhani processes before update..."
+pkill -f lekhani-gui 2>/dev/null || true
+pkill -f ibus-lekhani 2>/dev/null || true
+pkill -x lekhani 2>/dev/null || true
+
 # Check for pre-compiled binaries (e.g. inside portable release tarball in bin/)
 if [ -f "bin/lekhani-gui" ] && [ -f "bin/lekhani" ] && [ -f "bin/ibus-lekhani" ]; then
     echo "=== Using Pre-Compiled Lekhani Binaries from bin/ ==="
@@ -148,8 +205,8 @@ if [ -f "bin/lekhani-gui" ] && [ -f "bin/lekhani" ] && [ -f "bin/ibus-lekhani" ]
 else
     # Auto-detect cargo in user directory if invoked via sudo
     if ! command -v cargo &>/dev/null; then
-        if [ -n "$SUDO_USER" ] && [ -x "/home/$SUDO_USER/.cargo/bin/cargo" ]; then
-            export PATH="/home/$SUDO_USER/.cargo/bin:$PATH"
+        if [ -n "$ACTUAL_USER" ] && [ -x "/home/$ACTUAL_USER/.cargo/bin/cargo" ]; then
+            export PATH="/home/$ACTUAL_USER/.cargo/bin:$PATH"
         elif [ -x "$HOME/.cargo/bin/cargo" ]; then
             export PATH="$HOME/.cargo/bin:$PATH"
         elif [ -x "$HOME/.cargo/env" ]; then
@@ -168,9 +225,8 @@ fi
 echo "=== Installing Lekhani Core Binaries & Desktop GUI ==="
 sudo install -Dm755 "$GUI_BIN" /usr/bin/lekhani-gui
 sudo install -Dm755 "$CLI_BIN" /usr/bin/lekhani
-# Clean up or sync any legacy binaries in ~/.local/bin to prevent $PATH shadowing
-rm -f "$HOME/.local/bin/lekhani-gui" "$HOME/.local/bin/lekhani" 2>/dev/null || true
-
+# Clean up any stale/legacy binaries in ~/.cargo/bin and ~/.local/bin to prevent $PATH shadowing
+clean_user_stale_binaries
 
 echo "=== Installing Data Assets & Layouts ==="
 sudo install -d /usr/share/lekhani/layouts
@@ -183,32 +239,44 @@ echo "=== Installing Desktop Icons (All Resolutions + SVG) ==="
 for size in 16 22 24 32 48 64 128 256 512 1024; do
     if [ -f "data/icons/${size}.png" ]; then
         sudo install -Dm644 "data/icons/${size}.png" "/usr/share/icons/hicolor/${size}x${size}/apps/lekhani.png"
-        install -Dm644 "data/icons/${size}.png" "$HOME/.local/share/icons/hicolor/${size}x${size}/apps/lekhani.png"
+        if [ -d "$ACTUAL_HOME" ]; then
+            install_user_file 644 "data/icons/${size}.png" "$ACTUAL_HOME/.local/share/icons/hicolor/${size}x${size}/apps/lekhani.png"
+        fi
     fi
 done
 if [ -f "data/icons/lekhani.svg" ]; then
     sudo install -Dm644 data/icons/lekhani.svg /usr/share/icons/hicolor/scalable/apps/lekhani.svg
-    install -Dm644 data/icons/lekhani.svg "$HOME/.local/share/icons/hicolor/scalable/apps/lekhani.svg"
+    if [ -d "$ACTUAL_HOME" ]; then
+        install_user_file 644 data/icons/lekhani.svg "$ACTUAL_HOME/.local/share/icons/hicolor/scalable/apps/lekhani.svg"
+    fi
 fi
 sudo install -d /usr/share/lekhani/icons
 sudo install -Dm644 data/icons/128.png /usr/share/lekhani/icons/lekhani.png
 
-echo "=== Updating Desktop Icon Caches ==="
-sudo gtk-update-icon-cache -f -t /usr/share/icons/hicolor 2>/dev/null || true
-gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
-kbuildsycoca6 --noincremental 2>/dev/null || kbuildsycoca5 --noincremental 2>/dev/null || true
-
 echo "=== Installing Desktop Entry & AppStream Metadata ==="
 sudo install -Dm644 data/io.github.lekhani.keyboard.desktop /usr/share/applications/io.github.lekhani.keyboard.desktop
-install -Dm644 data/io.github.lekhani.keyboard.desktop "$HOME/.local/share/applications/io.github.lekhani.keyboard.desktop"
+if [ -d "$ACTUAL_HOME" ]; then
+    install_user_file 644 data/io.github.lekhani.keyboard.desktop "$ACTUAL_HOME/.local/share/applications/io.github.lekhani.keyboard.desktop"
+fi
 sudo install -Dm644 data/io.github.lekhani.keyboard.metainfo.xml /usr/share/metainfo/io.github.lekhani.keyboard.metainfo.xml
+
+echo "=== Updating Desktop Icon & Application Caches ==="
+sudo gtk-update-icon-cache -f -t /usr/share/icons/hicolor 2>/dev/null || true
+gtk-update-icon-cache -f -t "$ACTUAL_HOME/.local/share/icons/hicolor" 2>/dev/null || true
+sudo update-desktop-database -q /usr/share/applications 2>/dev/null || true
+update-desktop-database -q "$ACTUAL_HOME/.local/share/applications" 2>/dev/null || true
+kbuildsycoca6 --noincremental 2>/dev/null || kbuildsycoca5 --noincremental 2>/dev/null || true
 
 echo "=== Installing Systemd User Services ==="
 if [ -d "data/systemd" ]; then
     sudo install -d /usr/lib/systemd/user
     sudo install -Dm644 data/systemd/*.service /usr/lib/systemd/user/ 2>/dev/null || true
-    install -d "$HOME/.config/systemd/user"
-    install -Dm644 data/systemd/*.service "$HOME/.config/systemd/user/" 2>/dev/null || true
+    if [ -d "$ACTUAL_HOME" ]; then
+        install_user_dir "$ACTUAL_HOME/.config/systemd/user"
+        for svc in data/systemd/*.service; do
+            [ -f "$svc" ] && install_user_file 644 "$svc" "$ACTUAL_HOME/.config/systemd/user/$(basename "$svc")"
+        done
+    fi
     systemctl --user daemon-reload 2>/dev/null || true
 fi
 
@@ -237,6 +305,7 @@ if [ "$CHOICE" = "--fcitx5" ] || [ "$CHOICE" = "fcitx5" ] || [ "$CHOICE" = "--al
         sudo install -Dm755 fcitx5/fcitx5-lekhani.so "$FCITX_LIB_DIR/fcitx5-lekhani.so"
         echo "--> Installed fcitx5-lekhani.so to $FCITX_LIB_DIR/"
     elif [ -f "crates/lekhani-fcitx5/build/fcitx5-lekhani.so" ]; then
+        echo "--> Found existing built fcitx5-lekhani.so..."
         sudo install -d "$FCITX_LIB_DIR"
         sudo install -Dm755 crates/lekhani-fcitx5/build/fcitx5-lekhani.so "$FCITX_LIB_DIR/fcitx5-lekhani.so"
         echo "--> Installed fcitx5-lekhani.so to $FCITX_LIB_DIR/"

@@ -6782,7 +6782,7 @@ dependencies = [
 
 [[package]]
 name = "zbus_names"
-version = "1.0.0"
+version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b9b1fef7d021261cc16cba64c351d291b715febe0fa10dc3a443ac5a5022e6c"
 dependencies = [
