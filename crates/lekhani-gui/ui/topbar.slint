@@ -2765,12 +2765,6 @@ export component StandaloneDialogWindow inherits Window {
                 HorizontalLayout {
                     spacing: 8px;
                     alignment: center;
-                    Rectangle {
-                        width: 7px;
-                        height: 7px;
-                        border-radius: 3.5px;
-                        background: #a6e3a1;
-                    }
                     Text {
                         text: root.settings-status-text != "" ? root.settings-status-text : "All changes saved automatically";
                         color: root.settings-status-text != "" ? #a6e3a1 : #64748b;

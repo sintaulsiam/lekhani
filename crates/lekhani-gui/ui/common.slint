@@ -567,30 +567,33 @@ export component SidebarTabItem inherits Rectangle {
         clicked => { root.clicked(); }
     }
 
+    // Active indicator line on the left border
+    if (root.active): Rectangle {
+        x: 0px;
+        y: (parent.height - self.height) / 2;
+        width: 3px;
+        height: 18px;
+        border-top-right-radius: 1.5px;
+        border-bottom-right-radius: 1.5px;
+        background: root.active-color;
+    }
+
     HorizontalLayout {
-        padding-left: 10px;
-        padding-right: 10px;
-        spacing: 9px;
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 10px;
         alignment: start;
 
-        // Left accent indicator line
-        VerticalLayout {
-            alignment: center;
-            Rectangle {
-                width: 3px;
-                height: 18px;
-                border-radius: 1.5px;
-                background: root.active ? root.active-color : transparent;
-            }
-        }
-
-        // Icon
-        VerticalLayout {
-            alignment: center;
+        // Icon in fixed container so all icons align perfectly on vertical axis
+        Rectangle {
+            width: 18px;
+            height: 18px;
             Image {
+                x: (parent.width - self.width) / 2;
+                y: (parent.height - self.height) / 2;
                 source: root.icon;
-                width: 15px;
-                height: 15px;
+                width: 16px;
+                height: 16px;
                 colorize: root.active ? root.active-color : (ta.has-hover ? #cdd6f4 : #7f849c);
                 animate colorize { duration: 100ms; }
             }
@@ -1184,14 +1187,12 @@ export component SettingsContent inherits ScrollView {
                                         background: #89b4fa15;
                                         border-width: 1px;
                                         border-color: #89b4fa33;
-                                        VerticalLayout {
-                                            alignment: center;
-                                            Image {
-                                                width: 16px;
-                                                height: 16px;
-                                                source: @image-url("../../../data/icons/ui/database.svg");
-                                                horizontal-alignment: center;
-                                            }
+                                        Image {
+                                            x: (parent.width - self.width) / 2;
+                                            y: (parent.height - self.height) / 2;
+                                            width: 16px;
+                                            height: 16px;
+                                            source: @image-url("../../../data/icons/ui/database.svg");
                                         }
                                     }
                                     VerticalLayout {
@@ -1222,6 +1223,7 @@ export component SettingsContent inherits ScrollView {
 
                             HorizontalLayout {
                                 spacing: 8px;
+                                alignment: start;
                                 ModernButton {
                                     text: "Export Backup...";
                                     icon: @image-url("../../../data/icons/ui/download.svg");
@@ -1265,14 +1267,12 @@ export component SettingsContent inherits ScrollView {
                                         background: #cba6f715;
                                         border-width: 1px;
                                         border-color: #cba6f733;
-                                        VerticalLayout {
-                                            alignment: center;
-                                            Image {
-                                                width: 16px;
-                                                height: 16px;
-                                                source: @image-url("../../../data/icons/ui/book.svg");
-                                                horizontal-alignment: center;
-                                            }
+                                        Image {
+                                            x: (parent.width - self.width) / 2;
+                                            y: (parent.height - self.height) / 2;
+                                            width: 16px;
+                                            height: 16px;
+                                            source: @image-url("../../../data/icons/ui/book.svg");
                                         }
                                     }
                                     VerticalLayout {
@@ -1303,6 +1303,7 @@ export component SettingsContent inherits ScrollView {
 
                             HorizontalLayout {
                                 spacing: 8px;
+                                alignment: start;
                                 ModernButton {
                                     text: "Export Vocabulary...";
                                     icon: @image-url("../../../data/icons/ui/download.svg");
@@ -1344,14 +1345,12 @@ export component SettingsContent inherits ScrollView {
                             background: #f38ba818;
                             border-width: 1px;
                             border-color: #f38ba844;
-                            VerticalLayout {
-                                alignment: center;
-                                Image {
-                                    width: 16px;
-                                    height: 16px;
-                                    source: @image-url("../../../data/icons/ui/warning.svg");
-                                    horizontal-alignment: center;
-                                }
+                            Image {
+                                x: (parent.width - self.width) / 2;
+                                y: (parent.height - self.height) / 2;
+                                width: 16px;
+                                height: 16px;
+                                source: @image-url("../../../data/icons/ui/warning.svg");
                             }
                         }
                         VerticalLayout {
