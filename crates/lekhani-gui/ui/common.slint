@@ -568,23 +568,37 @@ export component SidebarTabItem inherits Rectangle {
     }
 
     HorizontalLayout {
-        padding-left: 12px;
+        padding-left: 10px;
         padding-right: 12px;
-        spacing: 10px;
+        spacing: 9px;
         alignment: start;
 
-        // Icon in fixed container so all icons align perfectly on vertical axis
-        Rectangle {
-            width: 18px;
-            height: 18px;
-            Image {
-                x: (parent.width - self.width) / 2;
-                y: (parent.height - self.height) / 2;
-                source: root.icon;
-                width: 16px;
-                height: 16px;
-                colorize: root.active ? root.active-color : (ta.has-hover ? #cdd6f4 : #7f849c);
-                animate colorize { duration: 100ms; }
+        // Left vertical accent indicator bar
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 3px;
+                height: 18px;
+                border-radius: 1.5px;
+                background: root.active ? root.active-color : transparent;
+            }
+        }
+
+        // Icon vertically centered with label
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 18px;
+                height: 18px;
+                Image {
+                    x: (parent.width - self.width) / 2;
+                    y: (parent.height - self.height) / 2;
+                    source: root.icon;
+                    width: 16px;
+                    height: 16px;
+                    colorize: root.active ? root.active-color : (ta.has-hover ? #cdd6f4 : #7f849c);
+                    animate colorize { duration: 100ms; }
+                }
             }
         }
 
