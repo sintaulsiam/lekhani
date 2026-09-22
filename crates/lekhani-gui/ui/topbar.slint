@@ -129,6 +129,7 @@ export component TopBarWindow inherits Window {
     in-out property <bool> set-auto-dari: true;
     in-out property <bool> set-horizontal-cands: true;
     in-out property <bool> set-check-updates: true;
+    in-out property <bool> set-dark-mode: true;
     in-out property <string> settings-status-text: "All changes saved automatically";
     in-out property <string> learned-stats-text: "Loading...";
 
@@ -1042,6 +1043,12 @@ export component TopBarWindow inherits Window {
                                     label: "Automatically Check for Updates";
                                     checked: root.set-check-updates;
                                     toggled(v) => { root.set-check-updates = v; root.auto-save-settings(); }
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Dark Theme Appearance";
+                                    checked: root.set-dark-mode;
+                                    toggled(v) => { root.set-dark-mode = v; root.auto-save-settings(); }
                                 }
 
                                 HorizontalLayout {
@@ -2144,6 +2151,7 @@ export component StandaloneDialogWindow inherits Window {
     in-out property <bool> set-auto-dari: true;
     in-out property <bool> set-horizontal-cands: true;
     in-out property <bool> set-check-updates: true;
+    in-out property <bool> set-dark-mode: true;
     in-out property <bool> set-autostart: false;
     in-out property <bool> is-windows: false;
     in property <bool> needs-client-decorations: false;
@@ -2684,6 +2692,12 @@ export component StandaloneDialogWindow inherits Window {
                                         ModernToggleSwitch {
                                             label: "Automatically Check for Updates";
                                             checked <=> root.set-check-updates;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Dark Theme Appearance";
+                                            checked <=> root.set-dark-mode;
                                             toggled(_) => { root.auto-save-settings(); }
                                         }
 
