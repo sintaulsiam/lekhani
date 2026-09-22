@@ -567,17 +567,6 @@ export component SidebarTabItem inherits Rectangle {
         clicked => { root.clicked(); }
     }
 
-    // Active indicator line on the left border
-    if (root.active): Rectangle {
-        x: 0px;
-        y: (parent.height - self.height) / 2;
-        width: 3px;
-        height: 18px;
-        border-top-right-radius: 1.5px;
-        border-bottom-right-radius: 1.5px;
-        background: root.active-color;
-    }
-
     HorizontalLayout {
         padding-left: 12px;
         padding-right: 12px;
