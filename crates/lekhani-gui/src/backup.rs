@@ -39,11 +39,10 @@ pub fn perform_restore_defaults(
     s_opt: Option<&StandaloneDialogWindow>,
 ) {
     let mut cm = cm_rc.borrow_mut();
-    cm.config.phonetic = lekhani_settings::PhoneticConfig::default();
-    cm.config.fixed = lekhani_settings::FixedConfig::default();
-    cm.config.general.toggle_key = "F12".to_string();
-    cm.config.general.show_osd = true;
-    cm.config.general.auto_dari = true;
+    let active_layout = cm.config.general.active_layout.clone();
+    let mut def = lekhani_settings::AppConfig::default();
+    def.general.active_layout = active_layout;
+    cm.config = def;
     cm.save();
     if let Some(app) = app_opt {
         apply_settings_to_app(app, &cm.config);
