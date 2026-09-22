@@ -22,7 +22,12 @@ import {
     ModernButton,
     ConfirmModal,
     ModernToggleSwitch,
-    CopyButton
+    CopyButton,
+    SidebarTabItem,
+    SettingRow,
+    SettingCard,
+    SettingsContent,
+    EmptyStateView
 } from "common.slint";
 
 export {
@@ -79,6 +84,10 @@ export component TopBarWindow inherits Window {
     in property <[string]> viewer-row-3: [];
     in property <[string]> viewer-row-4: [];
     in-out property <string> viewer-selected-layout: root.active-layout-name;
+    property <[string]> latin-row-1: ["`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "="];
+    property <[string]> latin-row-2: ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "\\"];
+    property <[string]> latin-row-3: ["A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'"];
+    property <[string]> latin-row-4: ["Z", "X", "C", "V", "B", "N", "M", ",", ".", "/"];
     callback viewer-mode-changed(int);
     callback select-viewer-layout(string);
 
@@ -132,6 +141,7 @@ export component TopBarWindow inherits Window {
     in-out property <bool> set-dark-mode: true;
     in-out property <string> settings-status-text: "All changes saved automatically";
     in-out property <string> learned-stats-text: "Loading...";
+    in-out property <int> settings-tab: 0;
 
     // Mode-Switch OSD HUD properties
     in-out property <bool> show-osd: false;
@@ -552,32 +562,36 @@ export component TopBarWindow inherits Window {
                         // Row 1: Numbers
                         HorizontalLayout {
                             spacing: 3px;
-                            for key in root.viewer-row-1: KeyCapButton {
+                            for key[idx] in root.viewer-row-1: KeyCapButton {
                                 key-char: key;
+                                latin-char: idx < root.latin-row-1.length ? root.latin-row-1[idx] : "";
                                 text-color: #89b4fa;
                             }
                         }
                         // Row 2: QWERTY
                         HorizontalLayout {
                             spacing: 3px;
-                            for key in root.viewer-row-2: KeyCapButton {
+                            for key[idx] in root.viewer-row-2: KeyCapButton {
                                 key-char: key;
+                                latin-char: idx < root.latin-row-2.length ? root.latin-row-2[idx] : "";
                                 text-color: #a6e3a1;
                             }
                         }
                         // Row 3: ASDF
                         HorizontalLayout {
                             spacing: 3px;
-                            for key in root.viewer-row-3: KeyCapButton {
+                            for key[idx] in root.viewer-row-3: KeyCapButton {
                                 key-char: key;
+                                latin-char: idx < root.latin-row-3.length ? root.latin-row-3[idx] : "";
                                 text-color: #f1f5f9;
                             }
                         }
                         // Row 4: ZXCV
                         HorizontalLayout {
                             spacing: 3px;
-                            for key in root.viewer-row-4: KeyCapButton {
+                            for key[idx] in root.viewer-row-4: KeyCapButton {
                                 key-char: key;
+                                latin-char: idx < root.latin-row-4.length ? root.latin-row-4[idx] : "";
                                 text-color: #fab387;
                             }
                         }
@@ -2097,10 +2111,10 @@ export component TopBarWindow inherits Window {
 export component StandaloneDialogWindow inherits Window {
     title: root.dialog-title;
     icon: @image-url("../../../data/icons/128.png");
-    min-width: 560px;
-    min-height: 440px;
-    preferred-width: 720px;
-    preferred-height: 520px;
+    min-width: 700px;
+    min-height: 480px;
+    preferred-width: 840px;
+    preferred-height: 580px;
     background: #0a0c10;
 
     in-out property <int> dialog-type: 4; // 2=Viewer, 3=AutoCorrect, 4=Converter, 5=Settings, 7=Conjuncts, 8=Stats
@@ -2157,6 +2171,7 @@ export component StandaloneDialogWindow inherits Window {
     in property <bool> needs-client-decorations: false;
     in-out property <string> settings-status-text: "All changes saved automatically";
     in-out property <string> learned-stats-text: "Loading...";
+    in-out property <int> settings-tab: 0;
 
     // Layout Viewer State
     in-out property <int> viewer-mode: 0;
@@ -2166,6 +2181,10 @@ export component StandaloneDialogWindow inherits Window {
     in property <[string]> viewer-row-4: [];
     in-out property <string> viewer-selected-layout: root.active-layout-name;
     in property <[string]> available-layouts: [];
+    property <[string]> latin-row-1: ["`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "="];
+    property <[string]> latin-row-2: ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "\\"];
+    property <[string]> latin-row-3: ["A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'"];
+    property <[string]> latin-row-4: ["Z", "X", "C", "V", "B", "N", "M", ",", ".", "/"];
 
     property <string> dialog-title: root.dialog-type == 2 ? "Lekhani - Keyboard Layout Viewer (" + root.viewer-selected-layout + ")" :
         root.dialog-type == 3 ? "Lekhani - AutoCorrect Manager" :
@@ -2210,7 +2229,7 @@ export component StandaloneDialogWindow inherits Window {
     callback viewer-mode-changed(int);
     callback select-viewer-layout(string);
 
-    property <length> max-content-width: root.dialog-type == 4 ? 1160px : 880px;
+    property <length> max-content-width: (root.dialog-type == 4 || root.dialog-type == 5) ? 1160px : 880px;
 
     Rectangle {
         width: min(parent.width - 32px, root.max-content-width);
@@ -2265,28 +2284,39 @@ export component StandaloneDialogWindow inherits Window {
                 vertical-stretch: 1;
 
                 // Mode Selector
-            HorizontalLayout {
-                    spacing: 8px;
-                    SegmentButton {
-                        label: "Bijoy (ANSI) ➔ Unicode Bengali";
-                        active: root.conv-direction == 0;
-                        active-color: #fab387;
-                        clicked => {
-                            root.conv-direction = 0;
-                            if (root.conv-input-text != "") {
-                                root.convert-bijoy-to-unicode(root.conv-input-text);
-                            }
-                        }
-                    }
+                HorizontalLayout {
+                    alignment: start;
+                    Rectangle {
+                        background: #0d0f17;
+                        border-radius: 8px;
+                        border-width: 1px;
+                        border-color: #1e2235;
 
-                    SegmentButton {
-                        label: "Unicode Bengali ➔ Bijoy (ANSI)";
-                        active: root.conv-direction == 1;
-                        active-color: #fab387;
-                        clicked => {
-                            root.conv-direction = 1;
-                            if (root.conv-input-text != "") {
-                                root.convert-unicode-to-bijoy(root.conv-input-text);
+                        HorizontalLayout {
+                            padding: 3px;
+                            spacing: 4px;
+                            SegmentButton {
+                                label: "Bijoy (ANSI) ➔ Unicode Bengali";
+                                active: root.conv-direction == 0;
+                                active-color: #fab387;
+                                clicked => {
+                                    root.conv-direction = 0;
+                                    if (root.conv-input-text != "") {
+                                        root.convert-bijoy-to-unicode(root.conv-input-text);
+                                    }
+                                }
+                            }
+
+                            SegmentButton {
+                                label: "Unicode Bengali ➔ Bijoy (ANSI)";
+                                active: root.conv-direction == 1;
+                                active-color: #fab387;
+                                clicked => {
+                                    root.conv-direction = 1;
+                                    if (root.conv-input-text != "") {
+                                        root.convert-unicode-to-bijoy(root.conv-input-text);
+                                    }
+                                }
                             }
                         }
                     }
@@ -2508,7 +2538,8 @@ export component StandaloneDialogWindow inherits Window {
                 }
 
                 // Word List Table
-            Rectangle {
+                // Word List Table
+                Rectangle {
                     background: #0c0d14;
                     border-radius: 10px;
                     border-width: 1px;
@@ -2516,9 +2547,36 @@ export component StandaloneDialogWindow inherits Window {
                     vertical-stretch: 1;
 
                     VerticalLayout {
-                        padding: 6px;
+                        padding: 10px;
+                        spacing: 8px;
                         vertical-stretch: 1;
-                        ScrollView {
+
+                        // Table Header
+                        HorizontalLayout {
+                            padding-left: 12px;
+                            padding-right: 36px;
+                            alignment: space-between;
+                            Text {
+                                text: "TRIGGER / SHORTCUT";
+                                color: #64748b;
+                                font-size: 9.5px;
+                                font-weight: 700;
+                            }
+                            Text {
+                                text: "CORRECTED BENGALI WORD";
+                                color: #64748b;
+                                font-size: 9.5px;
+                                font-weight: 700;
+                            }
+                        }
+
+                        if (root.ac-entries.length == 0): EmptyStateView {
+                            icon: @image-url("../../../data/icons/ui/pen.svg");
+                            title: "No AutoCorrect entries found";
+                            subtitle: root.ac-search-query != "" ? "No entries match your search query" : "Add your first custom shorthand or spelling correction above";
+                        }
+
+                        if (root.ac-entries.length > 0): ScrollView {
                             vertical-stretch: 1;
                             VerticalLayout {
                                 spacing: 4px;
@@ -2594,619 +2652,146 @@ export component StandaloneDialogWindow inherits Window {
             }
 
             // ---------------------------------------------------------------------
-        // 5. SETTINGS (Standalone Resizable)
+        // 5. SETTINGS (Standalone Resizable with Left Sidebar Navigation)
         // ---------------------------------------------------------------------
         if root.dialog-type == 5: VerticalLayout {
-                spacing: 12px;
+            spacing: 12px;
+            vertical-stretch: 1;
+
+            HorizontalLayout {
+                spacing: 16px;
                 vertical-stretch: 1;
 
-                ScrollView {
-                    vertical-stretch: 1;
+                // Left Navigation Sidebar (205px)
+                Rectangle {
+                    width: 205px;
+                    background: #0d0f17;
+                    border-radius: 12px;
+                    border-width: 1px;
+                    border-color: #1e2235;
+
                     VerticalLayout {
-                        spacing: 12px;
+                        padding: 10px;
+                        spacing: 6px;
                         alignment: start;
 
-                        HorizontalLayout {
-                            spacing: 14px;
-                            alignment: start;
-
-                            // Left Column
-                        VerticalLayout {
-                                spacing: 12px;
-                                horizontal-stretch: 1;
-                                alignment: start;
-
-                                // Section 1: Phonetic & Basic Typing
-                            Rectangle {
-                                    background: #0c0d14;
-                                    border-radius: 10px;
-                                    border-width: 1px;
-                                    border-color: #242638;
-                                    vertical-stretch: 0;
-
-                                    VerticalLayout {
-                                        padding: 14px;
-                                        spacing: 9px;
-                                        alignment: start;
-                                        Text {
-                                            text: "PHONETIC & BASIC TYPING";
-                                            color: #89b4fa;
-                                            font-size: 10px;
-                                            font-weight: 700;
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Enable Dictionary Suggestions";
-                                            checked <=> root.set-use-dict;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        HorizontalLayout {
-                                            spacing: 8px;
-                                            padding-top: 4px;
-                                            Text {
-                                                text: "Autonomous Learning Profile:";
-                                                color: #64748b;
-                                                font-size: 11px;
-                                                vertical-alignment: center;
-                                            }
-                                            Text {
-                                                text: root.learned-stats-text;
-                                                color: #38bdf8;
-                                                font-size: 11px;
-                                                font-weight: 600;
-                                                vertical-alignment: center;
-                                            }
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Include English in Candidate List";
-                                            checked <=> root.set-include-eng;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Enter Key Closes Candidate Window";
-                                            checked <=> root.set-enter-closes;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Auto-Expand Double Period (..) to Dāri (।)";
-                                            checked <=> root.set-auto-dari;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Horizontal Candidate Window Layout";
-                                            checked <=> root.set-horizontal-cands;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Show Mode-Switch HUD Overlay";
-                                            checked <=> root.set-show-osd;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Automatically Check for Updates";
-                                            checked <=> root.set-check-updates;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Dark Theme Appearance";
-                                            checked <=> root.set-dark-mode;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        HorizontalLayout {
-                                            spacing: 8px;
-                                            padding-top: 4px;
-                                            Text {
-                                                text: "Mode Toggle Hotkey:";
-                                                color: #cdd6f4;
-                                                font-size: 11.5px;
-                                                vertical-alignment: center;
-                                            }
-
-                                            SegmentButton {
-                                                label: "F12";
-                                                active: root.set-toggle-key == "F12";
-                                                active-color: #89b4fa;
-                                                clicked => {
-                                                    root.set-toggle-key = "F12";
-                                                    root.auto-save-settings();
-                                                }
-                                            }
-
-                                            SegmentButton {
-                                                label: "Ctrl+Space";
-                                                active: root.set-toggle-key == "Ctrl+Space";
-                                                active-color: #89b4fa;
-                                                clicked => {
-                                                    root.set-toggle-key = "Ctrl+Space";
-                                                    root.auto-save-settings();
-                                                }
-                                            }
-
-                                            SegmentButton {
-                                                label: "Shift+Space";
-                                                active: root.set-toggle-key == "Shift+Space";
-                                                active-color: #89b4fa;
-                                                clicked => {
-                                                    root.set-toggle-key = "Shift+Space";
-                                                    root.auto-save-settings();
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // Section 2: Smart Assistance & Developer Tools
-                            Rectangle {
-                                    background: #0c0d14;
-                                    border-radius: 10px;
-                                    border-width: 1px;
-                                    border-color: #242638;
-                                    vertical-stretch: 0;
-
-                                    VerticalLayout {
-                                        padding: 14px;
-                                        spacing: 9px;
-                                        alignment: start;
-                                        Text {
-                                            text: "SMART ASSISTANCE & DEVELOPER TOOLS";
-                                            color: #cba6f7;
-                                            font-size: 10px;
-                                            font-weight: 700;
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Developer Code Shield";
-                                            checked <=> root.set-code-shield;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Concatenated Word Segmentation";
-                                            checked <=> root.set-word-segmentation;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Colloquial Dialect Normalization";
-                                            checked <=> root.set-colloquial-dialects;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Banglish Chat Contractions";
-                                            checked <=> root.set-banglish-shorthand;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Right Column
-                        VerticalLayout {
-                                spacing: 12px;
-                                horizontal-stretch: 1;
-                                alignment: start;
-
-                                // Section 3: Predictive Intelligence & Productivity
-                            Rectangle {
-                                    background: #0c0d14;
-                                    border-radius: 10px;
-                                    border-width: 1px;
-                                    border-color: #242638;
-                                    vertical-stretch: 0;
-
-                                    VerticalLayout {
-                                        padding: 14px;
-                                        spacing: 9px;
-                                        alignment: start;
-                                        Text {
-                                            text: "PREDICTIVE INTELLIGENCE & PRODUCTIVITY";
-                                            color: #f38ba8;
-                                            font-size: 10px;
-                                            font-weight: 700;
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "AI Next-Word Prediction";
-                                            checked <=> root.set-predictive-next;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Reduplicated Words Prediction";
-                                            checked <=> root.set-reduplication;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Multi-Word Phrase Completion";
-                                            checked <=> root.set-phrase-prediction;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Dynamic Math & Date Macros";
-                                            checked <=> root.set-dynamic-macros;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-                                    }
-                                }
-
-                                // Section 4: Fixed Layout Options
-                            Rectangle {
-                                    background: #0c0d14;
-                                    border-radius: 10px;
-                                    border-width: 1px;
-                                    border-color: #242638;
-                                    vertical-stretch: 0;
-
-                                    VerticalLayout {
-                                        padding: 14px;
-                                        spacing: 9px;
-                                        alignment: start;
-                                        Text {
-                                            text: "FIXED LAYOUT AUTOMATIONS";
-                                            color: #a6e3a1;
-                                            font-size: 10px;
-                                            font-weight: 700;
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Automatic Vowel Forming";
-                                            checked <=> root.set-auto-vowel;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Automatic Chandra Position";
-                                            checked <=> root.set-auto-chandra;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Traditional Kar Placement";
-                                            checked <=> root.set-traditional-kar;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Smart Reph Placement";
-                                            checked <=> root.set-old-reph;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Bengali Number Pad Mapping";
-                                            checked <=> root.set-numberpad;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-                                    }
-                                }
-
-                                // Section 5: System & Startup (Windows)
-                            if root.is-windows: Rectangle {
-                                    background: #0c0d14;
-                                    border-radius: 10px;
-                                    border-width: 1px;
-                                    border-color: #242638;
-                                    vertical-stretch: 0;
-
-                                    VerticalLayout {
-                                        padding: 14px;
-                                        spacing: 9px;
-                                        alignment: start;
-                                        Text {
-                                            text: "SYSTEM";
-                                            color: #f9e2af;
-                                            font-size: 10px;
-                                            font-weight: 700;
-                                        }
-
-                                        ModernToggleSwitch {
-                                            label: "Launch on system startup";
-                                            checked <=> root.set-autostart;
-                                            toggled(_) => { root.auto-save-settings(); }
-                                        }
-                                    }
-                                }
-                            }
+                        SidebarTabItem {
+                            icon: @image-url("../../../data/icons/ui/settings.svg");
+                            label: "General";
+                            active: root.settings-tab == 0;
+                            active-color: #cba6f7;
+                            clicked => { root.settings-tab = 0; }
                         }
-
-                        // Section 6: Data & Backup Management (Full-Width Modern Cards)
-                        Rectangle {
-                            background: #0c0d14;
-                            border-radius: 10px;
-                            border-width: 1px;
-                            border-color: #242638;
-
-                            VerticalLayout {
-                                padding: 16px;
-                                spacing: 14px;
-                                alignment: start;
-
-                                Text {
-                                    text: "DATA & BACKUP MANAGEMENT";
-                                    color: #38bdf8;
-                                    font-size: 10px;
-                                    font-weight: 700;
-                                }
-
-                                // Row 1: Full Workspace Archive & Learned Words & Phrases side by side
-                                HorizontalLayout {
-                                    spacing: 12px;
-
-                                    // Card 1: Full Workspace Backup
-                                    Rectangle {
-                                        horizontal-stretch: 1;
-                                        background: #0f111a;
-                                        border-radius: 9px;
-                                        border-width: 1px;
-                                        border-color: #23273a;
-
-                                        VerticalLayout {
-                                            padding: 14px;
-                                            spacing: 10px;
-                                            alignment: space-between;
-
-                                            VerticalLayout {
-                                                spacing: 6px;
-                                                HorizontalLayout {
-                                                    spacing: 10px;
-                                                    alignment: start;
-                                                    Rectangle {
-                                                        width: 30px;
-                                                        height: 30px;
-                                                        border-radius: 7px;
-                                                        background: #89b4fa15;
-                                                        border-width: 1px;
-                                                        border-color: #89b4fa33;
-                                                        Image {
-                                                            width: 16px;
-                                                            height: 16px;
-                                                            source: @image-url("../../../data/icons/ui/database.svg");
-                                                        }
-                                                    }
-                                                    VerticalLayout {
-                                                        alignment: center;
-                                                        spacing: 2px;
-                                                        Text {
-                                                            text: "Full Workspace Archive";
-                                                            color: #f1f5f9;
-                                                            font-size: 12px;
-                                                            font-weight: 700;
-                                                        }
-                                                        Text {
-                                                            text: "Complete system backup (.json)";
-                                                            color: #89b4fa;
-                                                            font-size: 10.5px;
-                                                            font-weight: 600;
-                                                        }
-                                                    }
-                                                }
-
-                                                Text {
-                                                    text: "Archive your complete configuration, custom layouts, autocorrect table, typing memory, and statistics.";
-                                                    color: #94a3b8;
-                                                    font-size: 11px;
-                                                    wrap: word-wrap;
-                                                }
-                                            }
-
-                                            HorizontalLayout {
-                                                spacing: 8px;
-                                                alignment: start;
-                                                ModernButton {
-                                                    text: "Export Backup...";
-                                                    icon: @image-url("../../../data/icons/ui/download.svg");
-                                                    has-icon: true;
-                                                    clicked => { root.export-full-backup(); }
-                                                }
-                                                ModernButton {
-                                                    text: "Restore Backup...";
-                                                    icon: @image-url("../../../data/icons/ui/upload.svg");
-                                                    has-icon: true;
-                                                    clicked => { root.import-full-backup(); }
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    // Card 2: Learned Words & Phrases
-                                    Rectangle {
-                                        horizontal-stretch: 1;
-                                        background: #0f111a;
-                                        border-radius: 9px;
-                                        border-width: 1px;
-                                        border-color: #23273a;
-
-                                        VerticalLayout {
-                                            padding: 14px;
-                                            spacing: 10px;
-                                            alignment: space-between;
-
-                                            VerticalLayout {
-                                                spacing: 6px;
-                                                HorizontalLayout {
-                                                    spacing: 10px;
-                                                    alignment: start;
-                                                    Rectangle {
-                                                        width: 30px;
-                                                        height: 30px;
-                                                        border-radius: 7px;
-                                                        background: #cba6f715;
-                                                        border-width: 1px;
-                                                        border-color: #cba6f733;
-                                                        Image {
-                                                            width: 16px;
-                                                            height: 16px;
-                                                            source: @image-url("../../../data/icons/ui/book.svg");
-                                                        }
-                                                    }
-                                                    VerticalLayout {
-                                                        alignment: center;
-                                                        spacing: 2px;
-                                                        Text {
-                                                            text: "Learned Vocabulary";
-                                                            color: #f1f5f9;
-                                                            font-size: 12px;
-                                                            font-weight: 700;
-                                                        }
-                                                        Text {
-                                                            text: "Personalized language model (.json)";
-                                                            color: #cba6f7;
-                                                            font-size: 10.5px;
-                                                            font-weight: 600;
-                                                        }
-                                                    }
-                                                }
-
-                                                Text {
-                                                    text: "Export or import only your autonomously learned vocabulary, candidate memory, and dynamic bigram transitions.";
-                                                    color: #94a3b8;
-                                                    font-size: 11px;
-                                                    wrap: word-wrap;
-                                                }
-                                            }
-
-                                            HorizontalLayout {
-                                                spacing: 8px;
-                                                alignment: start;
-                                                ModernButton {
-                                                    text: "Export Vocabulary...";
-                                                    icon: @image-url("../../../data/icons/ui/download.svg");
-                                                    has-icon: true;
-                                                    clicked => { root.export-learned-data(); }
-                                                }
-                                                ModernButton {
-                                                    text: "Import Vocabulary...";
-                                                    icon: @image-url("../../../data/icons/ui/upload.svg");
-                                                    has-icon: true;
-                                                    clicked => { root.import-learned-data(); }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // Row 2: Danger Zone Card
-                                Rectangle {
-                                    background: #191016;
-                                    border-radius: 9px;
-                                    border-width: 1px;
-                                    border-color: #f38ba833;
-
-                                    VerticalLayout {
-                                        padding: 14px;
-                                        spacing: 10px;
-
-                                        HorizontalLayout {
-                                            alignment: space-between;
-                                            spacing: 12px;
-
-                                            HorizontalLayout {
-                                                spacing: 10px;
-                                                alignment: start;
-                                                Rectangle {
-                                                    width: 30px;
-                                                    height: 30px;
-                                                    border-radius: 7px;
-                                                    background: #f38ba818;
-                                                    border-width: 1px;
-                                                    border-color: #f38ba844;
-                                                    Image {
-                                                        width: 16px;
-                                                        height: 16px;
-                                                        source: @image-url("../../../data/icons/ui/warning.svg");
-                                                    }
-                                                }
-                                                VerticalLayout {
-                                                    alignment: center;
-                                                    spacing: 2px;
-                                                    Text {
-                                                        text: "Danger Zone";
-                                                        color: #f38ba8;
-                                                        font-size: 12px;
-                                                        font-weight: 700;
-                                                    }
-                                                    Text {
-                                                        text: "Permanently erase learned models or restore all settings back to defaults";
-                                                        color: #fca5a5a0;
-                                                        font-size: 11px;
-                                                    }
-                                                }
-                                            }
-
-                                            HorizontalLayout {
-                                                spacing: 8px;
-                                                alignment: end;
-                                                ModernButton {
-                                                    text: "Reset Learned Data...";
-                                                    icon: @image-url("../../../data/icons/ui/trash.svg");
-                                                    has-icon: true;
-                                                    danger: true;
-                                                    clicked => { root.request-clear-learned-data(); }
-                                                }
-                                                ModernButton {
-                                                    text: "Restore Defaults...";
-                                                    icon: @image-url("../../../data/icons/ui/refresh.svg");
-                                                    has-icon: true;
-                                                    danger: false;
-                                                    clicked => { root.request-restore-defaults(); }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                        SidebarTabItem {
+                            icon: @image-url("../../../data/icons/ui/keyboard.svg");
+                            label: "Phonetic & Typing";
+                            active: root.settings-tab == 1;
+                            active-color: #89b4fa;
+                            clicked => { root.settings-tab = 1; }
+                        }
+                        SidebarTabItem {
+                            icon: @image-url("../../../data/icons/ui/puzzle.svg");
+                            label: "Fixed Layouts";
+                            active: root.settings-tab == 2;
+                            active-color: #a6e3a1;
+                            clicked => { root.settings-tab = 2; }
+                        }
+                        SidebarTabItem {
+                            icon: @image-url("../../../data/icons/ui/chart.svg");
+                            label: "Smart Assistance";
+                            active: root.settings-tab == 3;
+                            active-color: #f38ba8;
+                            clicked => { root.settings-tab = 3; }
+                        }
+                        SidebarTabItem {
+                            icon: @image-url("../../../data/icons/ui/database.svg");
+                            label: "Data & Backup";
+                            active: root.settings-tab == 4;
+                            active-color: #38bdf8;
+                            clicked => { root.settings-tab = 4; }
                         }
                     }
                 }
 
-                // Settings Footer: Auto-save status feedback + Action buttons
+                // Right Content Viewport (Shared SettingsContent)
+                SettingsContent {
+                    active-tab: root.settings-tab;
+                    is-windows: root.is-windows;
+                    learned-stats-text: root.learned-stats-text;
+
+                    set-dark-mode <=> root.set-dark-mode;
+                    set-horizontal-cands <=> root.set-horizontal-cands;
+                    set-auto-dari <=> root.set-auto-dari;
+                    set-show-osd <=> root.set-show-osd;
+                    set-check-updates <=> root.set-check-updates;
+                    set-autostart <=> root.set-autostart;
+                    set-toggle-key <=> root.set-toggle-key;
+
+                    set-use-dict <=> root.set-use-dict;
+                    set-include-eng <=> root.set-include-eng;
+                    set-enter-closes <=> root.set-enter-closes;
+
+                    set-auto-vowel <=> root.set-auto-vowel;
+                    set-auto-chandra <=> root.set-auto-chandra;
+                    set-traditional-kar <=> root.set-traditional-kar;
+                    set-old-reph <=> root.set-old-reph;
+                    set-numberpad <=> root.set-numberpad;
+
+                    set-predictive-next <=> root.set-predictive-next;
+                    set-reduplication <=> root.set-reduplication;
+                    set-phrase-prediction <=> root.set-phrase-prediction;
+                    set-dynamic-macros <=> root.set-dynamic-macros;
+                    set-code-shield <=> root.set-code-shield;
+                    set-word-segmentation <=> root.set-word-segmentation;
+                    set-colloquial-dialects <=> root.set-colloquial-dialects;
+                    set-banglish-shorthand <=> root.set-banglish-shorthand;
+
+                    auto-save => { root.auto-save-settings(); }
+                    export-backup => { root.export-full-backup(); }
+                    restore-backup => { root.import-full-backup(); }
+                    export-vocabulary => { root.export-learned-data(); }
+                    import-vocabulary => { root.import-learned-data(); }
+                    request-clear-learned => { root.request-clear-learned-data(); }
+                    request-restore-defaults => { root.request-restore-defaults(); }
+                }
+            }
+
+            // Bottom Status Bar
             HorizontalLayout {
-                    alignment: space-between;
-                    padding-top: 4px;
-                    padding-bottom: 2px;
+                spacing: 12px;
+                alignment: space-between;
+                padding-top: 4px;
 
-                    // Left: Auto-save status feedback
                 HorizontalLayout {
-                        spacing: 7px;
-                        Text {
-                            text: root.settings-status-text;
-                            color: #94a3b8;
-                            font-size: 12px;
-                            vertical-alignment: center;
-                        }
+                    spacing: 8px;
+                    alignment: center;
+                    Rectangle {
+                        width: 7px;
+                        height: 7px;
+                        border-radius: 3.5px;
+                        background: #a6e3a1;
                     }
+                    Text {
+                        text: root.settings-status-text != "" ? root.settings-status-text : "All changes saved automatically";
+                        color: root.settings-status-text != "" ? #a6e3a1 : #64748b;
+                        font-size: 11px;
+                        font-weight: 500;
+                        vertical-alignment: center;
+                    }
+                }
 
-                    // Right: Action buttons
                 HorizontalLayout {
-                        spacing: 10px;
-                        alignment: center;
+                    spacing: 10px;
+                    alignment: center;
 
-                        ModernButton {
-                            text: "Restore Defaults";
-                            primary: false;
-                            clicked => { root.request-restore-defaults(); }
-                        }
-
-                        ModernButton {
-                            text: "Done";
-                            primary: true;
-                            clicked => { root.close-window(); }
-                        }
+                    ModernButton {
+                        text: "Done";
+                        primary: true;
+                        clicked => { root.close-window(); }
                     }
                 }
             }
+        }
 
             // ---------------------------------------------------------------------
         // 2. KEYBOARD LAYOUT VIEWER (Standalone Resizable)
@@ -3311,44 +2896,48 @@ export component StandaloneDialogWindow inherits Window {
                         vertical-stretch: 1;
 
                         // Row 1: Numbers / Symbols
-                    HorizontalLayout {
+                        HorizontalLayout {
                             spacing: 4px;
                             vertical-stretch: 1;
-                            for key in root.viewer-row-1: KeyCapButton {
+                            for key[idx] in root.viewer-row-1: KeyCapButton {
                                 key-char: key;
+                                latin-char: idx < root.latin-row-1.length ? root.latin-row-1[idx] : "";
                                 text-color: #89b4fa;
                                 flex-stretch: 1;
                             }
                         }
 
                         // Row 2: QWERTY
-                    HorizontalLayout {
+                        HorizontalLayout {
                             spacing: 4px;
                             vertical-stretch: 1;
-                            for key in root.viewer-row-2: KeyCapButton {
+                            for key[idx] in root.viewer-row-2: KeyCapButton {
                                 key-char: key;
+                                latin-char: idx < root.latin-row-2.length ? root.latin-row-2[idx] : "";
                                 text-color: #f1f5f9;
                                 flex-stretch: 1;
                             }
                         }
 
                         // Row 3: ASDF
-                    HorizontalLayout {
+                        HorizontalLayout {
                             spacing: 4px;
                             vertical-stretch: 1;
-                            for key in root.viewer-row-3: KeyCapButton {
+                            for key[idx] in root.viewer-row-3: KeyCapButton {
                                 key-char: key;
+                                latin-char: idx < root.latin-row-3.length ? root.latin-row-3[idx] : "";
                                 text-color: #a6e3a1;
                                 flex-stretch: 1;
                             }
                         }
 
                         // Row 4: ZXCV
-                    HorizontalLayout {
+                        HorizontalLayout {
                             spacing: 4px;
                             vertical-stretch: 1;
-                            for key in root.viewer-row-4: KeyCapButton {
+                            for key[idx] in root.viewer-row-4: KeyCapButton {
                                 key-char: key;
+                                latin-char: idx < root.latin-row-4.length ? root.latin-row-4[idx] : "";
                                 text-color: #fab387;
                                 flex-stretch: 1;
                             }
@@ -3410,7 +2999,14 @@ export component StandaloneDialogWindow inherits Window {
                     VerticalLayout {
                         padding: 8px;
                         vertical-stretch: 1;
-                        ScrollView {
+
+                        if (root.conjunct-list.length == 0): EmptyStateView {
+                            icon: @image-url("../../../data/icons/ui/puzzle.svg");
+                            title: "No conjuncts found";
+                            subtitle: "Try searching with English phonetic letters (e.g. ksh), Bengali consonants (ক+ষ), or plus notation";
+                        }
+
+                        if (root.conjunct-list.length > 0): ScrollView {
                             vertical-stretch: 1;
                             VerticalLayout {
                                 spacing: 6px;
@@ -3585,7 +3181,13 @@ export component StandaloneDialogWindow inherits Window {
                             font-weight: 700;
                         }
 
-                        ScrollView {
+                        if (root.stats-top-characters.length == 0): EmptyStateView {
+                            icon: @image-url("../../../data/icons/ui/chart.svg");
+                            title: "No character telemetry recorded yet";
+                            subtitle: "Start typing in Bengali with Lekhani to build your frequency profile and keystroke metrics";
+                        }
+
+                        if (root.stats-top-characters.length > 0): ScrollView {
                             vertical-stretch: 1;
                             VerticalLayout {
                                 spacing: 4px;

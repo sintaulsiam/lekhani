@@ -699,7 +699,6 @@ export component SettingRow inherits Rectangle {
         if (root.has-divider): Rectangle {
             height: 1px;
             background: #1e203055;
-            padding-top: 7px;
         }
     }
 }
@@ -748,6 +747,7 @@ export component EmptyStateView inherits Rectangle {
     in property <color> icon-color: #89b4fa;
     in property <string> title: "No items found";
     in property <string> message: "";
+    in property <string> subtitle: "";
 
     VerticalLayout {
         alignment: center;
@@ -785,13 +785,613 @@ export component EmptyStateView inherits Rectangle {
             horizontal-alignment: center;
         }
 
-        if (root.message != ""): Text {
-            text: root.message;
+        if (root.subtitle != "" || root.message != ""): Text {
+            text: root.subtitle != "" ? root.subtitle : root.message;
             color: #94a3b8;
             font-size: 11.5px;
             horizontal-alignment: center;
             wrap: word-wrap;
             max-width: 320px;
+        }
+    }
+}
+
+export component SettingsContent inherits ScrollView {
+    in property <int> active-tab: 0;
+    in property <bool> is-windows: false;
+    in property <string> learned-stats-text: "";
+
+    // Preferences
+    in-out property <bool> set-dark-mode;
+    in-out property <bool> set-horizontal-cands;
+    in-out property <bool> set-auto-dari;
+    in-out property <bool> set-show-osd;
+    in-out property <bool> set-check-updates;
+    in-out property <bool> set-autostart;
+    in-out property <string> set-toggle-key;
+
+    in-out property <bool> set-use-dict;
+    in-out property <bool> set-include-eng;
+    in-out property <bool> set-enter-closes;
+
+    in-out property <bool> set-auto-vowel;
+    in-out property <bool> set-auto-chandra;
+    in-out property <bool> set-traditional-kar;
+    in-out property <bool> set-old-reph;
+    in-out property <bool> set-numberpad;
+
+    in-out property <bool> set-predictive-next;
+    in-out property <bool> set-reduplication;
+    in-out property <bool> set-phrase-prediction;
+    in-out property <bool> set-dynamic-macros;
+    in-out property <bool> set-code-shield;
+    in-out property <bool> set-word-segmentation;
+    in-out property <bool> set-colloquial-dialects;
+    in-out property <bool> set-banglish-shorthand;
+
+    callback auto-save();
+    callback export-backup();
+    callback restore-backup();
+    callback export-vocabulary();
+    callback import-vocabulary();
+    callback request-clear-learned();
+    callback request-restore-defaults();
+
+    vertical-stretch: 1;
+    horizontal-stretch: 1;
+
+    VerticalLayout {
+        spacing: 14px;
+        alignment: start;
+        padding-right: 6px;
+
+        // TAB 0: GENERAL PREFERENCES
+        if (root.active-tab == 0): VerticalLayout {
+            spacing: 12px;
+
+            SettingCard {
+                title: "GENERAL PREFERENCES";
+                title-color: #cba6f7;
+                icon: @image-url("../../../data/icons/ui/settings.svg");
+
+                SettingRow {
+                    title: "Dark Theme Appearance";
+                    subtitle: "Enable sleek dark palette across all Lekhani windows and menus";
+                    checked <=> root.set-dark-mode;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                SettingRow {
+                    title: "Horizontal Candidate Window Layout";
+                    subtitle: "Display phonetic suggestions side-by-side instead of vertically";
+                    checked <=> root.set-horizontal-cands;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                SettingRow {
+                    title: "Auto-Expand Double Period (..) to Dāri (।)";
+                    subtitle: "Quickly type Bengali dāri punctuation by typing double full-stops";
+                    checked <=> root.set-auto-dari;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                SettingRow {
+                    title: "Show Mode-Switch HUD Overlay";
+                    subtitle: "Display an on-screen visual notification when switching layouts";
+                    checked <=> root.set-show-osd;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                SettingRow {
+                    title: "Automatically Check for Updates";
+                    subtitle: "Keep Lekhani up to date with new features and dictionary releases";
+                    checked <=> root.set-check-updates;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                if (root.is-windows): SettingRow {
+                    title: "Launch on System Startup";
+                    subtitle: "Start Lekhani in the Windows system notification tray on boot";
+                    checked <=> root.set-autostart;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                // Mode Toggle Hotkey Row
+                Rectangle {
+                    border-radius: 8px;
+                    VerticalLayout {
+                        padding-left: 10px;
+                        padding-right: 10px;
+                        padding-top: 8px;
+                        padding-bottom: 8px;
+                        HorizontalLayout {
+                            spacing: 12px;
+                            alignment: space-between;
+
+                            VerticalLayout {
+                                alignment: center;
+                                spacing: 2px;
+                                Text {
+                                    text: "Mode Toggle Hotkey";
+                                    color: #f1f5f9;
+                                    font-size: 12px;
+                                    font-weight: 600;
+                                }
+                                Text {
+                                    text: "Global keyboard shortcut to switch between Bengali & English";
+                                    color: #828ba2;
+                                    font-size: 10.5px;
+                                }
+                            }
+
+                            HorizontalLayout {
+                                spacing: 6px;
+                                alignment: center;
+
+                                SegmentButton {
+                                    label: "F12";
+                                    active: root.set-toggle-key == "F12";
+                                    active-color: #cba6f7;
+                                    clicked => {
+                                        root.set-toggle-key = "F12";
+                                        root.auto-save();
+                                    }
+                                }
+                                SegmentButton {
+                                    label: "Ctrl+Space";
+                                    active: root.set-toggle-key == "Ctrl+Space";
+                                    active-color: #cba6f7;
+                                    clicked => {
+                                        root.set-toggle-key = "Ctrl+Space";
+                                        root.auto-save();
+                                    }
+                                }
+                                SegmentButton {
+                                    label: "Shift+Space";
+                                    active: root.set-toggle-key == "Shift+Space";
+                                    active-color: #cba6f7;
+                                    clicked => {
+                                        root.set-toggle-key = "Shift+Space";
+                                        root.auto-save();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // TAB 1: PHONETIC & BASIC TYPING
+        if (root.active-tab == 1): VerticalLayout {
+            spacing: 12px;
+
+            SettingCard {
+                title: "PHONETIC & BASIC TYPING";
+                title-color: #89b4fa;
+                icon: @image-url("../../../data/icons/ui/keyboard.svg");
+
+                SettingRow {
+                    title: "Enable Dictionary Suggestions";
+                    subtitle: "Offer intelligent phonetic candidate completions as you type in Roman letters";
+                    checked <=> root.set-use-dict;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                SettingRow {
+                    title: "Include English in Candidate List";
+                    subtitle: "Allow choosing the verbatim English word from the suggestion window";
+                    checked <=> root.set-include-eng;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                SettingRow {
+                    title: "Enter Key Closes Candidate Window";
+                    subtitle: "Pressing Enter commits the primary candidate and immediately closes popup";
+                    checked <=> root.set-enter-closes;
+                    has-divider: false;
+                    toggled(_) => { root.auto-save(); }
+                }
+            }
+
+            SettingCard {
+                title: "AUTONOMOUS LEARNING PROFILE";
+                title-color: #89b4fa;
+                icon: @image-url("../../../data/icons/ui/chart.svg");
+
+                HorizontalLayout {
+                    spacing: 10px;
+                    Text {
+                        text: "Active Model Memory:";
+                        color: #94a3b8;
+                        font-size: 11.5px;
+                        vertical-alignment: center;
+                    }
+                    Text {
+                        text: root.learned-stats-text;
+                        color: #89b4fa;
+                        font-size: 12px;
+                        font-weight: 700;
+                        vertical-alignment: center;
+                    }
+                }
+
+                Text {
+                    text: "Lekhani continuously trains local n-grams and bigram transitions from your accepted selections. Your personalized vocabulary stays 100% private on your device.";
+                    color: #64748b;
+                    font-size: 11px;
+                    wrap: word-wrap;
+                }
+            }
+        }
+
+        // TAB 2: FIXED LAYOUT AUTOMATIONS
+        if (root.active-tab == 2): VerticalLayout {
+            spacing: 12px;
+
+            SettingCard {
+                title: "FIXED LAYOUT AUTOMATIONS (PROBHAT / JATIYA / UNIBIJOY)";
+                title-color: #a6e3a1;
+                icon: @image-url("../../../data/icons/ui/puzzle.svg");
+
+                SettingRow {
+                    title: "Automatic Vowel Forming";
+                    subtitle: "Converts standalone kars into independent vowel letters (e.g. অ + া ➔ আ)";
+                    checked <=> root.set-auto-vowel;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                SettingRow {
+                    title: "Automatic Chandra Position";
+                    subtitle: "Ensures Chandrabindu is automatically attached to the consonant (ক + ঁ ➔ কাঁ)";
+                    checked <=> root.set-auto-chandra;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                SettingRow {
+                    title: "Traditional Kar Placement";
+                    subtitle: "Maintains classical visual typing sequence for pre-kars and post-kars";
+                    checked <=> root.set-traditional-kar;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                SettingRow {
+                    title: "Smart Reph Placement";
+                    subtitle: "Automatically repositions Bengali Reph (র্) before the appropriate root consonant";
+                    checked <=> root.set-old-reph;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                SettingRow {
+                    title: "Bengali Number Pad Mapping";
+                    subtitle: "Maps physical numeric keypad digits directly to Bengali numerals (০-৯)";
+                    checked <=> root.set-numberpad;
+                    has-divider: false;
+                    toggled(_) => { root.auto-save(); }
+                }
+            }
+        }
+
+        // TAB 3: SMART ASSISTANCE & AI
+        if (root.active-tab == 3): VerticalLayout {
+            spacing: 12px;
+
+            SettingCard {
+                title: "PREDICTIVE INTELLIGENCE & PRODUCTIVITY";
+                title-color: #f38ba8;
+                icon: @image-url("../../../data/icons/ui/chart.svg");
+
+                SettingRow {
+                    title: "AI Next-Word Prediction";
+                    subtitle: "Suggests the most probable next word using neural n-gram context";
+                    checked <=> root.set-predictive-next;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                SettingRow {
+                    title: "Reduplicated Words Prediction";
+                    subtitle: "Auto-completes repeated Bengali echo expressions (e.g. ধীরে ➔ ধীরে ধীরে)";
+                    checked <=> root.set-reduplication;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                SettingRow {
+                    title: "Multi-Word Phrase Completion";
+                    subtitle: "Predicts common multi-word idioms and conversational collocations";
+                    checked <=> root.set-phrase-prediction;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                SettingRow {
+                    title: "Dynamic Math & Date Macros";
+                    subtitle: "Evaluates inline calculations like !sum(10+20) and dates like !date";
+                    checked <=> root.set-dynamic-macros;
+                    has-divider: false;
+                    toggled(_) => { root.auto-save(); }
+                }
+            }
+
+            SettingCard {
+                title: "DEVELOPER TOOLS & REGIONAL DIALECTS";
+                title-color: #f38ba8;
+                icon: @image-url("../../../data/icons/ui/settings.svg");
+
+                SettingRow {
+                    title: "Developer Code Shield";
+                    subtitle: "Guards programming keywords (onClick, function, const, --flag) from transliteration";
+                    checked <=> root.set-code-shield;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                SettingRow {
+                    title: "Concatenated Word Segmentation";
+                    subtitle: "Splits combined phonetics into proper spaced words (kemonaso ➔ কেমন আছো)";
+                    checked <=> root.set-word-segmentation;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                SettingRow {
+                    title: "Colloquial Dialect Normalization";
+                    subtitle: "Maps spoken regional dialects into standard literary Bengali (খামু ➔ খাব)";
+                    checked <=> root.set-colloquial-dialects;
+                    toggled(_) => { root.auto-save(); }
+                }
+
+                SettingRow {
+                    title: "Banglish Chat Contractions";
+                    subtitle: "Expands popular SMS and social media chat shortcuts (amr ➔ আমার, kothay ➔ কোথায়)";
+                    checked <=> root.set-banglish-shorthand;
+                    has-divider: false;
+                    toggled(_) => { root.auto-save(); }
+                }
+            }
+        }
+
+        // TAB 4: DATA & BACKUP MANAGEMENT
+        if (root.active-tab == 4): VerticalLayout {
+            spacing: 12px;
+
+            SettingCard {
+                title: "DATA & BACKUP MANAGEMENT";
+                title-color: #38bdf8;
+                icon: @image-url("../../../data/icons/ui/database.svg");
+
+                VerticalLayout {
+                    spacing: 12px;
+
+                    // Card 1: Full Workspace Backup
+                    Rectangle {
+                        horizontal-stretch: 1;
+                        background: #0f111a;
+                        border-radius: 9px;
+                        border-width: 1px;
+                        border-color: #23273a;
+
+                        VerticalLayout {
+                            padding: 14px;
+                            spacing: 10px;
+                            alignment: space-between;
+
+                            VerticalLayout {
+                                spacing: 6px;
+                                HorizontalLayout {
+                                    spacing: 10px;
+                                    alignment: start;
+                                    Rectangle {
+                                        width: 30px;
+                                        height: 30px;
+                                        border-radius: 7px;
+                                        background: #89b4fa15;
+                                        border-width: 1px;
+                                        border-color: #89b4fa33;
+                                        VerticalLayout {
+                                            alignment: center;
+                                            Image {
+                                                width: 16px;
+                                                height: 16px;
+                                                source: @image-url("../../../data/icons/ui/database.svg");
+                                                horizontal-alignment: center;
+                                            }
+                                        }
+                                    }
+                                    VerticalLayout {
+                                        alignment: center;
+                                        spacing: 2px;
+                                        Text {
+                                            text: "Full Workspace Archive";
+                                            color: #f1f5f9;
+                                            font-size: 12px;
+                                            font-weight: 700;
+                                        }
+                                        Text {
+                                            text: "Complete system backup (.json)";
+                                            color: #89b4fa;
+                                            font-size: 10.5px;
+                                            font-weight: 600;
+                                        }
+                                    }
+                                }
+
+                                Text {
+                                    text: "Archive your complete configuration, custom layouts, autocorrect table, typing memory, and statistics.";
+                                    color: #94a3b8;
+                                    font-size: 11px;
+                                    wrap: word-wrap;
+                                }
+                            }
+
+                            HorizontalLayout {
+                                spacing: 8px;
+                                ModernButton {
+                                    text: "Export Backup...";
+                                    icon: @image-url("../../../data/icons/ui/download.svg");
+                                    has-icon: true;
+                                    primary: false;
+                                    clicked => { root.export-backup(); }
+                                }
+                                ModernButton {
+                                    text: "Restore Backup...";
+                                    icon: @image-url("../../../data/icons/ui/upload.svg");
+                                    has-icon: true;
+                                    primary: false;
+                                    clicked => { root.restore-backup(); }
+                                }
+                            }
+                        }
+                    }
+
+                    // Card 2: Learned Vocabulary
+                    Rectangle {
+                        horizontal-stretch: 1;
+                        background: #0f111a;
+                        border-radius: 9px;
+                        border-width: 1px;
+                        border-color: #23273a;
+
+                        VerticalLayout {
+                            padding: 14px;
+                            spacing: 10px;
+                            alignment: space-between;
+
+                            VerticalLayout {
+                                spacing: 6px;
+                                HorizontalLayout {
+                                    spacing: 10px;
+                                    alignment: start;
+                                    Rectangle {
+                                        width: 30px;
+                                        height: 30px;
+                                        border-radius: 7px;
+                                        background: #cba6f715;
+                                        border-width: 1px;
+                                        border-color: #cba6f733;
+                                        VerticalLayout {
+                                            alignment: center;
+                                            Image {
+                                                width: 16px;
+                                                height: 16px;
+                                                source: @image-url("../../../data/icons/ui/book.svg");
+                                                horizontal-alignment: center;
+                                            }
+                                        }
+                                    }
+                                    VerticalLayout {
+                                        alignment: center;
+                                        spacing: 2px;
+                                        Text {
+                                            text: "Learned Vocabulary";
+                                            color: #f1f5f9;
+                                            font-size: 12px;
+                                            font-weight: 700;
+                                        }
+                                        Text {
+                                            text: "Personalized language model (.json)";
+                                            color: #cba6f7;
+                                            font-size: 10.5px;
+                                            font-weight: 600;
+                                        }
+                                    }
+                                }
+
+                                Text {
+                                    text: "Export or import only your autonomously learned vocabulary, candidate memory, and dynamic bigram transitions.";
+                                    color: #94a3b8;
+                                    font-size: 11px;
+                                    wrap: word-wrap;
+                                }
+                            }
+
+                            HorizontalLayout {
+                                spacing: 8px;
+                                ModernButton {
+                                    text: "Export Vocabulary...";
+                                    icon: @image-url("../../../data/icons/ui/download.svg");
+                                    has-icon: true;
+                                    primary: false;
+                                    clicked => { root.export-vocabulary(); }
+                                }
+                                ModernButton {
+                                    text: "Import Vocabulary...";
+                                    icon: @image-url("../../../data/icons/ui/upload.svg");
+                                    has-icon: true;
+                                    primary: false;
+                                    clicked => { root.import-vocabulary(); }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Danger Zone Card
+            Rectangle {
+                background: #181014;
+                border-radius: 10px;
+                border-width: 1px;
+                border-color: #f38ba833;
+
+                VerticalLayout {
+                    padding: 14px;
+                    spacing: 12px;
+
+                    HorizontalLayout {
+                        spacing: 10px;
+                        alignment: start;
+                        Rectangle {
+                            width: 30px;
+                            height: 30px;
+                            border-radius: 7px;
+                            background: #f38ba818;
+                            border-width: 1px;
+                            border-color: #f38ba844;
+                            VerticalLayout {
+                                alignment: center;
+                                Image {
+                                    width: 16px;
+                                    height: 16px;
+                                    source: @image-url("../../../data/icons/ui/warning.svg");
+                                    horizontal-alignment: center;
+                                }
+                            }
+                        }
+                        VerticalLayout {
+                            alignment: center;
+                            spacing: 2px;
+                            Text {
+                                text: "Danger Zone";
+                                color: #f87171;
+                                font-size: 12px;
+                                font-weight: 700;
+                            }
+                            Text {
+                                text: "Permanently erase learned models or restore all settings back to defaults";
+                                color: #fca5a5;
+                                font-size: 10.5px;
+                            }
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 10px;
+                        alignment: start;
+
+                        ModernButton {
+                            text: "Reset Learned Data...";
+                            icon: @image-url("../../../data/icons/ui/trash.svg");
+                            has-icon: true;
+                            danger: true;
+                            clicked => { root.request-clear-learned(); }
+                        }
+                        ModernButton {
+                            text: "Restore Defaults...";
+                            icon: @image-url("../../../data/icons/ui/refresh.svg");
+                            has-icon: true;
+                            primary: false;
+                            clicked => { root.request-restore-defaults(); }
+                        }
+                    }
+                }
+            }
         }
     }
 }

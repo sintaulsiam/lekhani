@@ -127,6 +127,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             app.set_active_dialog(4);
         }
     } else if args.contains(&"--settings".to_string()) {
+        if let Some(pos) = args.iter().position(|a| a == "--tab") {
+            if let Some(val) = args.get(pos + 1).and_then(|v| v.parse::<i32>().ok()) {
+                if is_standalone {
+                    standalone.set_settings_tab(val);
+                } else {
+                    app.set_settings_tab(val);
+                }
+            }
+        }
         if is_standalone {
             standalone.set_dialog_type(5);
             let _ = standalone.show();
@@ -146,6 +155,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let _ = standalone.show();
         } else {
             app.set_active_dialog(2);
+        }
+    } else if args.contains(&"--conjunct".to_string()) {
+        if is_standalone {
+            standalone.set_dialog_type(7);
+            let _ = standalone.show();
+        } else {
+            app.set_active_dialog(7);
+        }
+    } else if args.contains(&"--stats".to_string()) {
+        if is_standalone {
+            standalone.set_dialog_type(8);
+            let _ = standalone.show();
+        } else {
+            app.set_active_dialog(8);
         }
     } else if args.contains(&"--layout-menu".to_string()) {
         app.set_active_dialog(1);
