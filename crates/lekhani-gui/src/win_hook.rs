@@ -111,6 +111,12 @@ impl HookState {
         }
     }
 
+    fn update_candidate_window(&self, candidates: &[String], selected_index: usize) {
+        if let Some(ref win) = self.candidate_win {
+            win.update(candidates, selected_index, self.config_mgr.config.ui.horizontal_candidates);
+        }
+    }
+
     fn set_layout(&mut self, layout_name: &str) {
         if let Some(info) = self.layout_mgr.get_layout(layout_name) {
             if let Some(val) = self.layout_mgr.load_layout_json(layout_name) {
@@ -349,9 +355,7 @@ unsafe extern "system" fn low_level_keyboard_proc(
                         {
                             if state.session.populate_predictions() {
                                 let preds = state.session.get_candidates();
-                                if let Some(ref win) = state.candidate_win {
-                                    win.update(preds, 0);
-                                }
+                                state.update_candidate_window(preds, 0);
                             } else if let Some(ref win) = state.candidate_win {
                                 win.hide();
                             }
@@ -371,12 +375,10 @@ unsafe extern "system" fn low_level_keyboard_proc(
                     inject_backspaces(state.uncommitted_units);
                     state.uncommitted_units = inject_unicode_str(&candidate);
                 }
-                if let Some(ref win) = state.candidate_win {
-                    win.update(
-                        state.session.get_candidates(),
-                        state.session.get_selected_index(),
-                    );
-                }
+                state.update_candidate_window(
+                    state.session.get_candidates(),
+                    state.session.get_selected_index(),
+                );
                 return 1;
             }
 
@@ -387,12 +389,10 @@ unsafe extern "system" fn low_level_keyboard_proc(
                     inject_backspaces(state.uncommitted_units);
                     state.uncommitted_units = inject_unicode_str(&candidate);
                 }
-                if let Some(ref win) = state.candidate_win {
-                    win.update(
-                        state.session.get_candidates(),
-                        state.session.get_selected_index(),
-                    );
-                }
+                state.update_candidate_window(
+                    state.session.get_candidates(),
+                    state.session.get_selected_index(),
+                );
                 return 1;
             }
         }
@@ -424,9 +424,7 @@ unsafe extern "system" fn low_level_keyboard_proc(
                     {
                         if state.session.populate_predictions() {
                             let preds = state.session.get_candidates();
-                            if let Some(ref win) = state.candidate_win {
-                                win.update(preds, 0);
-                            }
+                            state.update_candidate_window(preds, 0);
                         } else if let Some(ref win) = state.candidate_win {
                             win.hide();
                         }
@@ -448,12 +446,10 @@ unsafe extern "system" fn low_level_keyboard_proc(
             if !candidate.is_empty() {
                 state.uncommitted_units = inject_unicode_str(&candidate);
                 if state.session.active_layout_type == ActiveLayoutType::Phonetic {
-                    if let Some(ref win) = state.candidate_win {
-                        win.update(
-                            state.session.get_candidates(),
-                            state.session.get_selected_index(),
-                        );
-                    }
+                    state.update_candidate_window(
+                        state.session.get_candidates(),
+                        state.session.get_selected_index(),
+                    );
                 }
             } else {
                 state.uncommitted_units = 0;
@@ -486,9 +482,7 @@ unsafe extern "system" fn low_level_keyboard_proc(
             {
                 if state.session.populate_predictions() {
                     let preds = state.session.get_candidates();
-                    if let Some(ref win) = state.candidate_win {
-                        win.update(preds, 0);
-                    }
+                    state.update_candidate_window(preds, 0);
                 } else if let Some(ref win) = state.candidate_win {
                     win.hide();
                 }
@@ -563,12 +557,10 @@ unsafe extern "system" fn low_level_keyboard_proc(
                 inject_backspaces(state.uncommitted_units);
                 state.uncommitted_units = inject_unicode_str(&candidate);
                 if state.session.active_layout_type == ActiveLayoutType::Phonetic {
-                    if let Some(ref win) = state.candidate_win {
-                        win.update(
-                            state.session.get_candidates(),
-                            state.session.get_selected_index(),
-                        );
-                    }
+                    state.update_candidate_window(
+                        state.session.get_candidates(),
+                        state.session.get_selected_index(),
+                    );
                 } else if let Some(ref win) = state.candidate_win {
                     win.hide();
                 }

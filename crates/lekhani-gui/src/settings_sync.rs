@@ -23,6 +23,7 @@ pub fn apply_settings_to_app(app: &TopBarWindow, config: &AppConfig) {
     app.set_set_toggle_key(config.general.toggle_key.clone().into());
     app.set_set_show_osd(config.general.show_osd);
     app.set_set_auto_dari(config.general.auto_dari);
+    app.set_set_horizontal_cands(config.ui.horizontal_candidates);
 }
 
 pub fn apply_settings_to_standalone(s: &StandaloneDialogWindow, config: &AppConfig) {
@@ -45,6 +46,7 @@ pub fn apply_settings_to_standalone(s: &StandaloneDialogWindow, config: &AppConf
     s.set_set_toggle_key(config.general.toggle_key.clone().into());
     s.set_set_show_osd(config.general.show_osd);
     s.set_set_auto_dari(config.general.auto_dari);
+    s.set_set_horizontal_cands(config.ui.horizontal_candidates);
 }
 
 pub fn read_settings_from_app(app: &TopBarWindow, config: &mut AppConfig) {
@@ -67,6 +69,7 @@ pub fn read_settings_from_app(app: &TopBarWindow, config: &mut AppConfig) {
     config.general.toggle_key = app.get_set_toggle_key().to_string();
     config.general.show_osd = app.get_set_show_osd();
     config.general.auto_dari = app.get_set_auto_dari();
+    config.ui.horizontal_candidates = app.get_set_horizontal_cands();
 }
 
 pub fn read_settings_from_standalone(s: &StandaloneDialogWindow, config: &mut AppConfig) {
@@ -89,4 +92,5 @@ pub fn read_settings_from_standalone(s: &StandaloneDialogWindow, config: &mut Ap
     config.general.toggle_key = s.get_set_toggle_key().to_string();
     config.general.show_osd = s.get_set_show_osd();
     config.general.auto_dari = s.get_set_auto_dari();
+    config.ui.horizontal_candidates = s.get_set_horizontal_cands();
 }

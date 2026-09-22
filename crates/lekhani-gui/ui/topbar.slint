@@ -127,6 +127,7 @@ export component TopBarWindow inherits Window {
     in-out property <string> set-toggle-key: "F12";
     in-out property <bool> set-show-osd: true;
     in-out property <bool> set-auto-dari: true;
+    in-out property <bool> set-horizontal-cands: true;
     in-out property <string> settings-status-text: "All changes saved automatically";
     in-out property <string> learned-stats-text: "Loading...";
 
@@ -1022,6 +1023,12 @@ export component TopBarWindow inherits Window {
                                     label: "Auto-Expand Double Period (..) to Dāri (।)";
                                     checked: root.set-auto-dari;
                                     toggled(v) => { root.set-auto-dari = v; root.auto-save-settings(); }
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Horizontal Candidate Window Layout";
+                                    checked: root.set-horizontal-cands;
+                                    toggled(v) => { root.set-horizontal-cands = v; root.auto-save-settings(); }
                                 }
 
                                 ModernToggleSwitch {
@@ -2128,6 +2135,7 @@ export component StandaloneDialogWindow inherits Window {
     in-out property <string> set-toggle-key: "F12";
     in-out property <bool> set-show-osd: true;
     in-out property <bool> set-auto-dari: true;
+    in-out property <bool> set-horizontal-cands: true;
     in-out property <bool> set-autostart: false;
     in-out property <bool> is-windows: false;
     in property <bool> needs-client-decorations: false;
@@ -2650,6 +2658,12 @@ export component StandaloneDialogWindow inherits Window {
                                         ModernToggleSwitch {
                                             label: "Auto-Expand Double Period (..) to Dāri (।)";
                                             checked <=> root.set-auto-dari;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Horizontal Candidate Window Layout";
+                                            checked <=> root.set-horizontal-cands;
                                             toggled(_) => { root.auto-save-settings(); }
                                         }
 

@@ -21,6 +21,7 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 pub struct CandidateData {
     pub candidates: Vec<String>,
     pub selected_index: usize,
+    pub horizontal: bool,
 }
 
 static CANDIDATE_DATA: Mutex<Option<CandidateData>> = Mutex::new(None);
@@ -78,7 +79,7 @@ impl CandidateWindow {
         }
     }
 
-    pub fn update(&self, candidates: &[String], selected_index: usize) {
+    pub fn update(&self, candidates: &[String], selected_index: usize, horizontal: bool) {
         if candidates.is_empty() {
             self.hide();
             return;
@@ -90,14 +91,19 @@ impl CandidateWindow {
             *data = Some(CandidateData {
                 candidates: display_cands.clone(),
                 selected_index,
+                horizontal,
             });
         }
 
         unsafe {
             let count = display_cands.len().max(1);
-            let item_width = 68;
-            let total_width = (count as i32 * item_width) + 16;
-            let height = 38;
+            let (total_width, height) = if horizontal {
+                let item_width = 68;
+                ((count as i32 * item_width) + 16, 38)
+            } else {
+                let item_height = 28;
+                (160, (count as i32 * item_height) + 12)
+            };
 
             let mut pt = POINT { x: 0, y: 0 };
             let mut gui_info: GUITHREADINFO = std::mem::zeroed();
@@ -242,13 +248,23 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
 
     let count = data.candidates.len().min(5);
     let item_width = 68;
+    let item_height = 28;
 
     for i in 0..count {
-        let item_rect = RECT {
-            left: 8 + (i as i32 * item_width),
-            top: 4,
-            right: 8 + ((i as i32 + 1) * item_width) - 4,
-            bottom: client_rect.bottom - 4,
+        let item_rect = if data.horizontal {
+            RECT {
+                left: 8 + (i as i32 * item_width),
+                top: 4,
+                right: 8 + ((i as i32 + 1) * item_width) - 4,
+                bottom: client_rect.bottom - 4,
+            }
+        } else {
+            RECT {
+                left: 6,
+                top: 6 + (i as i32 * item_height),
+                right: client_rect.right - 6,
+                bottom: 6 + ((i as i32 + 1) * item_height) - 4,
+            }
         };
 
         if i == data.selected_index {
@@ -278,12 +294,18 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
         let mut label_utf16: Vec<u16> = label.encode_utf16().collect();
 
         let mut text_rect = item_rect;
+        let align_flags = if data.horizontal {
+            DT_CENTER | DT_VCENTER | DT_SINGLELINE
+        } else {
+            text_rect.left += 6;
+            DT_VCENTER | DT_SINGLELINE
+        };
         DrawTextW(
             hdc,
             label_utf16.as_mut_ptr(),
             label_utf16.len() as i32,
             &mut text_rect,
-            DT_CENTER | DT_VCENTER | DT_SINGLELINE,
+            align_flags,
         );
     }
 
