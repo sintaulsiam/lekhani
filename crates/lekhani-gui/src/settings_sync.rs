@@ -24,6 +24,7 @@ pub fn apply_settings_to_app(app: &TopBarWindow, config: &AppConfig) {
     app.set_set_show_osd(config.general.show_osd);
     app.set_set_auto_dari(config.general.auto_dari);
     app.set_set_horizontal_cands(config.ui.horizontal_candidates);
+    app.set_set_check_updates(config.general.check_updates);
 }
 
 pub fn apply_settings_to_standalone(s: &StandaloneDialogWindow, config: &AppConfig) {
@@ -47,6 +48,7 @@ pub fn apply_settings_to_standalone(s: &StandaloneDialogWindow, config: &AppConf
     s.set_set_show_osd(config.general.show_osd);
     s.set_set_auto_dari(config.general.auto_dari);
     s.set_set_horizontal_cands(config.ui.horizontal_candidates);
+    s.set_set_check_updates(config.general.check_updates);
 }
 
 pub fn read_settings_from_app(app: &TopBarWindow, config: &mut AppConfig) {
@@ -70,6 +72,7 @@ pub fn read_settings_from_app(app: &TopBarWindow, config: &mut AppConfig) {
     config.general.show_osd = app.get_set_show_osd();
     config.general.auto_dari = app.get_set_auto_dari();
     config.ui.horizontal_candidates = app.get_set_horizontal_cands();
+    config.general.check_updates = app.get_set_check_updates();
 }
 
 pub fn read_settings_from_standalone(s: &StandaloneDialogWindow, config: &mut AppConfig) {
@@ -93,4 +96,5 @@ pub fn read_settings_from_standalone(s: &StandaloneDialogWindow, config: &mut Ap
     config.general.show_osd = s.get_set_show_osd();
     config.general.auto_dari = s.get_set_auto_dari();
     config.ui.horizontal_candidates = s.get_set_horizontal_cands();
+    config.general.check_updates = s.get_set_check_updates();
 }

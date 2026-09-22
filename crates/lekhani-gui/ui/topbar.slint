@@ -128,6 +128,7 @@ export component TopBarWindow inherits Window {
     in-out property <bool> set-show-osd: true;
     in-out property <bool> set-auto-dari: true;
     in-out property <bool> set-horizontal-cands: true;
+    in-out property <bool> set-check-updates: true;
     in-out property <string> settings-status-text: "All changes saved automatically";
     in-out property <string> learned-stats-text: "Loading...";
 
@@ -1035,6 +1036,12 @@ export component TopBarWindow inherits Window {
                                     label: "Show Mode-Switch HUD Overlay";
                                     checked: root.set-show-osd;
                                     toggled(v) => { root.set-show-osd = v; root.auto-save-settings(); }
+                                }
+
+                                ModernToggleSwitch {
+                                    label: "Automatically Check for Updates";
+                                    checked: root.set-check-updates;
+                                    toggled(v) => { root.set-check-updates = v; root.auto-save-settings(); }
                                 }
 
                                 HorizontalLayout {
@@ -2136,6 +2143,7 @@ export component StandaloneDialogWindow inherits Window {
     in-out property <bool> set-show-osd: true;
     in-out property <bool> set-auto-dari: true;
     in-out property <bool> set-horizontal-cands: true;
+    in-out property <bool> set-check-updates: true;
     in-out property <bool> set-autostart: false;
     in-out property <bool> is-windows: false;
     in property <bool> needs-client-decorations: false;
@@ -2670,6 +2678,12 @@ export component StandaloneDialogWindow inherits Window {
                                         ModernToggleSwitch {
                                             label: "Show Mode-Switch HUD Overlay";
                                             checked <=> root.set-show-osd;
+                                            toggled(_) => { root.auto-save-settings(); }
+                                        }
+
+                                        ModernToggleSwitch {
+                                            label: "Automatically Check for Updates";
+                                            checked <=> root.set-check-updates;
                                             toggled(_) => { root.auto-save-settings(); }
                                         }
 
