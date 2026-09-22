@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 pub use layout::{LayoutInfo, LayoutManager};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AppConfig {
     pub general: GeneralConfig,
     pub phonetic: PhoneticConfig,
@@ -136,16 +136,6 @@ impl Default for UiConfig {
     }
 }
 
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            general: GeneralConfig::default(),
-            phonetic: PhoneticConfig::default(),
-            fixed: FixedConfig::default(),
-            ui: UiConfig::default(),
-        }
-    }
-}
 
 impl AppConfig {
     pub fn to_suggestion_config(&self) -> lekhani_core::PhoneticSuggestionConfig {
