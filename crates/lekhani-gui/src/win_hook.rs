@@ -60,6 +60,7 @@ impl HookState {
         session.load_database(&system_data);
         session.load_user_autocorrect(config_mgr.get_user_autocorrect_path());
         session.load_user_learned(config_mgr.get_user_learned_path());
+        config_mgr.config.apply_to_session(&mut session);
 
         // Apply active layout
         if let Some(info) = layout_mgr.get_layout(&initial_layout) {
@@ -140,6 +141,14 @@ pub fn set_bengali_mode(active: bool) {
     let mut layout_name = String::new();
     if let Ok(mut guard) = HOOK_STATE.lock() {
         if let Some(ref mut state) = *guard {
+            if state.config_mgr.check_and_reload() {
+                let cfg = state.config_mgr.config.clone();
+                cfg.apply_to_session(&mut state.session);
+                let current_layout = cfg.general.active_layout.clone();
+                if current_layout != state.active_layout_name {
+                    state.set_layout(&current_layout);
+                }
+            }
             state.reset();
             layout_name = state.active_layout_name.clone();
             let show_osd = state.config_mgr.config.general.show_osd;
@@ -298,6 +307,17 @@ unsafe extern "system" fn low_level_keyboard_proc(
         Some(s) => s,
         None => return CallNextHookEx(0 as _, n_code, w_param, l_param),
     };
+
+    if state.config_mgr.check_and_reload() {
+        let cfg = state.config_mgr.config.clone();
+        cfg.apply_to_session(&mut state.session);
+        let user_ac = state.config_mgr.get_user_autocorrect_path();
+        state.session.load_user_autocorrect(user_ac);
+        let current_layout = cfg.general.active_layout.clone();
+        if current_layout != state.active_layout_name {
+            state.set_layout(&current_layout);
+        }
+    }
 
     let shift_down = (GetKeyState(VK_SHIFT as i32) & 0x8000u16 as i16) != 0;
     let caps_locked = (GetKeyState(VK_CAPITAL as i32) & 1) != 0;

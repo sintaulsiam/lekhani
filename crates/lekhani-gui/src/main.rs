@@ -26,6 +26,9 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use tracing::info;
 
+#[cfg(unix)]
+static FCITX5_AVAILABLE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
     info!("Starting Lekhani GUI Desktop Suite...");
@@ -57,11 +60,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     app.set_is_bengali_mode(false);
     #[cfg(not(windows))]
     {
-        let is_fcitx5_active = std::process::Command::new("fcitx5-remote")
-            .arg("-n")
-            .output()
-            .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "lekhani")
-            .unwrap_or(true);
+        let is_fcitx5_active = match std::process::Command::new("fcitx5-remote").arg("-n").output() {
+            Ok(o) => String::from_utf8_lossy(&o.stdout).trim() == "lekhani",
+            Err(e) => {
+                if e.kind() == std::io::ErrorKind::NotFound {
+                    FCITX5_AVAILABLE.store(false, std::sync::atomic::Ordering::Relaxed);
+                }
+                true
+            }
+        };
         app.set_is_bengali_mode(is_fcitx5_active);
 
         // Detect if desktop environment lacks Server-Side Decorations (e.g. GNOME on Wayland)
@@ -579,8 +586,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Close Callback on StandaloneDialogWindow
     let standalone_weak_close = standalone_weak.clone();
+    let is_standalone_close = is_standalone;
     standalone.on_close_window(move || {
-        if let Some(s) = standalone_weak_close.upgrade() {
+        if is_standalone_close {
+            let _ = slint::quit_event_loop();
+        } else if let Some(s) = standalone_weak_close.upgrade() {
             let _ = s.hide();
         }
     });
@@ -1084,18 +1094,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 #[cfg(unix)]
                 {
-                    if let Ok(out) = std::process::Command::new("fcitx5-remote")
-                        .arg("-n")
-                        .output()
-                    {
-                        let im_name = String::from_utf8_lossy(&out.stdout).trim().to_string();
-                        let is_bengali = im_name == "lekhani";
-                        if app.get_is_bengali_mode() != is_bengali {
-                            app.set_is_bengali_mode(is_bengali);
-                            let layout = cm.config.general.active_layout.clone();
-                            if let Some(ref th) = tray_handle_timer {
-                                th.update_layout(if is_bengali { &layout } else { "English" });
+                    if FCITX5_AVAILABLE.load(std::sync::atomic::Ordering::Relaxed) {
+                        match std::process::Command::new("fcitx5-remote").arg("-n").output() {
+                            Ok(out) => {
+                                let im_name = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                                let is_bengali = im_name == "lekhani";
+                                if app.get_is_bengali_mode() != is_bengali {
+                                    app.set_is_bengali_mode(is_bengali);
+                                    let layout = cm.config.general.active_layout.clone();
+                                    if let Some(ref th) = tray_handle_timer {
+                                        th.update_layout(if is_bengali { &layout } else { "English" });
+                                    }
+                                }
                             }
+                            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                                FCITX5_AVAILABLE.store(false, std::sync::atomic::Ordering::Relaxed);
+                            }
+                            Err(_) => {}
                         }
                     }
                 }
@@ -1132,7 +1147,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let _ = slint::quit_event_loop();
     });
 
-    app.run()?;
+    if is_standalone {
+        standalone.run()?;
+    } else {
+        app.run()?;
+    }
     Ok(())
 }
 

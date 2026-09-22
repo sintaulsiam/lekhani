@@ -58,6 +58,7 @@ fn get_global_resources() -> &'static RwLock<GlobalSharedResources> {
         session_template.load_user_autocorrect(&user_ac);
         session_template.load_user_learned(&user_learned);
         session_template.load_stats(&stats_path);
+        config_mgr.config.apply_to_session(&mut session_template);
 
         let active_name = &config_mgr.config.general.active_layout;
         if let Some(json) = layout_mgr.load_layout_json(active_name) {
@@ -280,6 +281,8 @@ pub extern "C" fn lekhani_engine_process_key(
 
     // Auto-sync configuration and autocorrect if modified externally
     if engine.config_mgr.check_and_reload() {
+        let cfg = engine.config_mgr.config.clone();
+        cfg.apply_to_session(&mut engine.session);
         let user_ac = engine.config_mgr.get_user_autocorrect_path();
         engine.session.load_user_autocorrect(&user_ac);
         let system_dir = ConfigManager::get_system_layout_dir();

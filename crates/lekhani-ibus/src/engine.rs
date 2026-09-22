@@ -75,6 +75,7 @@ impl LekhaniIBusEngine {
         session.load_user_autocorrect(&user_ac);
         session.load_user_learned(&user_learned);
         session.load_stats(&stats_path);
+        config_mgr.config.apply_to_session(&mut session);
 
         // Load active layout
         let active_name = config_mgr.config.general.active_layout.clone();
@@ -169,6 +170,8 @@ impl LekhaniIBusEngine {
 
         // Auto-sync configuration, autocorrect, and layout if modified externally
         if st.config_mgr.check_and_reload() {
+            let cfg = st.config_mgr.config.clone();
+            cfg.apply_to_session(&mut st.session);
             let user_ac = st.config_mgr.get_user_autocorrect_path();
             st.session.load_user_autocorrect(&user_ac);
 

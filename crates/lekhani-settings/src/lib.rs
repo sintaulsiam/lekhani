@@ -147,6 +147,34 @@ impl Default for AppConfig {
     }
 }
 
+impl AppConfig {
+    pub fn to_suggestion_config(&self) -> lekhani_core::PhoneticSuggestionConfig {
+        lekhani_core::PhoneticSuggestionConfig {
+            use_dictionary: self.phonetic.use_dictionary,
+            include_english: self.phonetic.include_english,
+            enable_code_shield: self.phonetic.enable_code_shield,
+            enable_word_segmentation: self.phonetic.enable_word_segmentation,
+            enable_colloquial_dialects: self.phonetic.enable_colloquial_dialects,
+            enable_banglish_shorthand: self.phonetic.enable_banglish_shorthand,
+            enable_reduplication: self.phonetic.enable_reduplication,
+            enable_phrase_prediction: self.phonetic.enable_phrase_prediction,
+            enable_dynamic_macros: self.phonetic.enable_dynamic_macros,
+            auto_dari: self.general.auto_dari,
+        }
+    }
+
+    pub fn apply_to_session(&self, session: &mut lekhani_core::InputSession) {
+        session.update_suggestion_config(self.to_suggestion_config());
+        session.update_fixed_config(
+            self.fixed.auto_vowel_forming,
+            self.fixed.auto_chandra_position,
+            self.fixed.traditional_kar,
+            self.fixed.old_reph,
+            self.fixed.numberpad,
+        );
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ConfigManager {
     config_path: PathBuf,
