@@ -257,7 +257,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     if cm.config.ui.topbar_x != pos.x || cm.config.ui.topbar_y != pos.y {
                         cm.config.ui.topbar_x = pos.x;
                         cm.config.ui.topbar_y = pos.y;
-                        let _ = cm.save();
+                        cm.save();
                     }
                 }
             });
