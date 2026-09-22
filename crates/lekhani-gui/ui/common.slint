@@ -260,6 +260,7 @@ export component LayoutSelectorPill inherits Rectangle {
 
 export component KeyCapButton inherits Rectangle {
     in property <string> key-char;
+    in property <string> latin-char: "";
     in property <color> text-color: #e2e8f0;
     in property <length> key-width: 34px;
     in property <length> key-height: 30px;
@@ -279,6 +280,15 @@ export component KeyCapButton inherits Rectangle {
 
     ta := TouchArea {
         mouse-cursor: pointer;
+    }
+
+    if (root.latin-char != ""): Text {
+        x: parent.width - self.width - 4px;
+        y: 2px;
+        text: root.latin-char;
+        color: #64748b;
+        font-size: 8.5px;
+        font-weight: 600;
     }
 
     VerticalLayout {
@@ -533,6 +543,255 @@ export component CopyButton inherits Rectangle {
             height: 13px;
             colorize: root.copied ? #a6e3a1 : (ta.has-hover ? #89b4fa : #a6adc8);
             horizontal-alignment: center;
+        }
+    }
+}
+
+export component SidebarTabItem inherits Rectangle {
+    in property <image> icon;
+    in property <string> label;
+    in property <bool> active: false;
+    in property <color> active-color: #89b4fa;
+    in property <string> badge: "";
+    callback clicked;
+
+    height: 38px;
+    border-radius: 8px;
+    background: root.active ? #89b4fa18 : (ta.has-hover ? #ffffff08 : transparent);
+    border-width: 1px;
+    border-color: root.active ? #89b4fa33 : transparent;
+    animate background, border-color { duration: 100ms; }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        spacing: 9px;
+        alignment: start;
+
+        // Left accent indicator line
+        VerticalLayout {
+            alignment: center;
+            Rectangle {
+                width: 3px;
+                height: 18px;
+                border-radius: 1.5px;
+                background: root.active ? root.active-color : transparent;
+            }
+        }
+
+        // Icon
+        VerticalLayout {
+            alignment: center;
+            Image {
+                source: root.icon;
+                width: 15px;
+                height: 15px;
+                colorize: root.active ? root.active-color : (ta.has-hover ? #cdd6f4 : #7f849c);
+                animate colorize { duration: 100ms; }
+            }
+        }
+
+        // Label
+        VerticalLayout {
+            alignment: center;
+            horizontal-stretch: 1;
+            Text {
+                text: root.label;
+                color: root.active ? #f8fafc : (ta.has-hover ? #cdd6f4 : #9399b2);
+                font-size: 12px;
+                font-weight: root.active ? 700 : 500;
+                overflow: elide;
+                vertical-alignment: center;
+                animate color { duration: 100ms; }
+            }
+        }
+
+        if (root.badge != ""): VerticalLayout {
+            alignment: center;
+            Rectangle {
+                border-radius: 4px;
+                background: root.active ? #89b4fa33 : #313244;
+                VerticalLayout {
+                    padding-left: 5px;
+                    padding-right: 5px;
+                    padding-top: 2px;
+                    padding-bottom: 2px;
+                    Text {
+                        text: root.badge;
+                        font-size: 9.5px;
+                        font-weight: 700;
+                        color: root.active ? #89b4fa : #a6adc8;
+                    }
+                }
+            }
+        }
+    }
+}
+
+export component SettingRow inherits Rectangle {
+    in property <string> title;
+    in property <string> subtitle: "";
+    in property <bool> has-divider: true;
+    in-out property <bool> checked: false;
+    in property <bool> show-switch: true;
+    callback toggled(bool);
+
+    border-radius: 8px;
+    background: ta.has-hover ? #ffffff05 : transparent;
+    animate background { duration: 80ms; }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            if (root.show-switch) {
+                root.checked = !root.checked;
+                root.toggled(root.checked);
+            }
+        }
+    }
+
+    VerticalLayout {
+        padding-left: 10px;
+        padding-right: 10px;
+        padding-top: 8px;
+        padding-bottom: 8px;
+        spacing: 0px;
+
+        HorizontalLayout {
+            spacing: 12px;
+            alignment: space-between;
+
+            VerticalLayout {
+                horizontal-stretch: 1;
+                alignment: center;
+                spacing: 2px;
+
+                Text {
+                    text: root.title;
+                    color: #f1f5f9;
+                    font-size: 12px;
+                    font-weight: 600;
+                    vertical-alignment: center;
+                }
+
+                if (root.subtitle != ""): Text {
+                    text: root.subtitle;
+                    color: #828ba2;
+                    font-size: 10.5px;
+                    wrap: word-wrap;
+                }
+            }
+
+            if (root.show-switch): VerticalLayout {
+                alignment: center;
+                ModernToggleSwitch {
+                    checked <=> root.checked;
+                    toggled(val) => { root.toggled(val); }
+                }
+            }
+        }
+
+        if (root.has-divider): Rectangle {
+            height: 1px;
+            background: #1e203055;
+            padding-top: 7px;
+        }
+    }
+}
+
+export component SettingCard inherits Rectangle {
+    in property <string> title;
+    in property <color> title-color: #89b4fa;
+    in property <image> icon;
+
+    background: #0c0d14;
+    border-radius: 12px;
+    border-width: 1px;
+    border-color: #242638;
+
+    VerticalLayout {
+        padding: 14px;
+        spacing: 10px;
+        alignment: start;
+
+        if (root.title != ""): HorizontalLayout {
+            spacing: 8px;
+            alignment: start;
+            if (root.icon.width > 0): Image {
+                source: root.icon;
+                width: 14px;
+                height: 14px;
+                colorize: root.title-color;
+                vertical-alignment: center;
+            }
+            Text {
+                text: root.title;
+                color: root.title-color;
+                font-size: 10.5px;
+                font-weight: 700;
+                letter-spacing: 0.5px;
+                vertical-alignment: center;
+            }
+        }
+
+        @children
+    }
+}
+
+export component EmptyStateView inherits Rectangle {
+    in property <image> icon;
+    in property <color> icon-color: #89b4fa;
+    in property <string> title: "No items found";
+    in property <string> message: "";
+
+    VerticalLayout {
+        alignment: center;
+        spacing: 10px;
+        padding: 24px;
+
+        HorizontalLayout {
+            alignment: center;
+            Rectangle {
+                width: 46px;
+                height: 46px;
+                border-radius: 12px;
+                background: #89b4fa18;
+                border-width: 1px;
+                border-color: #89b4fa33;
+
+                VerticalLayout {
+                    alignment: center;
+                    Image {
+                        source: root.icon;
+                        width: 22px;
+                        height: 22px;
+                        colorize: root.icon-color;
+                        horizontal-alignment: center;
+                    }
+                }
+            }
+        }
+
+        Text {
+            text: root.title;
+            color: #e2e8f0;
+            font-size: 13.5px;
+            font-weight: 700;
+            horizontal-alignment: center;
+        }
+
+        if (root.message != ""): Text {
+            text: root.message;
+            color: #94a3b8;
+            font-size: 11.5px;
+            horizontal-alignment: center;
+            wrap: word-wrap;
+            max-width: 320px;
         }
     }
 }
