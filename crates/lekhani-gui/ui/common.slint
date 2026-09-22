@@ -1,0 +1,538 @@
+// Lekhani Common Slint Structs and Reusable UI Components
+
+import {
+    Button,
+    LineEdit,
+    TextEdit,
+    CheckBox,
+    ListView,
+    ScrollView,
+} from "std-widgets.slint";
+
+// Struct for AutoCorrect list display
+export struct AcEntry {
+    trigger: string,
+    replacement: string,
+}
+
+// Struct for Bengali Conjunct display
+export struct ConjunctEntry {
+    conjunct: string,
+    breakdown: string,
+    phonetic: string,
+    examples: string,
+}
+
+// Struct for Typing Analytics Heatmap display
+export struct HeatmapEntry {
+    character: string,
+    count: int,
+    percentage: string,
+}
+
+export component VectorIconButton inherits Rectangle {
+    in property <image> icon;
+    in property <bool> active: false;
+    in property <color> icon-color: #a6adc8;
+    in property <color> active-color: #89b4fa;
+    in property <color> active-bg: #89b4fa25;
+    in property <color> active-border: #89b4fa55;
+    out property <bool> has-hover: ta.has-hover;
+    callback clicked;
+
+    width: 26px;
+    height: 26px;
+    border-radius: 13px;
+    border-width: 1px;
+    border-color: root.active ? root.active-border : (ta.has-hover ? #45475a88 : transparent);
+    background: root.active ? root.active-bg : (ta.has-hover ? #ffffff14 : transparent);
+    animate background, border-color { duration: 100ms; }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+
+    Image {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: root.icon;
+        width: 14px;
+        height: 14px;
+        colorize: root.active ? root.active-color : (ta.has-hover ? #ffffff : root.icon-color);
+    }
+}
+
+export component CloseButton inherits Rectangle {
+    callback clicked;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    background: ta.has-hover ? #f38ba828 : transparent;
+    border-width: 1px;
+    border-color: ta.has-hover ? #f38ba855 : transparent;
+    animate background, border-color { duration: 100ms; }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+
+    Image {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: @image-url("../../../data/icons/ui/close.svg");
+        width: 12px;
+        height: 12px;
+        colorize: ta.has-hover ? #f38ba8 : #6c7086;
+    }
+}
+
+export component PopoutButton inherits Rectangle {
+    callback clicked;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
+    background: ta.has-hover ? #89b4fa28 : transparent;
+    border-width: 1px;
+    border-color: ta.has-hover ? #89b4fa55 : transparent;
+    animate background, border-color { duration: 100ms; }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+
+    Image {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: @image-url("../../../data/icons/ui/popout.svg");
+        width: 12px;
+        height: 12px;
+        colorize: ta.has-hover ? #89b4fa : #6c7086;
+    }
+}
+
+export component HeaderIcon inherits Rectangle {
+    in property <image> source;
+    in property <color> colorize: #89b4fa;
+    in property <length> icon-size: 16px;
+
+    width: root.icon-size + 2px;
+    height: 24px;
+
+    Image {
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        source: root.source;
+        width: root.icon-size;
+        height: root.icon-size;
+        colorize: root.colorize;
+    }
+}
+
+export component SegmentButton inherits Rectangle {
+    in property <string> label;
+    in property <bool> active: false;
+    in property <color> active-color: #3b82f6;
+    callback clicked;
+
+    height: 26px;
+    border-radius: 6px;
+    background: root.active ? #1e293b : (ta.has-hover ? #151a24 : transparent);
+    border-width: 1px;
+    border-color: root.active ? #38bdf888 : (ta.has-hover ? #252e42 : transparent);
+    animate background, border-color { duration: 100ms; }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+
+    VerticalLayout {
+        alignment: center;
+        HorizontalLayout {
+            padding-left: 12px;
+            padding-right: 12px;
+            alignment: center;
+            Text {
+                text: root.label;
+                color: root.active ? #ffffff : (ta.has-hover ? #e2e8f0 : #94a3b8);
+                font-size: 11.5px;
+                font-weight: root.active ? 700 : 500;
+            }
+        }
+    }
+}
+
+export component BrandLogo inherits Rectangle {
+    in property <bool> active: false;
+    out property <bool> has-hover: ta.has-hover;
+    callback clicked;
+
+    height: 26px;
+    border-radius: 13px;
+    background: root.active ? #89b4fa25 : (ta.has-hover ? #24273a88 : transparent);
+    border-width: 1px;
+    border-color: root.active ? #89b4fa66 : transparent;
+    animate background, border-color { duration: 100ms; }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+
+    VerticalLayout {
+        alignment: center;
+        HorizontalLayout {
+            padding-left: 8px;
+            padding-right: 9px;
+            spacing: 6px;
+            alignment: center;
+
+            Image {
+                source: @image-url("../../../data/icons/ui/logo.svg");
+                width: 16px;
+                height: 16px;
+                horizontal-alignment: center;
+            }
+
+            Text {
+                text: "Lekhani";
+                color: root.active ? #89b4fa : #f8fafc;
+                font-size: 13px;
+                font-weight: 700;
+                vertical-alignment: center;
+            }
+        }
+    }
+}
+
+export component LayoutSelectorPill inherits Rectangle {
+    in property <string> layout-name;
+    in property <bool> active: false;
+    in property <bool> is-bengali: true;
+    out property <bool> has-hover: ta.has-hover;
+    callback clicked;
+
+    height: 26px;
+    background: root.active ? #25283d : (ta.has-hover ? #24273a : #181926bb);
+    border-radius: 13px;
+    border-width: 1px;
+    border-color: root.active ? #89b4fa88 : (ta.has-hover ? #585b70 : #33364d);
+    animate background, border-color { duration: 100ms; }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+
+    VerticalLayout {
+        alignment: center;
+        HorizontalLayout {
+            padding-left: 11px;
+            padding-right: 9px;
+            spacing: 5px;
+            alignment: center;
+
+            Text {
+                text: root.layout-name;
+                color: root.active ? #89b4fa : #cdd6f4;
+                font-size: 12px;
+                font-weight: 500;
+                vertical-alignment: center;
+            }
+
+            VerticalLayout {
+                alignment: center;
+                padding-top: 2px;
+                Image {
+                    source: @image-url("../../../data/icons/ui/chevron_down.svg");
+                    width: 9px;
+                    height: 9px;
+                    colorize: root.active ? #89b4fa : (ta.has-hover ? #cdd6f4 : #9399b2);
+                    horizontal-alignment: center;
+                }
+            }
+        }
+    }
+}
+
+export component KeyCapButton inherits Rectangle {
+    in property <string> key-char;
+    in property <color> text-color: #e2e8f0;
+    in property <length> key-width: 34px;
+    in property <length> key-height: 30px;
+    in property <int> flex-stretch: 1;
+
+    min-width: 24px;
+    preferred-width: root.key-width;
+    min-height: 26px;
+    preferred-height: root.key-height;
+    horizontal-stretch: root.flex-stretch;
+    vertical-stretch: 1;
+    border-radius: 6px;
+    background: ta.has-hover ? #2a2d42 : #181926;
+    border-width: 1px;
+    border-color: ta.has-hover ? #89b4fa88 : #2d3045;
+    animate background, border-color { duration: 80ms; }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+    }
+
+    VerticalLayout {
+        alignment: center;
+        Text {
+            text: root.key-char;
+            color: root.text-color;
+            font-size: 13.5px;
+            font-weight: 600;
+            horizontal-alignment: center;
+            vertical-alignment: center;
+        }
+    }
+}
+
+export component ModernButton inherits Rectangle {
+    in property <string> text;
+    in property <image> icon;
+    in property <bool> has-icon: false;
+    in property <color> btn-color: #89b4fa;
+    in property <bool> primary: false;
+    in property <bool> danger: false;
+    out property <bool> has-hover: ta.has-hover;
+    callback clicked;
+
+    height: 30px;
+    border-radius: 7px;
+    background: root.danger ? (ta.has-hover ? #dc2626 : #8a1919) :
+                root.primary ? (ta.has-hover ? #3b82f6 : #2563eb) :
+                (ta.has-hover ? #22293a : #151822);
+    border-width: 1px;
+    border-color: root.danger ? (ta.has-hover ? #f87171 : #ef4444aa) :
+                  root.primary ? #60a5fa88 :
+                  (ta.has-hover ? #3d4963 : #222838);
+    animate background, border-color { duration: 100ms; }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+
+    VerticalLayout {
+        alignment: center;
+        HorizontalLayout {
+            padding-left: 12px;
+            padding-right: 12px;
+            spacing: 6px;
+            alignment: center;
+
+            if (root.has-icon): Image {
+                width: 13px;
+                height: 13px;
+                source: root.icon;
+                colorize: (root.primary || root.danger) ? #ffffff : (ta.has-hover ? #ffffff : #94a3b8);
+                vertical-alignment: center;
+            }
+
+            Text {
+                text: root.text;
+                color: (root.primary || root.danger) ? #ffffff : (ta.has-hover ? #ffffff : #f1f5f9);
+                font-size: 11.5px;
+                font-weight: (root.primary || root.danger) ? 700 : 600;
+                vertical-alignment: center;
+            }
+        }
+    }
+}
+
+export component ConfirmModal inherits Rectangle {
+    in property <string> title: "Confirm Action";
+    in property <string> message: "Are you sure you want to proceed?";
+    in property <string> confirm-text: "Confirm";
+    in property <bool> is-danger: true;
+    callback confirm();
+    callback cancel();
+
+    background: #000000bd;
+
+    TouchArea {
+        // block clicks from passing through
+    }
+
+    Rectangle {
+        width: min(parent.width - 40px, 430px);
+        height: card-layout.preferred-height;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        background: #0f111a;
+        border-radius: 14px;
+        border-width: 1.2px;
+        border-color: root.is-danger ? #f38ba866 : #89b4fa66;
+        drop-shadow-blur: 36px;
+        drop-shadow-color: #000000f0;
+
+        card-layout := VerticalLayout {
+            padding: 20px;
+            spacing: 14px;
+
+            // Header: Warning Badge + Titles
+            HorizontalLayout {
+                spacing: 12px;
+                alignment: start;
+
+                Rectangle {
+                    width: 38px;
+                    height: 38px;
+                    border-radius: 10px;
+                    background: root.is-danger ? #f38ba818 : #89b4fa18;
+                    border-width: 1px;
+                    border-color: root.is-danger ? #f38ba844 : #89b4fa44;
+
+                    Image {
+                        width: 20px;
+                        height: 20px;
+                        source: root.is-danger ? @image-url("../../../data/icons/ui/warning.svg") : @image-url("../../../data/icons/ui/settings.svg");
+                    }
+                }
+
+                VerticalLayout {
+                    alignment: center;
+                    spacing: 2px;
+                    Text {
+                        text: root.title;
+                        color: #f8fafc;
+                        font-size: 14px;
+                        font-weight: 700;
+                    }
+                    Text {
+                        text: root.is-danger ? "Irreversible Operation" : "Preference Change";
+                        color: root.is-danger ? #f38ba8 : #89b4fa;
+                        font-size: 10.5px;
+                        font-weight: 600;
+                    }
+                }
+            }
+
+            // Body callout box
+            Rectangle {
+                background: root.is-danger ? #1f1319 : #141724;
+                border-radius: 9px;
+                border-width: 1px;
+                border-color: root.is-danger ? #f38ba833 : #89b4fa33;
+
+                VerticalLayout {
+                    padding: 12px;
+                    spacing: 6px;
+                    Text {
+                        text: root.message;
+                        color: #cbd5e1;
+                        font-size: 12px;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+
+            // Actions
+            HorizontalLayout {
+                spacing: 10px;
+                alignment: end;
+                padding-top: 4px;
+
+                ModernButton {
+                    text: "Cancel";
+                    primary: false;
+                    clicked => { root.cancel(); }
+                }
+
+                ModernButton {
+                    text: root.confirm-text;
+                    icon: root.is-danger ? @image-url("../../../data/icons/ui/trash.svg") : @image-url("../../../data/icons/ui/settings.svg");
+                    has-icon: true;
+                    danger: root.is-danger;
+                    primary: !root.is-danger;
+                    clicked => { root.confirm(); }
+                }
+            }
+        }
+    }
+}
+
+export component ModernToggleSwitch inherits Rectangle {
+    in-out property <bool> checked: false;
+    in property <string> label;
+    callback toggled(bool);
+
+    height: 26px;
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.checked = !root.checked;
+            root.toggled(root.checked);
+        }
+    }
+
+    HorizontalLayout {
+        alignment: space-between;
+        Text {
+            text: root.label;
+            color: ta.has-hover ? #ffffff : #e2e8f0;
+            font-size: 12px;
+            font-weight: 500;
+            vertical-alignment: center;
+        }
+
+        Rectangle {
+            width: 36px;
+            height: 20px;
+            border-radius: 10px;
+            y: (parent.height - self.height) / 2;
+            background: root.checked ? #3b82f6 : #1a1f2c;
+            border-width: 1px;
+            border-color: root.checked ? #60a5fa : #2a3348;
+            animate background, border-color { duration: 120ms; }
+
+            Rectangle {
+                width: 14px;
+                height: 14px;
+                border-radius: 7px;
+                background: #ffffff;
+                x: root.checked ? parent.width - self.width - 3px : 3px;
+                y: 2px;
+                animate x { duration: 120ms; }
+            }
+        }
+    }
+}
+
+export component CopyButton inherits Rectangle {
+    callback clicked;
+    in property <bool> copied: false;
+    out property <bool> has-hover: ta.has-hover;
+
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: ta.has-hover ? #89b4fa22 : #181926aa;
+    border-width: 1px;
+    border-color: ta.has-hover ? #89b4fa66 : #2d3045;
+    animate background, border-color { duration: 100ms; }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+
+    VerticalLayout {
+        alignment: center;
+        Image {
+            source: @image-url("../../../data/icons/ui/copy.svg");
+            width: 13px;
+            height: 13px;
+            colorize: root.copied ? #a6e3a1 : (ta.has-hover ? #89b4fa : #a6adc8);
+            horizontal-alignment: center;
+        }
+    }
+}
