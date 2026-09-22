@@ -180,6 +180,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize Typing Telemetry & Analytics state
     refresh_stats_ui(&app, &config_mgr);
     refresh_standalone_stats_ui(&standalone, &config_mgr);
+    let config_mgr_rc = Rc::new(std::cell::RefCell::new(config_mgr));
 
     // Initialize Desktop System Tray (StatusNotifierItem on Linux, Shell_NotifyIconW on Windows)
     #[cfg(unix)]
@@ -204,6 +205,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             winit_window
                 .set_window_level(i_slint_backend_winit::winit::window::WindowLevel::AlwaysOnTop);
         });
+    }
+
+    // Restore Saved Window Position
+    {
+        let (saved_x, saved_y) = {
+            let cm = config_mgr_rc.borrow();
+            (cm.config.ui.topbar_x, cm.config.ui.topbar_y)
+        };
+        if saved_x > 0 || saved_y > 0 {
+            let _ = app.window().with_winit_window(move |winit_window| {
+                winit_window.set_outer_position(
+                    i_slint_backend_winit::winit::dpi::PhysicalPosition::new(saved_x, saved_y),
+                );
+            });
+        }
     }
 
     // Callbacks: Window Dragging & Movement (Wayland & X11 Native Compositor Drag)
@@ -232,8 +248,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     let app_weak_end = app_weak.clone();
+    let cm_drag_end = config_mgr_rc.clone();
     app.on_end_drag_window(move || {
         if let Some(app) = app_weak_end.upgrade() {
+            let _ = app.window().with_winit_window(|winit_window| {
+                if let Ok(pos) = winit_window.outer_position() {
+                    let mut cm = cm_drag_end.borrow_mut();
+                    if cm.config.ui.topbar_x != pos.x || cm.config.ui.topbar_y != pos.y {
+                        cm.config.ui.topbar_x = pos.x;
+                        cm.config.ui.topbar_y = pos.y;
+                        let _ = cm.save();
+                    }
+                }
+            });
             let _ =
                 app.window()
                     .try_dispatch_event(slint::platform::WindowEvent::PointerReleased {
@@ -278,7 +305,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Callbacks: Layout Switching & Mode OSD
-    let config_mgr_rc = Rc::new(std::cell::RefCell::new(config_mgr));
     let cm_clone = config_mgr_rc.clone();
     let app_weak_layout = app_weak.clone();
     let standalone_weak_layout = standalone_weak.clone();
