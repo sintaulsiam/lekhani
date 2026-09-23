@@ -461,7 +461,7 @@ def main():
     print("\n[*] Compiling and training binary model with multi-core Rayon...")
     train_cmd = [
         "cargo", "run", "--release", "-p", "lekhani-cli", "--",
-        "train",
+        "dev", "train",
         "-i", str(args.output_corpus),
         "-o", str(args.output_model),
         "--min-unigram-freq", str(min_u),
@@ -477,7 +477,7 @@ def main():
     print("\n[*] Evaluating new binary language model...")
     eval_cmd = [
         "cargo", "run", "--release", "-p", "lekhani-cli", "--",
-        "eval",
+        "dev", "eval",
         "--model", str(args.output_model),
     ]
     subprocess.run(eval_cmd, cwd=str(ROOT_DIR), check=True)

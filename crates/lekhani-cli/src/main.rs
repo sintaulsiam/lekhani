@@ -76,6 +76,49 @@ enum Commands {
         #[arg(long)]
         reset: bool,
     },
+    /// Developer & Language Model Training Tools (Hidden from main user help)
+    #[command(subcommand, hide = true)]
+    Dev(DevCommands),
+    /// Developer benchmark tool (Hidden alias)
+    #[command(hide = true)]
+    Benchmark,
+    /// Train language model (Hidden alias)
+    #[command(hide = true)]
+    Train {
+        #[arg(short, long)]
+        input: PathBuf,
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        #[arg(long, default_value_t = 2)]
+        min_unigram_freq: usize,
+        #[arg(long, default_value_t = 3)]
+        min_bigram_freq: usize,
+        #[arg(long, default_value_t = 4)]
+        min_trigram_freq: usize,
+        #[arg(long, default_value_t = 120000)]
+        max_unigrams: usize,
+        #[arg(long, default_value_t = 600000)]
+        max_bigrams: usize,
+        #[arg(long, default_value_t = 1200000)]
+        max_trigrams: usize,
+        #[arg(short, long)]
+        user: bool,
+    },
+    /// Evaluate language model (Hidden alias)
+    #[command(hide = true)]
+    Eval {
+        #[arg(short, long)]
+        model: Option<PathBuf>,
+    },
+    /// AI language model tools (Hidden alias)
+    #[command(subcommand, hide = true)]
+    Ai(AiCommands),
+    /// Show version, author, and special acknowledgments
+    About,
+}
+
+#[derive(Subcommand)]
+enum DevCommands {
     /// Benchmark typing engine performance
     Benchmark,
     /// Train an on-device statistical language model from raw Bengali text
@@ -114,13 +157,31 @@ enum Commands {
         #[arg(short, long)]
         model: Option<PathBuf>,
     },
-    /// On-Device Bengali AI & Language Model Tools
+    /// Predict the top next words given preceding sentence context
+    Predict {
+        /// Preceding sentence or phrase (e.g. "আমি ভাত" or "বাংলাদেশ একটি")
+        context: String,
+        /// Number of predictions to return (default: 5)
+        #[arg(short, long, default_value_t = 5)]
+        limit: usize,
+    },
+    /// Score sentence perplexity and conditional probabilities
+    Score {
+        /// Bengali sentence or phrase to score
+        sentence: String,
+    },
+    /// Disambiguate and decode a sequence of candidate options
+    Decode {
+        /// JSON array of candidate vectors (e.g. '[["আমি"],["শার্ট"],["পড়া","পরা"]]')
+        sequence_json: String,
+    },
+    /// Pretrain or seed the user's personal model with rich baseline conversational phrases
+    Pretrain,
+    /// AI & Language Model Tools
     Ai {
         #[command(subcommand)]
         subcommand: AiCommands,
     },
-    /// Show version, author, and special acknowledgments
-    About,
 }
 
 #[derive(Subcommand)]
@@ -479,19 +540,11 @@ fn main() -> anyhow::Result<()> {
                 println!("  • Raw Typing Metrics:        {}", stats_path.display());
             }
         }
+        Commands::Dev(dev_cmd) => {
+            handle_dev_command(dev_cmd, &config_mgr)?;
+        }
         Commands::Benchmark => {
-            println!("Running Lekhani typing engine benchmark...");
-            let start = std::time::Instant::now();
-            let session = InputSession::new();
-            for _ in 0..10_000 {
-                let _ = session
-                    .phonetic
-                    .suggestion_engine
-                    .convert_phonetic("amader bangladesh");
-            }
-            let elapsed = start.elapsed();
-            println!("10,000 sentences converted in {:?}", elapsed);
-            println!("Average latency per sentence: {:?}", elapsed / 10_000);
+            handle_dev_command(DevCommands::Benchmark, &config_mgr)?;
         }
         Commands::Train {
             input,
@@ -504,87 +557,8 @@ fn main() -> anyhow::Result<()> {
             max_trigrams,
             user,
         } => {
-            run_train(
-                input,
-                output,
-                min_unigram_freq,
-                min_bigram_freq,
-                min_trigram_freq,
-                max_unigrams,
-                max_bigrams,
-                max_trigrams,
-                user,
-                &config_mgr,
-            )?;
-        }
-        Commands::Eval { model } => {
-            run_eval(model)?;
-        }
-        Commands::Ai { subcommand } => {
-            let lm = lekhani_ai::LanguageModel::new();
-            let predictor = lekhani_ai::NextWordPredictor::new();
-            let decoder = lekhani_ai::BeamSearchDecoder::new();
-
-            match subcommand {
-                AiCommands::Predict { context, limit } => {
-                    let tokens: Vec<&str> = context.split_whitespace().collect();
-                    let preds = predictor.predict_next(&tokens, limit);
-                    println!("╔══════════════════════════════════════════════════════╗");
-                    println!("║        🔮 Lekhani AI Next-Word Predictor             ║");
-                    println!("╠══════════════════════════════════════════════════════╣");
-                    println!("║ Context: \"{}\"", context);
-                    println!("║ Top Predictions:                                     ║");
-                    for (i, p) in preds.iter().enumerate() {
-                        println!("║   {}. {:<44} ║", i + 1, p);
-                    }
-                    println!("╚══════════════════════════════════════════════════════╝");
-                }
-                AiCommands::Score { sentence } => {
-                    let tokens: Vec<&str> = sentence.split_whitespace().collect();
-                    println!("╔══════════════════════════════════════════════════════╗");
-                    println!("║        🧠 Lekhani AI Language Model Scorer           ║");
-                    println!("╠══════════════════════════════════════════════════════╣");
-                    println!("║ Sentence: \"{}\"", sentence);
-                    println!("║ Conditional Probabilities:                           ║");
-                    let mut total_log_p = 0.0f32;
-                    for (i, &w) in tokens.iter().enumerate() {
-                        let prev1 = if i >= 1 { Some(tokens[i - 1]) } else { None };
-                        let prev2 = if i >= 2 { Some(tokens[i - 2]) } else { None };
-                        let log_p = lm.score_candidate(prev2, prev1, w);
-                        total_log_p += log_p;
-                        println!("║   • {:<16} (P = 10^{:<6.2})                  ║", w, log_p);
-                    }
-                    println!("╠══════════════════════════════════════════════════════╣");
-                    println!("║ Total Sequence Log-Likelihood: {:>17.2} ║", total_log_p);
-                    println!("╚══════════════════════════════════════════════════════╝");
-                }
-                AiCommands::Decode { sequence_json } => {
-                    let seq: Vec<Vec<String>> = serde_json::from_str(&sequence_json)?;
-                    let path = decoder.decode(&seq);
-                    println!("Optimal Decoded Sequence: {:?}", path);
-                    println!("Sentence: \"{}\"", path.join(" "));
-                }
-                AiCommands::Pretrain => {
-                    let learned_path = config_mgr.get_user_learned_path();
-                    let mut learner = AutonomousLearner::load_from_path(&learned_path);
-                    learner.pretrain_baseline();
-                    let _ = learner.save_to_path(&learned_path);
-
-                    println!("╔══════════════════════════════════════════════════════╗");
-                    println!("║      🚀 Lekhani Personal Pre-Training Complete       ║");
-                    println!("╠══════════════════════════════════════════════════════╣");
-                    println!(
-                        "║ Baseline Vocabulary:    {:>28} ║",
-                        learner.learned_words.len()
-                    );
-                    println!(
-                        "║ Baseline Bigram Pairs:  {:>28} ║",
-                        learner.user_bigrams.len()
-                    );
-                    println!("║ Stored Path:            {:<28} ║", learned_path.display());
-                    println!("╚══════════════════════════════════════════════════════╝");
-                }
-                AiCommands::Train {
+            handle_dev_command(
+                DevCommands::Train {
                     input,
                     output,
                     min_unigram_freq,
@@ -594,24 +568,15 @@ fn main() -> anyhow::Result<()> {
                     max_bigrams,
                     max_trigrams,
                     user,
-                } => {
-                    run_train(
-                        input,
-                        output,
-                        min_unigram_freq,
-                        min_bigram_freq,
-                        min_trigram_freq,
-                        max_unigrams,
-                        max_bigrams,
-                        max_trigrams,
-                        user,
-                        &config_mgr,
-                    )?;
-                }
-                AiCommands::Eval { model } => {
-                    run_eval(model)?;
-                }
-            }
+                },
+                &config_mgr,
+            )?;
+        }
+        Commands::Eval { model } => {
+            handle_dev_command(DevCommands::Eval { model }, &config_mgr)?;
+        }
+        Commands::Ai(subcommand) => {
+            handle_dev_command(DevCommands::Ai { subcommand }, &config_mgr)?;
         }
         Commands::About => {
             println!("╔══════════════════════════════════════════════════════════════════╗");
@@ -635,6 +600,163 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
+    Ok(())
+}
+
+fn handle_dev_command(dev_cmd: DevCommands, config_mgr: &ConfigManager) -> anyhow::Result<()> {
+    match dev_cmd {
+        DevCommands::Benchmark => {
+            println!("Running Lekhani typing engine benchmark...");
+            let start = std::time::Instant::now();
+            let session = InputSession::new();
+            for _ in 0..10_000 {
+                let _ = session
+                    .phonetic
+                    .suggestion_engine
+                    .convert_phonetic("amader bangladesh");
+            }
+            let elapsed = start.elapsed();
+            println!("10,000 sentences converted in {:?}", elapsed);
+            println!("Average latency per sentence: {:?}", elapsed / 10_000);
+        }
+        DevCommands::Train {
+            input,
+            output,
+            min_unigram_freq,
+            min_bigram_freq,
+            min_trigram_freq,
+            max_unigrams,
+            max_bigrams,
+            max_trigrams,
+            user,
+        } => {
+            run_train(
+                input,
+                output,
+                min_unigram_freq,
+                min_bigram_freq,
+                min_trigram_freq,
+                max_unigrams,
+                max_bigrams,
+                max_trigrams,
+                user,
+                config_mgr,
+            )?;
+        }
+        DevCommands::Eval { model } => {
+            run_eval(model)?;
+        }
+        DevCommands::Predict { context, limit } => {
+            handle_ai_subcommand(AiCommands::Predict { context, limit }, config_mgr)?;
+        }
+        DevCommands::Score { sentence } => {
+            handle_ai_subcommand(AiCommands::Score { sentence }, config_mgr)?;
+        }
+        DevCommands::Decode { sequence_json } => {
+            handle_ai_subcommand(AiCommands::Decode { sequence_json }, config_mgr)?;
+        }
+        DevCommands::Pretrain => {
+            handle_ai_subcommand(AiCommands::Pretrain, config_mgr)?;
+        }
+        DevCommands::Ai { subcommand } => {
+            handle_ai_subcommand(subcommand, config_mgr)?;
+        }
+    }
+    Ok(())
+}
+
+fn handle_ai_subcommand(subcommand: AiCommands, config_mgr: &ConfigManager) -> anyhow::Result<()> {
+    let lm = lekhani_ai::LanguageModel::new();
+    let predictor = lekhani_ai::NextWordPredictor::new();
+    let decoder = lekhani_ai::BeamSearchDecoder::new();
+
+    match subcommand {
+        AiCommands::Predict { context, limit } => {
+            let tokens: Vec<&str> = context.split_whitespace().collect();
+            let preds = predictor.predict_next(&tokens, limit);
+            println!("╔══════════════════════════════════════════════════════╗");
+            println!("║        🔮 Lekhani AI Next-Word Predictor             ║");
+            println!("╠══════════════════════════════════════════════════════╣");
+            println!("║ Context: \"{}\"", context);
+            println!("║ Top Predictions:                                     ║");
+            for (i, p) in preds.iter().enumerate() {
+                println!("║   {}. {:<44} ║", i + 1, p);
+            }
+            println!("╚══════════════════════════════════════════════════════╝");
+        }
+        AiCommands::Score { sentence } => {
+            let tokens: Vec<&str> = sentence.split_whitespace().collect();
+            println!("╔══════════════════════════════════════════════════════╗");
+            println!("║        🧠 Lekhani AI Language Model Scorer           ║");
+            println!("╠══════════════════════════════════════════════════════╣");
+            println!("║ Sentence: \"{}\"", sentence);
+            println!("║ Conditional Probabilities:                           ║");
+            let mut total_log_p = 0.0f32;
+            for (i, &w) in tokens.iter().enumerate() {
+                let prev1 = if i >= 1 { Some(tokens[i - 1]) } else { None };
+                let prev2 = if i >= 2 { Some(tokens[i - 2]) } else { None };
+                let log_p = lm.score_candidate(prev2, prev1, w);
+                total_log_p += log_p;
+                println!("║   • {:<16} (P = 10^{:<6.2})                  ║", w, log_p);
+            }
+            println!("╠══════════════════════════════════════════════════════╣");
+            println!("║ Total Sequence Log-Likelihood: {:>17.2} ║", total_log_p);
+            println!("╚══════════════════════════════════════════════════════╝");
+        }
+        AiCommands::Decode { sequence_json } => {
+            let seq: Vec<Vec<String>> = serde_json::from_str(&sequence_json)?;
+            let path = decoder.decode(&seq);
+            println!("Optimal Decoded Sequence: {:?}", path);
+            println!("Sentence: \"{}\"", path.join(" "));
+        }
+        AiCommands::Pretrain => {
+            let learned_path = config_mgr.get_user_learned_path();
+            let mut learner = AutonomousLearner::load_from_path(&learned_path);
+            learner.pretrain_baseline();
+            let _ = learner.save_to_path(&learned_path);
+
+            println!("╔══════════════════════════════════════════════════════╗");
+            println!("║      🚀 Lekhani Personal Pre-Training Complete       ║");
+            println!("╠══════════════════════════════════════════════════════╣");
+            println!(
+                "║ Baseline Vocabulary:    {:>28} ║",
+                learner.learned_words.len()
+            );
+            println!(
+                "║ Baseline Bigram Pairs:  {:>28} ║",
+                learner.user_bigrams.len()
+            );
+            println!("║ Stored Path:            {:<28} ║", learned_path.display());
+            println!("╚══════════════════════════════════════════════════════╝");
+        }
+        AiCommands::Train {
+            input,
+            output,
+            min_unigram_freq,
+            min_bigram_freq,
+            min_trigram_freq,
+            max_unigrams,
+            max_bigrams,
+            max_trigrams,
+            user,
+        } => {
+            run_train(
+                input,
+                output,
+                min_unigram_freq,
+                min_bigram_freq,
+                min_trigram_freq,
+                max_unigrams,
+                max_bigrams,
+                max_trigrams,
+                user,
+                config_mgr,
+            )?;
+        }
+        AiCommands::Eval { model } => {
+            run_eval(model)?;
+        }
+    }
     Ok(())
 }
 

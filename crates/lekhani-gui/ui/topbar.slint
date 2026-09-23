@@ -1111,39 +1111,39 @@ export component TopBarWindow inherits Window {
                                 spacing: 8px;
                                 alignment: start;
                                 Text {
-                                    text: "SMART ASSISTANCE & DEVELOPER TOOLS";
+                                    text: "SMART TYPING ASSISTANCE";
                                     color: #cba6f7;
                                     font-size: 9.5px;
                                     font-weight: 700;
                                 }
 
                                 ModernToggleSwitch {
-                                    label: "Developer Code Shield";
+                                    label: "Ignore Code & URLs (Code Shield)";
                                     checked: root.set-code-shield;
                                     toggled(v) => { root.set-code-shield = v; root.auto-save-settings(); }
                                 }
 
                                 ModernToggleSwitch {
-                                    label: "Concatenated Word Segmentation";
+                                    label: "Auto-Separate Joined Words";
                                     checked: root.set-word-segmentation;
                                     toggled(v) => { root.set-word-segmentation = v; root.auto-save-settings(); }
                                 }
 
                                 ModernToggleSwitch {
-                                    label: "Colloquial Dialect Normalization";
+                                    label: "Recognize Informal & Regional Words";
                                     checked: root.set-colloquial-dialects;
                                     toggled(v) => { root.set-colloquial-dialects = v; root.auto-save-settings(); }
                                 }
 
                                 ModernToggleSwitch {
-                                    label: "Banglish Chat Contractions";
+                                    label: "Expand Chat Shortcuts & Banglish";
                                     checked: root.set-banglish-shorthand;
                                     toggled(v) => { root.set-banglish-shorthand = v; root.auto-save-settings(); }
                                 }
                             }
                         }
 
-                        // Section 3: Predictive Intelligence
+                        // Section 3: Word Suggestions & Predictions
                         Rectangle {
                             background: #0c0d14;
                             border-radius: 10px;
@@ -1155,26 +1155,26 @@ export component TopBarWindow inherits Window {
                                 spacing: 8px;
                                 alignment: start;
                                 Text {
-                                    text: "PREDICTIVE INTELLIGENCE";
+                                    text: "WORD SUGGESTIONS & PREDICTIONS";
                                     color: #f38ba8;
                                     font-size: 9.5px;
                                     font-weight: 700;
                                 }
 
                                 ModernToggleSwitch {
-                                    label: "AI Next-Word Prediction";
+                                    label: "Suggest Next Words";
                                     checked: root.set-predictive-next;
                                     toggled(v) => { root.set-predictive-next = v; root.auto-save-settings(); }
                                 }
 
                                 ModernToggleSwitch {
-                                    label: "Reduplicated Words Prediction";
+                                    label: "Suggest Repeated Words (যেমন: ধীরে ধীরে)";
                                     checked: root.set-reduplication;
                                     toggled(v) => { root.set-reduplication = v; root.auto-save-settings(); }
                                 }
 
                                 ModernToggleSwitch {
-                                    label: "Multi-Word Phrase Completion";
+                                    label: "Complete Common Phrases";
                                     checked: root.set-phrase-prediction;
                                     toggled(v) => { root.set-phrase-prediction = v; root.auto-save-settings(); }
                                 }
@@ -1183,7 +1183,7 @@ export component TopBarWindow inherits Window {
                                     spacing: 8px;
                                     padding-top: 4px;
                                     Text {
-                                        text: "Autonomous Learning Profile:";
+                                        text: "Learned Personal Words:";
                                         color: #64748b;
                                         font-size: 11px;
                                         vertical-alignment: center;

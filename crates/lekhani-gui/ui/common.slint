@@ -1078,32 +1078,32 @@ export component SettingsContent inherits ScrollView {
             }
         }
 
-        // TAB 3: SMART ASSISTANCE & AI
+        // TAB 3: SMART ASSISTANCE & PREDICTIONS
         if (root.active-tab == 3): VerticalLayout {
             spacing: 12px;
 
             SettingCard {
-                title: "PREDICTIVE INTELLIGENCE & PRODUCTIVITY";
+                title: "WORD SUGGESTIONS & PREDICTIONS";
                 title-color: #f38ba8;
                 icon: @image-url("../../../data/icons/ui/chart.svg");
 
                 SettingRow {
-                    title: "AI Next-Word Prediction";
-                    subtitle: "Suggests the most probable next word using neural n-gram context";
+                    title: "Suggest Next Words";
+                    subtitle: "Suggests likely upcoming words based on sentence context";
                     checked <=> root.set-predictive-next;
                     toggled(_) => { root.auto-save(); }
                 }
 
                 SettingRow {
-                    title: "Reduplicated Words Prediction";
-                    subtitle: "Auto-completes repeated Bengali echo expressions (e.g. ধীরে ➔ ধীরে ধীরে)";
+                    title: "Repeated Words Prediction (দ্বিরুক্ত শব্দ)";
+                    subtitle: "Auto-completes repeated Bengali expressions (e.g. ধীরে ➔ ধীরে ধীরে)";
                     checked <=> root.set-reduplication;
                     toggled(_) => { root.auto-save(); }
                 }
 
                 SettingRow {
-                    title: "Multi-Word Phrase Completion";
-                    subtitle: "Predicts common multi-word idioms and conversational collocations";
+                    title: "Common Phrase Completion";
+                    subtitle: "Predicts everyday phrases, greetings, and common expressions";
                     checked <=> root.set-phrase-prediction;
                     toggled(_) => { root.auto-save(); }
                 }
@@ -1118,33 +1118,33 @@ export component SettingsContent inherits ScrollView {
             }
 
             SettingCard {
-                title: "DEVELOPER TOOLS & REGIONAL DIALECTS";
+                title: "SMART TYPING ASSISTANCE";
                 title-color: #f38ba8;
                 icon: @image-url("../../../data/icons/ui/settings.svg");
 
                 SettingRow {
-                    title: "Developer Code Shield";
-                    subtitle: "Guards programming keywords (onClick, function, const, --flag) from transliteration";
+                    title: "Ignore Code & URLs (Code Shield)";
+                    subtitle: "Keeps programming syntax, variables, and URLs in English (onClick, const, --flag)";
                     checked <=> root.set-code-shield;
                     toggled(_) => { root.auto-save(); }
                 }
 
                 SettingRow {
-                    title: "Concatenated Word Segmentation";
+                    title: "Auto-Separate Joined Words";
                     subtitle: "Splits combined phonetics into proper spaced words (kemonaso ➔ কেমন আছো)";
                     checked <=> root.set-word-segmentation;
                     toggled(_) => { root.auto-save(); }
                 }
 
                 SettingRow {
-                    title: "Colloquial Dialect Normalization";
-                    subtitle: "Maps spoken regional dialects into standard literary Bengali (খামু ➔ খাব)";
+                    title: "Recognize Informal & Regional Words";
+                    subtitle: "Converts spoken regional dialects into standard Bengali (খামু ➔ খাব)";
                     checked <=> root.set-colloquial-dialects;
                     toggled(_) => { root.auto-save(); }
                 }
 
                 SettingRow {
-                    title: "Banglish Chat Contractions";
+                    title: "Expand Chat Shortcuts & Banglish";
                     subtitle: "Expands popular SMS and social media chat shortcuts (amr ➔ আমার, kothay ➔ কোথায়)";
                     checked <=> root.set-banglish-shorthand;
                     has-divider: false;

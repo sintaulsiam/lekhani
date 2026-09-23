@@ -356,8 +356,8 @@ def main():
     print(f"  📄 Total Lines:  {line_count:,}")
     print("═" * 60)
     print("\nTo compile and train the Lekhani binary model from this corpus:")
-    print(f"  cargo run --release -p lekhani-cli -- train -i {args.output} -o data/dictionaries/bengali_lm.bin")
-    print(f"  cargo run --release -p lekhani-cli -- eval\n")
+    print(f"  cargo run --release -p lekhani-cli -- dev train -i {args.output} -o data/dictionaries/bengali_lm.bin")
+    print(f"  cargo run --release -p lekhani-cli -- dev eval\n")
 
 
 if __name__ == "__main__":
