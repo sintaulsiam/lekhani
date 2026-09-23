@@ -131,11 +131,15 @@ impl LekhaniEngineContext {
     pub fn commit(&mut self, idx: usize) -> Option<String> {
         let committed = self.session.commit(idx)?;
         self.commit_count += 1;
-        if self.commit_count.is_multiple_of(3) {
+        if self.commit_count.is_multiple_of(5) {
             let user_learned = self.config_mgr.get_user_learned_path();
             let stats_path = self.config_mgr.get_user_stats_path();
-            let _ = self.session.save_user_learned(&user_learned);
-            let _ = self.session.save_stats(&stats_path);
+            let stats_clone = self.session.get_stats();
+            let learner_clone = self.session.phonetic.suggestion_engine.database.learner.clone();
+            std::thread::spawn(move || {
+                let _ = stats_clone.save_to_path(&stats_path);
+                let _ = learner_clone.save_to_path(&user_learned);
+            });
         }
         Some(committed)
     }
@@ -200,8 +204,12 @@ pub extern "C" fn lekhani_engine_free(ctx: *mut LekhaniEngineContext) {
             let engine = &mut *ctx;
             let user_learned = engine.config_mgr.get_user_learned_path();
             let stats_path = engine.config_mgr.get_user_stats_path();
-            let _ = engine.session.save_user_learned(&user_learned);
-            let _ = engine.session.save_stats(&stats_path);
+            let stats_clone = engine.session.get_stats();
+            let learner_clone = engine.session.phonetic.suggestion_engine.database.learner.clone();
+            std::thread::spawn(move || {
+                let _ = stats_clone.save_to_path(&stats_path);
+                let _ = learner_clone.save_to_path(&user_learned);
+            });
             drop(Box::from_raw(ctx));
         }
     }
