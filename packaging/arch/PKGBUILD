@@ -53,6 +53,7 @@ package_lekhani-common() {
     
     install -d "$pkgdir/usr/share/lekhani/data"
     install -Dm644 data/dictionaries/*.json "$pkgdir/usr/share/lekhani/data/"
+    install -Dm644 data/dictionaries/*.bin "$pkgdir/usr/share/lekhani/data/" 2>/dev/null || true
 
     # Icons
     install -d "$pkgdir/usr/share/icons/hicolor/scalable/apps"

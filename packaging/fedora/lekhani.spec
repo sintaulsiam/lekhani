@@ -73,6 +73,7 @@ install -Dpm 0644 data/layouts/*.json %{buildroot}%{_datadir}/lekhani/layouts/
 
 install -d %{buildroot}%{_datadir}/lekhani/data
 install -Dpm 0644 data/dictionaries/*.json %{buildroot}%{_datadir}/lekhani/data/
+install -Dpm 0644 data/dictionaries/*.bin %{buildroot}%{_datadir}/lekhani/data/ 2>/dev/null || true
 
 # Install icons
 install -d %{buildroot}%{_datadir}/icons/hicolor/scalable/apps

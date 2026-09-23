@@ -78,6 +78,42 @@ enum Commands {
     },
     /// Benchmark typing engine performance
     Benchmark,
+    /// Train an on-device statistical language model from raw Bengali text
+    Train {
+        /// Input text file or directory containing Bengali corpus
+        #[arg(short, long)]
+        input: PathBuf,
+        /// Optional output path to save compiled model (e.g. data/dictionaries/bengali_lm.bin)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+        /// Minimum frequency threshold for unigrams (default: 2)
+        #[arg(long, default_value_t = 2)]
+        min_unigram_freq: usize,
+        /// Minimum frequency threshold for bigrams (default: 3)
+        #[arg(long, default_value_t = 3)]
+        min_bigram_freq: usize,
+        /// Minimum frequency threshold for trigrams (default: 4)
+        #[arg(long, default_value_t = 4)]
+        min_trigram_freq: usize,
+        /// Maximum vocabulary unigrams to retain (default: 120000)
+        #[arg(long, default_value_t = 120000)]
+        max_unigrams: usize,
+        /// Maximum bigrams to retain (default: 600000)
+        #[arg(long, default_value_t = 600000)]
+        max_bigrams: usize,
+        /// Maximum trigrams to retain (default: 1200000)
+        #[arg(long, default_value_t = 1200000)]
+        max_trigrams: usize,
+        /// Ingest directly into active user personal vocabulary and bigram memory
+        #[arg(short, long)]
+        user: bool,
+    },
+    /// Evaluate the language model on Bengali test benchmarks
+    Eval {
+        /// Path to compiled binary model (optional, defaults to system/dev paths)
+        #[arg(short, long)]
+        model: Option<PathBuf>,
+    },
     /// On-Device Bengali AI & Language Model Tools
     Ai {
         #[command(subcommand)]
@@ -111,15 +147,39 @@ enum AiCommands {
     Pretrain,
     /// Train the statistical N-gram language model or user personal memory on a raw Bengali text corpus
     Train {
-        /// Input text file containing Bengali corpus
+        /// Input text file or directory containing Bengali corpus
         #[arg(short, long)]
         input: PathBuf,
-        /// Optional output path to save compiled model JSON
+        /// Optional output path to save compiled model (e.g. data/dictionaries/bengali_lm.bin)
         #[arg(short, long)]
         output: Option<PathBuf>,
+        /// Minimum frequency threshold for unigrams (default: 2)
+        #[arg(long, default_value_t = 2)]
+        min_unigram_freq: usize,
+        /// Minimum frequency threshold for bigrams (default: 3)
+        #[arg(long, default_value_t = 3)]
+        min_bigram_freq: usize,
+        /// Minimum frequency threshold for trigrams (default: 4)
+        #[arg(long, default_value_t = 4)]
+        min_trigram_freq: usize,
+        /// Maximum vocabulary unigrams to retain (default: 120000)
+        #[arg(long, default_value_t = 120000)]
+        max_unigrams: usize,
+        /// Maximum bigrams to retain (default: 600000)
+        #[arg(long, default_value_t = 600000)]
+        max_bigrams: usize,
+        /// Maximum trigrams to retain (default: 1200000)
+        #[arg(long, default_value_t = 1200000)]
+        max_trigrams: usize,
         /// Ingest directly into active user personal vocabulary and bigram memory
         #[arg(short, long)]
         user: bool,
+    },
+    /// Evaluate the language model on Bengali test benchmarks
+    Eval {
+        /// Path to compiled binary model (optional, defaults to system/dev paths)
+        #[arg(short, long)]
+        model: Option<PathBuf>,
     },
 }
 
@@ -433,6 +493,33 @@ fn main() -> anyhow::Result<()> {
             println!("10,000 sentences converted in {:?}", elapsed);
             println!("Average latency per sentence: {:?}", elapsed / 10_000);
         }
+        Commands::Train {
+            input,
+            output,
+            min_unigram_freq,
+            min_bigram_freq,
+            min_trigram_freq,
+            max_unigrams,
+            max_bigrams,
+            max_trigrams,
+            user,
+        } => {
+            run_train(
+                input,
+                output,
+                min_unigram_freq,
+                min_bigram_freq,
+                min_trigram_freq,
+                max_unigrams,
+                max_bigrams,
+                max_trigrams,
+                user,
+                &config_mgr,
+            )?;
+        }
+        Commands::Eval { model } => {
+            run_eval(model)?;
+        }
         Commands::Ai { subcommand } => {
             let lm = lekhani_ai::LanguageModel::new();
             let predictor = lekhani_ai::NextWordPredictor::new();
@@ -500,48 +587,29 @@ fn main() -> anyhow::Result<()> {
                 AiCommands::Train {
                     input,
                     output,
+                    min_unigram_freq,
+                    min_bigram_freq,
+                    min_trigram_freq,
+                    max_unigrams,
+                    max_bigrams,
+                    max_trigrams,
                     user,
                 } => {
-                    let text = std::fs::read_to_string(&input)?;
-                    let mut trainer = lekhani_ai::CorpusTrainer::new();
-                    trainer.train_text(&text);
-                    let compiled = trainer.compile();
-
-                    if user {
-                        let learned_path = config_mgr.get_user_learned_path();
-                        let mut learner = AutonomousLearner::load_from_path(&learned_path);
-                        learner.train_text(&text);
-                        let _ = learner.save_to_path(&learned_path);
-                        println!(
-                            "Ingested directly into user memory: {} vocabulary, {} bigrams.",
-                            learner.learned_words.len(),
-                            learner.user_bigrams.len()
-                        );
-                    }
-
-                    println!("╔══════════════════════════════════════════════════════╗");
-                    println!("║        🎓 Lekhani AI Corpus Training Complete        ║");
-                    println!("╠══════════════════════════════════════════════════════╣");
-                    println!("║ Corpus Source:      {:<32} ║", input.display());
-                    println!("║ Total Words:        {:>32} ║", compiled.total_words);
-                    println!("║ Unique Unigrams:    {:>32} ║", compiled.unigrams.len());
-                    println!("║ Unique Bigrams:     {:>32} ║", compiled.bigrams.len());
-                    println!("║ Unique Trigrams:    {:>32} ║", compiled.trigrams.len());
-                    if let Some(out_path) = output {
-                        if let Some(p) = out_path.parent() {
-                            let _ = std::fs::create_dir_all(p);
-                        }
-                        if out_path.extension().and_then(|e| e.to_str()) == Some("bin")
-                            || out_path.extension().and_then(|e| e.to_str()) == Some("lm")
-                        {
-                            compiled.save_binary(&out_path)?;
-                        } else {
-                            let json = serde_json::to_string_pretty(&compiled)?;
-                            std::fs::write(&out_path, json)?;
-                        }
-                        println!("║ Exported Model To:  {:<32} ║", out_path.display());
-                    }
-                    println!("╚══════════════════════════════════════════════════════╝");
+                    run_train(
+                        input,
+                        output,
+                        min_unigram_freq,
+                        min_bigram_freq,
+                        min_trigram_freq,
+                        max_unigrams,
+                        max_bigrams,
+                        max_trigrams,
+                        user,
+                        &config_mgr,
+                    )?;
+                }
+                AiCommands::Eval { model } => {
+                    run_eval(model)?;
                 }
             }
         }
@@ -569,3 +637,226 @@ fn main() -> anyhow::Result<()> {
 
     Ok(())
 }
+
+fn collect_text_files(dir: &std::path::Path, files: &mut Vec<PathBuf>) {
+    if let Ok(entries) = std::fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                collect_text_files(&path, files);
+            } else if path.is_file() {
+                if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+                    if ext == "txt" || ext == "corpus" || ext == "md" {
+                        files.push(path);
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn run_train(
+    input: PathBuf,
+    output: Option<PathBuf>,
+    min_unigram_freq: usize,
+    min_bigram_freq: usize,
+    min_trigram_freq: usize,
+    max_unigrams: usize,
+    max_bigrams: usize,
+    max_trigrams: usize,
+    user: bool,
+    config_mgr: &ConfigManager,
+) -> anyhow::Result<()> {
+    use std::time::Instant;
+
+    let start = Instant::now();
+    println!("╔══════════════════════════════════════════════════════╗");
+    println!("║       🎓 Lekhani AI Corpus Training Engine           ║");
+    println!("╠══════════════════════════════════════════════════════╣");
+    println!("║ Ingesting source:   {:<32} ║", input.display());
+
+    let mut corpus_files = Vec::new();
+    if input.is_dir() {
+        collect_text_files(&input, &mut corpus_files);
+        corpus_files.sort();
+    } else {
+        corpus_files.push(input.clone());
+    }
+
+    if corpus_files.is_empty() {
+        anyhow::bail!("No valid text files (.txt, .corpus, .md) found in {:?}", input);
+    }
+
+    let mut total_bytes = 0usize;
+    let mut all_text = String::new();
+    for f in &corpus_files {
+        if let Ok(content) = std::fs::read_to_string(f) {
+            total_bytes += content.len();
+            all_text.push_str(&content);
+            all_text.push('\n');
+        }
+    }
+
+    println!("║ Total Files Read:   {:>32} ║", corpus_files.len());
+    println!(
+        "║ Total Size:         {:>29.2} MB ║",
+        total_bytes as f64 / (1024.0 * 1024.0)
+    );
+    println!("║ Processing & Parallel Tokenizing...                  ║");
+
+    let mut trainer = lekhani_ai::CorpusTrainer::new();
+    trainer.train_text_parallel(&all_text);
+
+    let config = lekhani_ai::TrainingConfig {
+        min_unigram_freq,
+        min_bigram_freq,
+        min_trigram_freq,
+        max_unigrams,
+        max_bigrams,
+        max_trigrams,
+    };
+
+    let compiled = trainer.compile_with_config(&config);
+
+    if user {
+        let learned_path = config_mgr.get_user_learned_path();
+        let mut learner = AutonomousLearner::load_from_path(&learned_path);
+        learner.train_text(&all_text);
+        let _ = learner.save_to_path(&learned_path);
+        println!(
+            "║ User Memory:        {:>24} words ║",
+            learner.learned_words.len()
+        );
+    }
+
+    println!("╠══════════════════════════════════════════════════════╣");
+    println!("║ Training Completed in {:>28.2?} ║", start.elapsed());
+    println!("║ Total Tokens Processed:{:>29} ║", compiled.total_words);
+    println!("║ Vocabulary (Unigrams): {:>29} ║", compiled.unigrams.len());
+    println!("║ Transitions (Bigrams): {:>29} ║", compiled.bigrams.len());
+    println!("║ Contexts (Trigrams):   {:>29} ║", compiled.trigrams.len());
+
+    if let Some(out_path) = output {
+        if let Some(p) = out_path.parent() {
+            let _ = std::fs::create_dir_all(p);
+        }
+        let is_binary = out_path.extension().and_then(|e| e.to_str()) == Some("bin")
+            || out_path.extension().and_then(|e| e.to_str()) == Some("lm");
+
+        if is_binary {
+            compiled.save_binary(&out_path)?;
+        } else {
+            let json = serde_json::to_string_pretty(&compiled)?;
+            std::fs::write(&out_path, json)?;
+        }
+        let out_bytes = std::fs::metadata(&out_path).map(|m| m.len()).unwrap_or(0);
+        println!("║ Exported Output:    {:<32} ║", out_path.display());
+        println!(
+            "║ Binary Output Size: {:>29.2} MB ║",
+            out_bytes as f64 / (1024.0 * 1024.0)
+        );
+    }
+    println!("╚══════════════════════════════════════════════════════╝");
+    Ok(())
+}
+
+fn run_eval(model_path: Option<PathBuf>) -> anyhow::Result<()> {
+    use std::time::Instant;
+
+    let (lm, source_desc) = if let Some(ref p) = model_path {
+        let loaded = lekhani_ai::LanguageModel::from_binary_file(p)?;
+        (loaded, format!("Custom Binary ({})", p.display()))
+    } else {
+        let loaded = lekhani_ai::LanguageModel::new();
+        (loaded, "Auto-Probed System / Static Baseline".to_string())
+    };
+
+    let predictor = lekhani_ai::NextWordPredictor::with_language_model(lm.clone());
+
+    println!("╔══════════════════════════════════════════════════════╗");
+    println!("║         🔬 Lekhani Bengali AI Model Evaluation       ║");
+    println!("╠══════════════════════════════════════════════════════╣");
+    println!("║ Active Model:       {:<32} ║", source_desc);
+    println!("║ Unigram Vocabulary: {:>32} ║", lm.unigram_count());
+    println!("║ Bigram Transitions: {:>32} ║", lm.bigram_count());
+    println!("║ Trigram Contexts:   {:>32} ║", lm.trigram_count());
+    println!("╠══════════════════════════════════════════════════════╣");
+    println!("║ 1. Speed Benchmark (100,000 candidate evaluations):  ║");
+
+    let eval_start = Instant::now();
+    let sample_pairs = [
+        (Some("আমি"), Some("ভাত"), "খাচ্ছি"),
+        (Some("নতুন"), Some("জামা"), "পরা"),
+        (Some("আমি"), Some("বই"), "পড়া"),
+        (None, Some("চা"), "খাব"),
+        (None, Some("ভালো"), "আছি"),
+    ];
+    let iters = 20_000;
+    for _ in 0..iters {
+        for &(p2, p1, w) in &sample_pairs {
+            let _ = lm.score_candidate(p2, p1, w);
+        }
+    }
+    let eval_duration = eval_start.elapsed();
+    let total_evals = iters * sample_pairs.len();
+    let per_eval_ns = eval_duration.as_nanos() as f64 / total_evals as f64;
+    println!("║    Total Time: {:>37.2?} ║", eval_duration);
+    println!("║    Latency / Evaluation: {:>29.2} ns ║", per_eval_ns);
+    println!(
+        "║    Throughput: {:>32.0} evals/sec ║",
+        total_evals as f64 / eval_duration.as_secs_f64()
+    );
+
+    println!("╠══════════════════════════════════════════════════════╣");
+    println!("║ 2. Homophone & Semantic Disambiguation Tests:        ║");
+
+    let test_cases = [
+        ("আমি বই ...", Some("আমি"), Some("বই"), "পড়া", "পরা"),
+        ("নতুন জামা ...", Some("নতুন"), Some("জামা"), "পরা", "পড়া"),
+        ("চা ...", None, Some("চা"), "খাব", "যাব"),
+        ("ভালো ...", None, Some("ভালো"), "আছি", "খাচ্ছি"),
+        (
+            "বাংলাদেশ একটি ...",
+            Some("বাংলাদেশ"),
+            Some("একটি"),
+            "সুন্দর",
+            "খারাপ",
+        ),
+    ];
+
+    let mut passed = 0;
+    for (ctx_desc, p2, p1, expected, wrong) in test_cases {
+        let score_exp = lm.score_candidate(p2, p1, expected);
+        let score_wrg = lm.score_candidate(p2, p1, wrong);
+        let ok = score_exp > score_wrg;
+        if ok {
+            passed += 1;
+        }
+        let status = if ok { "✅ PASS" } else { "❌ FAIL" };
+        println!(
+            "║  {} {:<18} \"{}\" > \"{}\" ({:>5.2} vs {:>5.2}) ║",
+            status, ctx_desc, expected, wrong, score_exp, score_wrg
+        );
+    }
+    println!(
+        "║  Disambiguation Accuracy: {:>23} / {} ║",
+        passed,
+        test_cases.len()
+    );
+
+    println!("╠══════════════════════════════════════════════════════╣");
+    println!("║ 3. Next-Word Prediction Tests:                       ║");
+    let contexts = [
+        vec!["আমি", "ভাত"],
+        vec!["বাংলাদেশ", "একটি"],
+        vec!["শুভ"],
+    ];
+    for ctx in &contexts {
+        let preds = predictor.predict_next(ctx, 3);
+        let formatted = preds.join(", ");
+        println!("║  \"{}\" ➔ [{}]", ctx.join(" "), formatted);
+    }
+    println!("╚══════════════════════════════════════════════════════╝");
+    Ok(())
+}
+

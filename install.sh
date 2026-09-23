@@ -234,6 +234,7 @@ sudo install -Dm644 data/layouts/*.json /usr/share/lekhani/layouts/
 
 sudo install -d /usr/share/lekhani/data
 sudo install -Dm644 data/dictionaries/*.json /usr/share/lekhani/data/
+sudo install -Dm644 data/dictionaries/*.bin /usr/share/lekhani/data/ 2>/dev/null || true
 
 echo "=== Installing Desktop Icons (All Resolutions + SVG) ==="
 for size in 16 22 24 32 48 64 128 256 512 1024; do

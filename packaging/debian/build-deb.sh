@@ -149,6 +149,7 @@ install -m755 "$ROOT_DIR/target/release/lekhani" "$COMMON_DIR/usr/bin/"
 
 install -m644 "$ROOT_DIR"/data/layouts/*.json "$COMMON_DIR/usr/share/lekhani/layouts/"
 install -m644 "$ROOT_DIR"/data/dictionaries/*.json "$COMMON_DIR/usr/share/lekhani/data/"
+install -m644 "$ROOT_DIR"/data/dictionaries/*.bin "$COMMON_DIR/usr/share/lekhani/data/" 2>/dev/null || true
 
 install -m644 "$ROOT_DIR/data/icons/128.png" "$COMMON_DIR/usr/share/lekhani/icons/lekhani.png"
 if [ -f "$ROOT_DIR/data/icons/lekhani.svg" ]; then

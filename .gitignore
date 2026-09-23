@@ -4,6 +4,7 @@ crates/lekhani-fcitx5/build/
 build/
 dist/
 *.bin
+!data/dictionaries/bengali_lm.bin
 
 # Backup files
 **/*.rs.bk
