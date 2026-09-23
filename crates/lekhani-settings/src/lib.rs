@@ -40,8 +40,12 @@ fn default_false() -> bool {
     false
 }
 
+pub use lekhani_core::phonetic::suggestion::AiProfile;
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PhoneticConfig {
+    #[serde(default)]
+    pub ai_profile: AiProfile,
     #[serde(default = "default_true")]
     pub use_dictionary: bool,
     #[serde(default = "default_true")]
@@ -98,6 +102,7 @@ impl Default for GeneralConfig {
 impl Default for PhoneticConfig {
     fn default() -> Self {
         Self {
+            ai_profile: AiProfile::default(),
             use_dictionary: true,
             include_english: true,
             enter_key_closes_candidate_window: false,
@@ -140,6 +145,7 @@ impl Default for UiConfig {
 impl AppConfig {
     pub fn to_suggestion_config(&self) -> lekhani_core::PhoneticSuggestionConfig {
         lekhani_core::PhoneticSuggestionConfig {
+            ai_profile: self.phonetic.ai_profile,
             use_dictionary: self.phonetic.use_dictionary,
             include_english: self.phonetic.include_english,
             enable_code_shield: self.phonetic.enable_code_shield,
