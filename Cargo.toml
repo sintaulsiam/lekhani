@@ -38,6 +38,7 @@ slint = "1.4"
 quick-xml = "0.31"
 futures-util = "0.3"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+memmap2 = "0.9"
 
 [profile.release]
 opt-level = 3

@@ -2821,6 +2821,7 @@ version = "1.0.0"
 dependencies = [
  "anyhow",
  "hashbrown 0.14.5",
+ "memmap2",
  "rayon",
  "serde",
  "serde_json",
