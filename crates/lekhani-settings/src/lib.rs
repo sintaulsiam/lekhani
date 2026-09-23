@@ -297,7 +297,7 @@ impl ConfigManager {
     }
 
     pub fn get_user_learned_path(&self) -> PathBuf {
-        self.data_dir.join("user_learned.json")
+        self.data_dir.join("user_learned.bin")
     }
 
     pub fn get_user_stats_path(&self) -> PathBuf {
@@ -455,10 +455,9 @@ impl ConfigManager {
         let mut user_learned = None;
         let learned_path = self.get_user_learned_path();
         if learned_path.exists() {
-            if let Ok(content) = std::fs::read_to_string(&learned_path) {
-                if let Ok(val) = serde_json::from_str::<serde_json::Value>(&content) {
-                    user_learned = Some(val);
-                }
+            let learner = lekhani_core::AutonomousLearner::load_from_path(&learned_path);
+            if let Ok(val) = serde_json::to_value(&learner) {
+                user_learned = Some(val);
             }
         }
 
@@ -523,9 +522,11 @@ impl ConfigManager {
         let _ = std::fs::write(ac_path, ac_json);
 
         if let Some(learned_val) = bundle.user_learned {
-            let learned_path = self.get_user_learned_path();
-            let learned_json = serde_json::to_string_pretty(&learned_val)?;
-            let _ = std::fs::write(learned_path, learned_json);
+            if let Ok(mut learner) = serde_json::from_value::<lekhani_core::AutonomousLearner>(learned_val) {
+                let learned_path = self.get_user_learned_path();
+                learner.dirty = true;
+                let _ = learner.save_to_path(learned_path);
+            }
         }
 
         let layout_dir = self.get_user_layout_dir();
@@ -650,11 +651,10 @@ mod tests {
 
         // Populate user learned
         let learned_path = cm.get_user_learned_path();
-        let learned_data = serde_json::json!({
-            "learned_words": {"বাংলাদেশ": 10},
-            "user_bigrams": {"সোনার": {"বাংলা": 5}}
-        });
-        let _ = std::fs::write(&learned_path, serde_json::to_string(&learned_data).unwrap());
+        let mut learner = lekhani_core::AutonomousLearner::new();
+        learner.learned_words.insert("বাংলাদেশ".to_string());
+        learner.dirty = true;
+        learner.save_to_path(&learned_path).unwrap();
 
         // Export backup
         let backup_path = temp_dir.join("backup.json");
@@ -679,9 +679,8 @@ mod tests {
             serde_json::from_str(&std::fs::read_to_string(&ac_path).unwrap()).unwrap();
         assert_eq!(restored_ac.get("amr"), Some(&"আমার".to_string()));
 
-        let restored_learned: serde_json::Value =
-            serde_json::from_str(&std::fs::read_to_string(&learned_path).unwrap()).unwrap();
-        assert_eq!(restored_learned["learned_words"]["বাংলাদেশ"], 10);
+        let restored_learner = lekhani_core::AutonomousLearner::load_from_path(&learned_path);
+        assert!(restored_learner.learned_words.contains("বাংলাদেশ"));
 
         let _ = std::fs::remove_dir_all(&temp_dir);
     }

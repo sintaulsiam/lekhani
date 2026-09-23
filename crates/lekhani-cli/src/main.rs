@@ -206,6 +206,18 @@ enum AiCommands {
     },
     /// Pretrain or seed the user's personal model with rich baseline conversational phrases
     Pretrain,
+    /// Inspect the user's compact binary learned dictionary (user_learned.bin)
+    Inspect {
+        /// Limit number of words/bigrams to display
+        #[arg(short, long, default_value_t = 15)]
+        limit: usize,
+    },
+    /// Export the user's learned data in human-readable JSON format
+    Export {
+        /// Output file path (defaults to stdout)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
     /// Train the statistical N-gram language model or user personal memory on a raw Bengali text corpus
     Train {
         /// Input text file or directory containing Bengali corpus
@@ -755,6 +767,62 @@ fn handle_ai_subcommand(subcommand: AiCommands, config_mgr: &ConfigManager) -> a
         }
         AiCommands::Eval { model } => {
             run_eval(model)?;
+        }
+        AiCommands::Inspect { limit } => {
+            let learned_path = config_mgr.get_user_learned_path();
+            let learner = AutonomousLearner::load_from_path(&learned_path);
+            let file_size_kb = if let Ok(meta) = std::fs::metadata(&learned_path) {
+                format!("{:.2} KB", meta.len() as f64 / 1024.0)
+            } else {
+                "0 KB".to_string()
+            };
+
+            println!("╔══════════════════════════════════════════════════════╗");
+            println!("║     🔬 Lekhani Autonomous Learning Deep Inspector    ║");
+            println!("╠══════════════════════════════════════════════════════╣");
+            println!("║ Storage Format:         {:>28} ║", "Binary (v1 / bincode)");
+            println!("║ Storage File:           {:>28} ║", "user_learned.bin");
+            println!("║ File Size on Disk:      {:>28} ║", file_size_kb);
+            println!("║ Learned Vocabulary:     {:>28} ║", learner.learned_words.len());
+            println!("║ Personal Bigram Pairs:  {:>28} ║", learner.user_bigrams.len());
+            println!("║ Distinct Words Tracked: {:>28} ║", learner.observed_counts.len());
+            println!("║ Manual Candidate Favs:  {:>28} ║", learner.candidate_memory.len());
+            println!("╠══════════════════════════════════════════════════════╣");
+            println!("║ 📖 Sample Learned Words:                             ║");
+            let mut words: Vec<_> = learner.learned_words.iter().collect();
+            words.sort();
+            for (i, w) in words.iter().take(limit).enumerate() {
+                println!("║   {:>2}. {:<44} ║", i + 1, w);
+            }
+            println!("╠══════════════════════════════════════════════════════╣");
+            println!("║ 🔗 Top Learned Bigram Transitions:                   ║");
+            let mut bigrams: Vec<_> = learner.user_bigrams.iter().collect();
+            bigrams.sort_by_key(|b| std::cmp::Reverse(*b.1));
+            for (i, (pair, count)) in bigrams.iter().take(limit).enumerate() {
+                let formatted = format!("{} (freq: {})", pair.replace('\t', " ➔ "), count);
+                println!("║   {:>2}. {:<44} ║", i + 1, formatted);
+            }
+            if !learner.candidate_memory.is_empty() {
+                println!("╠══════════════════════════════════════════════════════╣");
+                println!("║ ⭐ Candidate Selection Overrides:                    ║");
+                for (buf, cand) in learner.candidate_memory.iter().take(limit) {
+                    let formatted = format!("{} ➔ {}", buf, cand);
+                    println!("║      {:<47} ║", formatted);
+                }
+            }
+            println!("╚══════════════════════════════════════════════════════╝");
+            println!("\nStorage Path: {}", learned_path.display());
+        }
+        AiCommands::Export { output } => {
+            let learned_path = config_mgr.get_user_learned_path();
+            let learner = AutonomousLearner::load_from_path(&learned_path);
+            let json = learner.to_json().unwrap_or_else(|_| "{}".to_string());
+            if let Some(dest) = output {
+                std::fs::write(&dest, json)?;
+                println!("✓ Exported user learned data to {}", dest.display());
+            } else {
+                println!("{}", json);
+            }
         }
     }
     Ok(())

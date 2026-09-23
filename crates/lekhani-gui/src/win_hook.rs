@@ -90,7 +90,7 @@ impl HookState {
 
     fn on_commit(&mut self) {
         self.commit_counter += 1;
-        if self.commit_counter % 3 == 0 {
+        if self.commit_counter % 60 == 0 {
             self.flush_learned();
         }
     }

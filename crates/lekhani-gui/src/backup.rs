@@ -166,7 +166,8 @@ pub fn perform_export_learned_data(
                 .map(|_| ())
                 .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
         } else {
-            let empty_learner = lekhani_core::AutonomousLearner::load_from_path(&p);
+            let mut empty_learner = lekhani_core::AutonomousLearner::load_from_path(&p);
+            empty_learner.dirty = true;
             empty_learner
                 .save_to_path(&dest)
                 .map_err(|e| Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
@@ -191,10 +192,11 @@ pub fn perform_import_learned_data(
 ) {
     if let Some(src) = rfd::FileDialog::new()
         .set_title("Import Learned Vocabulary & Phrases")
-        .add_filter("JSON (*.json)", &["json"])
+        .add_filter("Binary/JSON (*.bin, *.json)", &["bin", "json"])
         .pick_file()
     {
-        let loaded = lekhani_core::AutonomousLearner::load_from_path(&src);
+        let mut loaded = lekhani_core::AutonomousLearner::load_from_path(&src);
+        loaded.dirty = true;
         let cm = cm_rc.borrow();
         let p = cm.get_user_learned_path();
         match loaded.save_to_path(&p) {
