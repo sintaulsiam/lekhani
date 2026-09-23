@@ -6,6 +6,11 @@ dist/
 *.bin
 !data/dictionaries/bengali_lm.bin
 
+# Training datasets & raw corpora
+data/*.txt
+data/corpus/
+*.corpus
+
 # Backup files
 **/*.rs.bk
 

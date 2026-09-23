@@ -687,11 +687,16 @@ mod tests {
         );
         assert_eq!(lekhani_engine_get_candidate_count(engine_ptr), 0);
 
-        // Repopulate predictions and test Direct Selection with '2' (KEY_2 = 0x32 -> candidate index 1: "আছি")
+        // Repopulate predictions and test Direct Selection with '2' (KEY_2 = 0x32 -> candidate index 1)
         unsafe {
             (*engine_ptr).session.populate_predictions();
             (*engine_ptr).update_cached_strings();
         }
+        let expected_cand_1 = unsafe {
+            let p = lekhani_engine_get_candidate_at(engine_ptr, 1);
+            assert!(!p.is_null());
+            CStr::from_ptr(p).to_str().unwrap().to_string()
+        };
         let handled_2 = lekhani_engine_process_key(engine_ptr, KEY_1 + 1, 0, 0, false);
         assert!(handled_2, "Pressing '2' should directly select candidate 2");
         let pred_commit_str = unsafe {
@@ -699,7 +704,7 @@ mod tests {
                 .to_str()
                 .unwrap()
         };
-        assert_eq!(pred_commit_str, "আছি");
+        assert_eq!(pred_commit_str, expected_cand_1);
 
         // Test Tab navigation followed by Enter committing navigated candidate
         let tab_handled = lekhani_engine_process_key(engine_ptr, KEY_TAB, 0, 0, false);

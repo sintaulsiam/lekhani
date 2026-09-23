@@ -687,25 +687,17 @@ fn run_train(
         anyhow::bail!("No valid text files (.txt, .corpus, .md) found in {:?}", input);
     }
 
-    let mut total_bytes = 0usize;
-    let mut all_text = String::new();
-    for f in &corpus_files {
-        if let Ok(content) = std::fs::read_to_string(f) {
-            total_bytes += content.len();
-            all_text.push_str(&content);
-            all_text.push('\n');
-        }
-    }
+    let total_bytes: u64 = corpus_files
+        .iter()
+        .map(|f| std::fs::metadata(f).map(|m| m.len()).unwrap_or(0))
+        .sum();
 
     println!("║ Total Files Read:   {:>32} ║", corpus_files.len());
     println!(
         "║ Total Size:         {:>29.2} MB ║",
         total_bytes as f64 / (1024.0 * 1024.0)
     );
-    println!("║ Processing & Parallel Tokenizing...                  ║");
-
-    let mut trainer = lekhani_ai::CorpusTrainer::new();
-    trainer.train_text_parallel(&all_text);
+    println!("║ Low-Memory Streaming Tokenizing (Rayon)...           ║");
 
     let config = lekhani_ai::TrainingConfig {
         min_unigram_freq,
@@ -716,12 +708,23 @@ fn run_train(
         max_trigrams,
     };
 
-    let compiled = trainer.compile_with_config(&config);
+    let compiled = lekhani_ai::train_files_streaming(&corpus_files, &config)?;
 
     if user {
         let learned_path = config_mgr.get_user_learned_path();
         let mut learner = AutonomousLearner::load_from_path(&learned_path);
-        learner.train_text(&all_text);
+        for f in &corpus_files {
+            if let Ok(file) = std::fs::File::open(f) {
+                let reader = std::io::BufReader::new(file);
+                use std::io::BufRead;
+                for line in reader.lines().flatten() {
+                    let trimmed = line.trim();
+                    if !trimmed.is_empty() {
+                        learner.train_text(trimmed);
+                    }
+                }
+            }
+        }
         let _ = learner.save_to_path(&learned_path);
         println!(
             "║ User Memory:        {:>24} words ║",
