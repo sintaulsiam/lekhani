@@ -2928,6 +2928,7 @@ dependencies = [
  "rupantor",
  "serde",
  "serde_json",
+ "wasm-bindgen",
 ]
 
 [[package]]

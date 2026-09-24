@@ -36,6 +36,12 @@ jobs:
       - name: Run Unit & Integration Tests
         run: cargo test --workspace --verbose
 
+      - name: Verify Standalone Crates Packaging
+        run: |
+          cargo package -p lekhani-parser --no-verify
+          cargo package -p lekhani-ai --no-verify
+          cargo check -p lekhani-parser --features wasm
+
   build:
     name: Multi-Arch Binary Builds
     runs-on: ubuntu-latest
