@@ -88,6 +88,7 @@ pub struct LekhaniEngineContext {
     pub layout_mgr: LayoutManager,
     pub mapper: KeycodeMapper,
     pub alt_gr: bool,
+    pub active_layout_name: String,
     // Cached strings to return safely over FFI
     last_commit: Option<CString>,
     last_preedit: Option<CString>,
@@ -113,12 +114,15 @@ impl LekhaniEngineContext {
             )
         };
 
+        let active_layout_name = config_mgr.config.general.active_layout.clone();
+
         Self {
             session,
             config_mgr,
             layout_mgr,
             mapper: KeycodeMapper::new(),
             alt_gr: false,
+            active_layout_name,
             last_commit: None,
             last_preedit: None,
             last_aux: None,
@@ -158,6 +162,9 @@ impl LekhaniEngineContext {
     }
 
     pub fn set_layout(&mut self, layout_name: &str) -> bool {
+        if self.active_layout_name == layout_name {
+            return true;
+        }
         if let Some(json) = self.layout_mgr.load_layout_json(layout_name) {
             let layout_type = if self
                 .layout_mgr
@@ -170,6 +177,7 @@ impl LekhaniEngineContext {
                 ActiveLayoutType::Phonetic
             };
             self.session.set_layout(layout_type, &json);
+            self.active_layout_name = layout_name.to_string();
             self.update_cached_strings();
             true
         } else {
@@ -333,7 +341,9 @@ pub extern "C" fn lekhani_engine_process_key(
         let user_dir = engine.config_mgr.get_user_layout_dir();
         engine.layout_mgr.discover_layouts(system_dir, user_dir);
         let active_name = engine.config_mgr.config.general.active_layout.clone();
-        engine.set_layout(&active_name);
+        if !engine.session.is_active() && engine.active_layout_name != active_name {
+            engine.set_layout(&active_name);
+        }
     }
 
     // Pass modifier hotkeys (Ctrl+C, Alt+Tab, etc.) through to app
