@@ -33,16 +33,77 @@ install_user_dir() {
     fi
 }
 
+run_as_actual_user() {
+    local user_uid
+    user_uid=$(id -u "$ACTUAL_USER" 2>/dev/null || id -u)
+    local dbus_bus="unix:path=/run/user/${user_uid}/bus"
+    local runtime_dir="/run/user/${user_uid}"
+
+    if [ -n "$SUDO_USER" ] && [ "$(id -u)" -eq 0 ]; then
+        sudo -u "$ACTUAL_USER" DBUS_SESSION_BUS_ADDRESS="$dbus_bus" XDG_RUNTIME_DIR="$runtime_dir" "$@"
+    else
+        "$@"
+    fi
+}
+
+reload_input_methods() {
+    echo "--> Refreshing input method frameworks..."
+    local reloaded=0
+    if pgrep -x fcitx5 >/dev/null 2>&1; then
+        echo "--> Hot-reloading active Fcitx5 instance..."
+        if run_as_actual_user fcitx5 -r -d 2>/dev/null; then
+            echo "--> Fcitx5 daemon cleanly replaced and reloaded."
+            reloaded=1
+        elif run_as_actual_user fcitx5-remote -r 2>/dev/null; then
+            echo "--> Fcitx5 configuration reloaded."
+            reloaded=1
+        fi
+    fi
+
+    if pgrep -x ibus-daemon >/dev/null 2>&1; then
+        echo "--> Restarting IBus daemon..."
+        if run_as_actual_user ibus restart 2>/dev/null; then
+            echo "--> IBus daemon restarted successfully."
+            reloaded=1
+        fi
+    fi
+
+    if [ "$reloaded" -eq 0 ]; then
+        echo "--> Note: No active Fcitx5 or IBus daemon was detected running."
+    fi
+}
+
 clean_user_stale_binaries() {
-    echo "--> Cleaning up stale user binaries to prevent PATH shadowing..."
+    echo "--> Cleaning up stale user binaries and plugins to prevent PATH/library shadowing..."
     local dirs=("$ACTUAL_HOME/.cargo/bin" "$ACTUAL_HOME/.local/bin")
     if [ -n "$HOME" ] && [ "$HOME" != "$ACTUAL_HOME" ]; then
         dirs+=("$HOME/.cargo/bin" "$HOME/.local/bin")
     fi
     for d in "${dirs[@]}"; do
         if [ -d "$d" ]; then
-            rm -f "$d/lekhani-gui" "$d/lekhani" "$d/ibus-lekhani" 2>/dev/null || true
+            rm -f "$d/lekhani-gui" "$d/lekhani" "$d/ibus-lekhani" "$d/fcitx5-lekhani" 2>/dev/null || true
         fi
+    done
+
+    # Remove stale user-local Fcitx5 and IBus plugins/addons that would shadow system paths
+    local stale_files=(
+        "$ACTUAL_HOME/.local/lib/fcitx5/fcitx5-lekhani.so"
+        "$ACTUAL_HOME/.local/lib64/fcitx5/fcitx5-lekhani.so"
+        "$ACTUAL_HOME/.local/share/fcitx5/addon/lekhani.conf"
+        "$ACTUAL_HOME/.local/share/fcitx5/inputmethod/lekhani.conf"
+        "$ACTUAL_HOME/.local/share/ibus/component/lekhani.xml"
+    )
+    if [ -n "$HOME" ] && [ "$HOME" != "$ACTUAL_HOME" ]; then
+        stale_files+=(
+            "$HOME/.local/lib/fcitx5/fcitx5-lekhani.so"
+            "$HOME/.local/lib64/fcitx5/fcitx5-lekhani.so"
+            "$HOME/.local/share/fcitx5/addon/lekhani.conf"
+            "$HOME/.local/share/fcitx5/inputmethod/lekhani.conf"
+            "$HOME/.local/share/ibus/component/lekhani.xml"
+        )
+    fi
+    for f in "${stale_files[@]}"; do
+        rm -f "$f" 2>/dev/null || true
     done
 }
 
@@ -57,7 +118,7 @@ uninstall_lekhani() {
     pkill -x lekhani 2>/dev/null || true
 
     echo "--> Removing core binaries..."
-    sudo rm -f /usr/bin/lekhani-gui /usr/bin/lekhani /usr/bin/ibus-lekhani
+    sudo rm -f /usr/bin/lekhani-gui /usr/bin/lekhani /usr/bin/ibus-lekhani /usr/bin/fcitx5-lekhani
     clean_user_stale_binaries
 
     echo "--> Removing system shared data assets and layouts..."
@@ -92,15 +153,17 @@ uninstall_lekhani() {
     rm -f "$ACTUAL_HOME/.local/share/fcitx5/addon/lekhani.conf" 2>/dev/null || true
     rm -f "$ACTUAL_HOME/.local/share/fcitx5/inputmethod/lekhani.conf" 2>/dev/null || true
     rm -f "$ACTUAL_HOME/.local/lib/fcitx5/fcitx5-lekhani.so" 2>/dev/null || true
+    rm -f "$ACTUAL_HOME/.local/lib64/fcitx5/fcitx5-lekhani.so" 2>/dev/null || true
     if [ "$HOME" != "$ACTUAL_HOME" ]; then
         rm -f "$HOME/.local/share/fcitx5/addon/lekhani.conf" 2>/dev/null || true
         rm -f "$HOME/.local/share/fcitx5/inputmethod/lekhani.conf" 2>/dev/null || true
         rm -f "$HOME/.local/lib/fcitx5/fcitx5-lekhani.so" 2>/dev/null || true
+        rm -f "$HOME/.local/lib64/fcitx5/fcitx5-lekhani.so" 2>/dev/null || true
     fi
 
     echo "--> Removing systemd user services..."
-    systemctl --user stop lekhani-gui.service ibus-lekhani.service 2>/dev/null || true
-    systemctl --user disable lekhani-gui.service ibus-lekhani.service 2>/dev/null || true
+    run_as_actual_user systemctl --user stop lekhani-gui.service ibus-lekhani.service 2>/dev/null || true
+    run_as_actual_user systemctl --user disable lekhani-gui.service ibus-lekhani.service 2>/dev/null || true
     sudo rm -f /usr/lib/systemd/user/lekhani-gui.service /usr/lib/systemd/user/ibus-lekhani.service
     rm -f "$ACTUAL_HOME/.config/systemd/user/lekhani-gui.service" "$ACTUAL_HOME/.config/systemd/user/ibus-lekhani.service" 2>/dev/null || true
     rm -f "$ACTUAL_HOME/.local/share/systemd/user/lekhani-gui.service" "$ACTUAL_HOME/.local/share/systemd/user/ibus-lekhani.service" 2>/dev/null || true
@@ -108,6 +171,7 @@ uninstall_lekhani() {
         rm -f "$HOME/.config/systemd/user/lekhani-gui.service" "$HOME/.config/systemd/user/ibus-lekhani.service" 2>/dev/null || true
         rm -f "$HOME/.local/share/systemd/user/lekhani-gui.service" "$HOME/.local/share/systemd/user/ibus-lekhani.service" 2>/dev/null || true
     fi
+    run_as_actual_user systemctl --user daemon-reload 2>/dev/null || true
 
     echo "--> Removing IBus component XML..."
     sudo rm -f /usr/share/ibus/component/lekhani.xml
@@ -140,13 +204,13 @@ uninstall_lekhani() {
         fi
     fi
 
+    # Hot-reload input methods so running daemon unloads the deleted addon immediately
+    reload_input_methods
+
     echo ""
     echo "=========================================================="
     echo "       Lekhani has been uninstalled successfully!         "
     echo "=========================================================="
-    echo "Please restart your input method framework if it was active:"
-    echo "  - For Fcitx5 : fcitx5 -r &"
-    echo "  - For IBus   : ibus restart"
     exit 0
 }
 
@@ -195,6 +259,7 @@ echo "--> Terminating running Lekhani processes before update..."
 pkill -f lekhani-gui 2>/dev/null || true
 pkill -f ibus-lekhani 2>/dev/null || true
 pkill -x lekhani 2>/dev/null || true
+clean_user_stale_binaries
 
 # Check for pre-compiled binaries (e.g. inside portable release tarball in bin/)
 if [ -f "bin/lekhani-gui" ] && [ -f "bin/lekhani" ] && [ -f "bin/ibus-lekhani" ]; then
@@ -278,7 +343,7 @@ if [ -d "data/systemd" ]; then
             [ -f "$svc" ] && install_user_file 644 "$svc" "$ACTUAL_HOME/.config/systemd/user/$(basename "$svc")"
         done
     fi
-    systemctl --user daemon-reload 2>/dev/null || true
+    run_as_actual_user systemctl --user daemon-reload 2>/dev/null || true
 fi
 
 if [ "$CHOICE" = "--fcitx5" ] || [ "$CHOICE" = "fcitx5" ] || [ "$CHOICE" = "--all" ] || [ "$CHOICE" = "all" ]; then
@@ -331,20 +396,23 @@ if [ "$CHOICE" = "--ibus" ] || [ "$CHOICE" = "ibus" ] || [ "$CHOICE" = "--all" ]
     sudo install -Dm644 data/ibus/lekhani.xml /usr/share/ibus/component/lekhani.xml
 fi
 
+# Hot-reload running input method frameworks
+reload_input_methods
+
 echo ""
 echo "=========================================================="
 echo "    Installation Completed Successfully!                 "
 echo "=========================================================="
 if [ "$CHOICE" = "--fcitx5" ] || [ "$CHOICE" = "fcitx5" ]; then
-    echo "To activate in KDE Plasma 6 / Fcitx5:"
-    echo "  1. Run 'fcitx5-remote -e && fcitx5 -d' (or log out and back in)"
-    echo "  2. Go to System Settings -> Input Devices -> Virtual Keyboard / Fcitx5"
-    echo "  3. Add 'Bangla (Lekhani)' to your input methods"
+    echo "Fcitx5 engine has been installed and hot-reloaded."
+    echo "If 'Bangla (Lekhani)' is not yet active in your input list:"
+    echo "  1. Open System Settings -> Input Devices -> Virtual Keyboard / Fcitx5"
+    echo "  2. Add 'Bangla (Lekhani)' to your input methods"
 elif [ "$CHOICE" = "--ibus" ] || [ "$CHOICE" = "ibus" ]; then
-    echo "To activate in GNOME / IBus:"
-    echo "  1. Run 'ibus restart'"
-    echo "  2. Go to Settings -> Keyboard -> Input Sources"
-    echo "  3. Add 'Bangla (Lekhani)' to your input methods"
+    echo "IBus engine has been installed and reloaded."
+    echo "If 'Bangla (Lekhani)' is not yet active in your input list:"
+    echo "  1. Open Settings -> Keyboard -> Input Sources"
+    echo "  2. Add 'Bangla (Lekhani)' to your input methods"
 else
-    echo "Both IBus and Fcitx5 engines are installed."
+    echo "Both IBus and Fcitx5 engines are installed and reloaded."
 fi
