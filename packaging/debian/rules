@@ -22,6 +22,12 @@ override_dh_auto_install:
 	install -Dm644 data/layouts/*.json debian/lekhani-common/usr/share/lekhani/layouts/
 	install -d debian/lekhani-common/usr/share/lekhani/data
 	install -Dm644 data/dictionaries/*.json debian/lekhani-common/usr/share/lekhani/data/
+	install -Dm644 data/dictionaries/*.bin debian/lekhani-common/usr/share/lekhani/data/ 2>/dev/null || true
+	# systemd user service
+	if [ -f data/systemd/lekhani-gui.service ]; then \
+		install -d debian/lekhani-common/usr/lib/systemd/user; \
+		install -Dm644 data/systemd/lekhani-gui.service debian/lekhani-common/usr/lib/systemd/user/lekhani-gui.service; \
+	fi
 	# icons
 	install -d debian/lekhani-common/usr/share/icons/hicolor/scalable/apps
 	install -Dm644 data/icons/lekhani.svg debian/lekhani-common/usr/share/icons/hicolor/scalable/apps/lekhani.svg
@@ -39,6 +45,10 @@ override_dh_auto_install:
 	# ibus-lekhani
 	install -Dm755 target/release/ibus-lekhani debian/ibus-lekhani/usr/bin/ibus-lekhani
 	install -Dm644 data/ibus/lekhani.xml debian/ibus-lekhani/usr/share/ibus/component/lekhani.xml
+	if [ -f data/systemd/ibus-lekhani.service ]; then \
+		install -d debian/ibus-lekhani/usr/lib/systemd/user; \
+		install -Dm644 data/systemd/ibus-lekhani.service debian/ibus-lekhani/usr/lib/systemd/user/ibus-lekhani.service; \
+	fi
 
 	# fcitx5-lekhani
 	install -d debian/fcitx5-lekhani/usr/lib/x86_64-linux-gnu/fcitx5
