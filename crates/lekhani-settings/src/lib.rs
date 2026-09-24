@@ -519,27 +519,38 @@ impl ConfigManager {
 
         let ac_path = self.get_user_autocorrect_path();
         let ac_json = serde_json::to_string_pretty(&bundle.user_autocorrect)?;
-        let _ = std::fs::write(ac_path, ac_json);
+        std::fs::write(&ac_path, ac_json)?;
 
         if let Some(learned_val) = bundle.user_learned {
             if let Ok(mut learner) = serde_json::from_value::<lekhani_core::AutonomousLearner>(learned_val) {
                 let learned_path = self.get_user_learned_path();
                 learner.dirty = true;
-                let _ = learner.save_to_path(learned_path);
+                learner.save_to_path(&learned_path)?;
             }
         }
 
         let layout_dir = self.get_user_layout_dir();
-        let _ = std::fs::create_dir_all(&layout_dir);
+        std::fs::create_dir_all(&layout_dir)?;
         for (name, content) in bundle.custom_layouts {
-            let p = layout_dir.join(name);
-            let _ = std::fs::write(p, content);
+            if name.contains("..") || name.contains('/') || name.contains('\\') || name.trim().is_empty() {
+                return Err(format!("Invalid or suspicious layout file name in backup: {}", name).into());
+            }
+            if !name.ends_with(".json") {
+                return Err(format!("Layout file must have .json extension: {}", name).into());
+            }
+            let path_name = std::path::Path::new(&name);
+            let file_name = match path_name.file_name() {
+                Some(f) if f == std::ffi::OsStr::new(&name) => f,
+                _ => return Err(format!("Invalid layout file name in backup: {}", name).into()),
+            };
+            let p = layout_dir.join(file_name);
+            std::fs::write(&p, content)?;
         }
 
         if let Some(stats_val) = bundle.user_stats {
             let stats_path = self.data_dir.join("stats.json");
             let stats_json = serde_json::to_string_pretty(&stats_val)?;
-            let _ = std::fs::write(stats_path, stats_json);
+            std::fs::write(&stats_path, stats_json)?;
         }
 
         self.load();
@@ -682,6 +693,43 @@ mod tests {
         let restored_learner = lekhani_core::AutonomousLearner::load_from_path(&learned_path);
         assert!(restored_learner.learned_words.contains("বাংলাদেশ"));
 
+        let _ = std::fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_backup_import_rejects_path_traversal() {
+        let temp_dir = std::env::temp_dir().join(format!("lekhani_settings_test_traversal_{}", std::process::id()));
+        let conf_dir = temp_dir.join("config");
+        let data_dir = temp_dir.join("data");
+        let _ = std::fs::create_dir_all(&conf_dir);
+        let _ = std::fs::create_dir_all(&data_dir);
+
+        let mut cm = ConfigManager {
+            config_path: conf_dir.join("config.toml"),
+            data_dir: data_dir.clone(),
+            config: AppConfig::default(),
+            last_config_mtime: None,
+            last_autocorrect_mtime: None,
+        };
+
+        let mut malicious_layouts = std::collections::HashMap::new();
+        malicious_layouts.insert("../../evil.json".to_string(), "{}".to_string());
+
+        let bundle = BackupBundle {
+            version: "1.0.0".to_string(),
+            exported_at: "2026-09-24T00:00:00Z".to_string(),
+            config: AppConfig::default(),
+            user_autocorrect: std::collections::HashMap::new(),
+            user_learned: None,
+            custom_layouts: malicious_layouts,
+            user_stats: None,
+        };
+
+        let backup_path = temp_dir.join("malicious_backup.json");
+        std::fs::write(&backup_path, serde_json::to_string(&bundle).unwrap()).unwrap();
+
+        let result = cm.import_backup(&backup_path);
+        assert!(result.is_err(), "Backup import must reject path traversal attempt");
         let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }
