@@ -9,7 +9,15 @@
 </p>
 
 <p align="center">
+  <a href="https://crates.io/crates/lekhani-parser"><img src="https://img.shields.io/crates/v/lekhani-parser.svg?label=lekhani-parser" alt="lekhani-parser crate" /></a>
+  <a href="https://crates.io/crates/lekhani-ai"><img src="https://img.shields.io/crates/v/lekhani-ai.svg?label=lekhani-ai" alt="lekhani-ai crate" /></a>
+  <a href="https://crates.io/crates/lekhani-core"><img src="https://img.shields.io/crates/v/lekhani-core.svg?label=lekhani-core" alt="lekhani-core crate" /></a>
+  <a href="https://docs.rs/lekhani-parser"><img src="https://docs.rs/lekhani-parser/badge.svg" alt="Documentation" /></a>
+</p>
+
+<p align="center">
   <a href="#features">Features</a> •
+  <a href="#-standalone-libraries-cratesio">Standalone Crates</a> •
   <a href="docs/TYPING_GUIDE.md">Typing Guide</a> •
   <a href="ARCHITECTURE.md">Architecture</a> •
   <a href="#installation">Installation</a> •
@@ -18,6 +26,18 @@
   <a href="ROADMAP.md">Roadmap</a> •
   <a href="#license">License</a>
 </p>
+
+---
+
+## 📦 Standalone Libraries (Crates.io)
+
+Lekhani's core engines are modularized into independent, zero-dependency crates published on [crates.io](https://crates.io) for use in any Rust or WebAssembly application:
+
+| Crate | Crates.io | Description |
+| :--- | :---: | :--- |
+| **[`lekhani-parser`](crates/lekhani-parser)** | [![Crates.io](https://img.shields.io/crates/v/lekhani-parser.svg)](https://crates.io/crates/lekhani-parser) | Ultra-fast (12×–41× faster than `rupantor`), zero-allocation pure Rust Bengali phonetic grammar parser with optional WASM support. |
+| **[`lekhani-ai`](crates/lekhani-ai)** | [![Crates.io](https://img.shields.io/crates/v/lekhani-ai.svg)](https://crates.io/crates/lekhani-ai) | On-device statistical N-gram language model, contextual candidate scorer, and next-word predictor. |
+| **[`lekhani-core`](crates/lekhani-core)** | [![Crates.io](https://img.shields.io/crates/v/lekhani-core.svg)](https://crates.io/crates/lekhani-core) | Headless Bengali IME engine state machine, candidate ranking, dictionary Trie, and autocorrect. |
 
 ---
 
