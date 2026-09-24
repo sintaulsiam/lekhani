@@ -688,9 +688,13 @@ pub extern "C" fn lekhani_engine_is_prediction_navigated(ctx: *mut LekhaniEngine
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    static TEST_MUTEX: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_engine_typing_and_suggestions() {
+        let _guard = TEST_MUTEX.lock().unwrap();
         let engine_ptr = lekhani_engine_new();
         assert!(!engine_ptr.is_null());
         unsafe {
@@ -847,6 +851,7 @@ mod tests {
 
     #[test]
     fn test_engine_layout_switching() {
+        let _guard = TEST_MUTEX.lock().unwrap();
         let engine_ptr = lekhani_engine_new();
         assert!(!engine_ptr.is_null());
 
