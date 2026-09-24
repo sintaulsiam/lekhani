@@ -57,6 +57,9 @@ mkdir -p "$PORTABLE_DIR/data"
 
 cp "$ROOT_DIR/target/$TARGET/release/lekhani-gui.exe" "$PORTABLE_DIR/"
 cp "$ROOT_DIR/target/$TARGET/release/lekhani.exe" "$PORTABLE_DIR/"
+if [ -f "$ROOT_DIR/target/$TARGET/release/lekhani_ffi.dll" ]; then
+    cp "$ROOT_DIR/target/$TARGET/release/lekhani_ffi.dll" "$PORTABLE_DIR/"
+fi
 if [ -f "$ROOT_DIR/target/$TARGET/release/lekhani.dll" ]; then
     cp "$ROOT_DIR/target/$TARGET/release/lekhani.dll" "$PORTABLE_DIR/"
 fi
