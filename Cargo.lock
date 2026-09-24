@@ -2862,8 +2862,8 @@ dependencies = [
  "edit-distance",
  "hashbrown 0.14.5",
  "lekhani-ai",
+ "lekhani-parser",
  "rayon",
- "rupantor",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
@@ -2919,6 +2919,14 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "zbus 4.4.0",
+]
+
+[[package]]
+name = "lekhani-parser"
+version = "1.0.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -4579,16 +4587,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rupantor"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04eb802986005129b0946dbb4baa420bf14cea547c5ee6b57ba081d9e85f6a4b"
-dependencies = [
- "serde_json",
- "stringplus",
-]
-
-[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5153,12 +5151,6 @@ checksum = "6637bab7722d379c8b41ba849228d680cc12d0a45ba1fa2b48f2a30577a06731"
 dependencies = [
  "float-cmp",
 ]
-
-[[package]]
-name = "stringplus"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9057d3b491a3eee749e52560657c4d93b0badc04fb3fa8dae3c942c5c066f222"
 
 [[package]]
 name = "strsim"

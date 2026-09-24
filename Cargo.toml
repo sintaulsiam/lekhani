@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "crates/lekhani-parser",
     "crates/lekhani-core",
     "crates/lekhani-settings",
     "crates/lekhani-ai",
@@ -8,6 +9,7 @@ members = [
     "crates/lekhani-gui",
     "crates/lekhani-cli",
 ]
+
 resolver = "2"
 
 [workspace.package]
