@@ -178,6 +178,8 @@ pub struct ConfigManager {
     pub config: AppConfig,
     last_config_mtime: Option<std::time::SystemTime>,
     last_autocorrect_mtime: Option<std::time::SystemTime>,
+    last_learned_mtime: Option<std::time::SystemTime>,
+    last_layout_dir_mtime: Option<std::time::SystemTime>,
 }
 
 impl Default for ConfigManager {
@@ -223,6 +225,8 @@ impl ConfigManager {
             config: AppConfig::default(),
             last_config_mtime: None,
             last_autocorrect_mtime: None,
+            last_learned_mtime: None,
+            last_layout_dir_mtime: None,
         };
 
         mgr.load();
@@ -249,9 +253,23 @@ impl ConfigManager {
                 self.last_autocorrect_mtime = metadata.modified().ok();
             }
         }
+
+        let learned_path = self.get_user_learned_path();
+        if learned_path.exists() {
+            if let Ok(metadata) = learned_path.metadata() {
+                self.last_learned_mtime = metadata.modified().ok();
+            }
+        }
+
+        let layout_dir = self.get_user_layout_dir();
+        if layout_dir.exists() {
+            if let Ok(metadata) = layout_dir.metadata() {
+                self.last_layout_dir_mtime = metadata.modified().ok();
+            }
+        }
     }
 
-    /// Check if config.toml or autocorrect.json has been modified by external GUI/editor
+    /// Check if config.toml, autocorrect.json, user_learned.bin, or custom layouts have been modified
     pub fn check_and_reload(&mut self) -> bool {
         let mut changed = false;
 
@@ -267,6 +285,24 @@ impl ConfigManager {
         if let Ok(meta) = ac_path.metadata() {
             if let Ok(mtime) = meta.modified() {
                 if self.last_autocorrect_mtime.is_none_or(|last| mtime > last) {
+                    changed = true;
+                }
+            }
+        }
+
+        let learned_path = self.get_user_learned_path();
+        if let Ok(meta) = learned_path.metadata() {
+            if let Ok(mtime) = meta.modified() {
+                if self.last_learned_mtime.is_none_or(|last| mtime > last) {
+                    changed = true;
+                }
+            }
+        }
+
+        let layout_dir = self.get_user_layout_dir();
+        if let Ok(meta) = layout_dir.metadata() {
+            if let Ok(mtime) = meta.modified() {
+                if self.last_layout_dir_mtime.is_none_or(|last| mtime > last) {
                     changed = true;
                 }
             }
@@ -645,6 +681,8 @@ mod tests {
             config: AppConfig::default(),
             last_config_mtime: None,
             last_autocorrect_mtime: None,
+            last_learned_mtime: None,
+            last_layout_dir_mtime: None,
         };
 
         cm.config.general.toggle_key = "F11".to_string();
@@ -707,6 +745,8 @@ mod tests {
             config: AppConfig::default(),
             last_config_mtime: None,
             last_autocorrect_mtime: None,
+            last_learned_mtime: None,
+            last_layout_dir_mtime: None,
         };
 
         let mut malicious_layouts = std::collections::HashMap::new();
