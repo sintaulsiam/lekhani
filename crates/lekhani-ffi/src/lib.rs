@@ -170,6 +170,7 @@ impl LekhaniEngineContext {
                 ActiveLayoutType::Phonetic
             };
             self.session.set_layout(layout_type, &json);
+            self.update_cached_strings();
             true
         } else {
             false
