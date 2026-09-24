@@ -280,7 +280,7 @@ impl ConfigManager {
 
     pub fn save(&self) {
         if let Ok(toml_str) = toml::to_string_pretty(&self.config) {
-            let _ = std::fs::write(&self.config_path, toml_str);
+            let _ = lekhani_core::atomic_write_secure(&self.config_path, toml_str.as_bytes());
         }
     }
 
@@ -499,10 +499,7 @@ impl ConfigManager {
         };
 
         let data = serde_json::to_string_pretty(&bundle)?;
-        if let Some(parent) = dest.as_ref().parent() {
-            let _ = std::fs::create_dir_all(parent);
-        }
-        std::fs::write(dest, data)?;
+        lekhani_core::atomic_write_secure(dest.as_ref(), data.as_bytes())?;
         Ok(())
     }
 
@@ -519,7 +516,7 @@ impl ConfigManager {
 
         let ac_path = self.get_user_autocorrect_path();
         let ac_json = serde_json::to_string_pretty(&bundle.user_autocorrect)?;
-        std::fs::write(&ac_path, ac_json)?;
+        lekhani_core::atomic_write_secure(&ac_path, ac_json.as_bytes())?;
 
         if let Some(learned_val) = bundle.user_learned {
             if let Ok(mut learner) = serde_json::from_value::<lekhani_core::AutonomousLearner>(learned_val) {
@@ -544,13 +541,13 @@ impl ConfigManager {
                 _ => return Err(format!("Invalid layout file name in backup: {}", name).into()),
             };
             let p = layout_dir.join(file_name);
-            std::fs::write(&p, content)?;
+            lekhani_core::atomic_write_secure(&p, content.as_bytes())?;
         }
 
         if let Some(stats_val) = bundle.user_stats {
             let stats_path = self.data_dir.join("stats.json");
             let stats_json = serde_json::to_string_pretty(&stats_val)?;
-            std::fs::write(&stats_path, stats_json)?;
+            lekhani_core::atomic_write_secure(&stats_path, stats_json.as_bytes())?;
         }
 
         self.load();
