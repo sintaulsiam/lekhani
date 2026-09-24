@@ -191,6 +191,10 @@ impl LekhaniIBusEngine {
             cfg.apply_to_session(&mut st.session);
             let user_ac = st.config_mgr.get_user_autocorrect_path();
             st.session.load_user_autocorrect(&user_ac);
+            let user_learned = st.config_mgr.get_user_learned_path();
+            if user_learned.exists() {
+                st.session.load_user_learned(&user_learned);
+            }
 
             let new_layout = st.config_mgr.config.general.active_layout.clone();
             if new_layout != st.active_layout_name {

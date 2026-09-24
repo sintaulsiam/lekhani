@@ -265,6 +265,15 @@ pub extern "C" fn lekhani_engine_reload_config(ctx: *mut LekhaniEngineContext) {
     }
     let engine = unsafe { &mut *ctx };
     engine.config_mgr.load();
+    engine.config_mgr.config.apply_to_session(&mut engine.session);
+    let user_ac = engine.config_mgr.get_user_autocorrect_path();
+    if user_ac.exists() {
+        engine.session.load_user_autocorrect(&user_ac);
+    }
+    let user_learned = engine.config_mgr.get_user_learned_path();
+    if user_learned.exists() {
+        engine.session.load_user_learned(&user_learned);
+    }
     let system_dir = ConfigManager::get_system_layout_dir();
     let user_dir = engine.config_mgr.get_user_layout_dir();
     engine.layout_mgr.discover_layouts(system_dir, user_dir);
