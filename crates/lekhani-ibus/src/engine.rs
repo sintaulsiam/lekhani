@@ -220,8 +220,12 @@ impl LekhaniIBusEngine {
             }
         }
 
-        // Direct Selection via 1..5 in Prediction Mode
-        if st.session.is_prediction_mode() {
+        // Pass modifier hotkeys (Ctrl+C, Ctrl+V, Alt+Tab, etc.) through to app
+        let is_ctrl = (state_mask & (1 << 2)) != 0;
+        let is_alt = (state_mask & (1 << 3)) != 0;
+
+        // Direct Selection via 1..5 in Prediction Mode (only without Ctrl or Alt)
+        if !is_ctrl && !(is_alt && !st.alt_gr) && st.session.is_prediction_mode() {
             let cand_idx = if (IBUS_KEY_1..=IBUS_KEY_5).contains(&keyval) {
                 Some((keyval - IBUS_KEY_1) as usize)
             } else if (IBUS_KEY_KP_1..=IBUS_KEY_KP_5).contains(&keyval) {
@@ -402,9 +406,6 @@ impl LekhaniIBusEngine {
             _ => {}
         }
 
-        // Pass modifier hotkeys (Ctrl+C, Ctrl+V, Alt+Tab, etc.) through to app
-        let is_ctrl = (state_mask & (1 << 2)) != 0;
-        let is_alt = (state_mask & (1 << 3)) != 0;
         if is_ctrl || (is_alt && !st.alt_gr) {
             if st.session.is_active() {
                 let idx = st.session.get_selected_index();

@@ -336,8 +336,12 @@ pub extern "C" fn lekhani_engine_process_key(
         engine.set_layout(&active_name);
     }
 
-    // Direct Selection via 1..5 in Prediction Mode
-    if engine.session.is_prediction_mode() {
+    // Pass modifier hotkeys (Ctrl+C, Alt+Tab, etc.) through to app
+    let is_ctrl = (state_mask & (1 << 2)) != 0;
+    let is_alt = (state_mask & (1 << 3)) != 0;
+
+    // Direct Selection via 1..5 in Prediction Mode (only without Ctrl or Alt)
+    if !is_ctrl && !(is_alt && !engine.alt_gr) && engine.session.is_prediction_mode() {
         let cand_idx = if (KEY_1..=KEY_5).contains(&keyval) {
             Some((keyval - KEY_1) as usize)
         } else if (KEY_KP_1..=KEY_KP_5).contains(&keyval) {
@@ -497,9 +501,6 @@ pub extern "C" fn lekhani_engine_process_key(
         return engine.session.is_active();
     }
 
-    // Pass modifier hotkeys (Ctrl+C, Alt+Tab, etc.) through to app
-    let is_ctrl = (state_mask & (1 << 2)) != 0;
-    let is_alt = (state_mask & (1 << 3)) != 0;
     if is_ctrl || (is_alt && !engine.alt_gr) {
         if engine.session.is_active() {
             let idx = engine.session.get_selected_index();
