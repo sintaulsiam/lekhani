@@ -51,6 +51,9 @@ lekhani-core   = { git = "https://github.com/sintaulsiam/lekhani-engine", tag = 
 # lekhani-core   = { path = "/mnt/data/lekhani-engine/lekhani-core" }
 # lekhani-ai     = { path = "/mnt/data/lekhani-engine/lekhani-ai" }
 
+[profile.dev]
+debug = 1
+
 [profile.release]
 opt-level = 3
 lto = true
