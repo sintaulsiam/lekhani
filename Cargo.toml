@@ -1,11 +1,9 @@
 [workspace]
 members = [
-    "crates/lekhani-parser",
-    "crates/lekhani-core",
     "crates/lekhani-settings",
-    "crates/lekhani-ai",
     "crates/lekhani-ffi",
     "crates/lekhani-ibus",
+    "crates/lekhani-fcitx5",
     "crates/lekhani-gui",
     "crates/lekhani-cli",
 ]
@@ -42,8 +40,17 @@ futures-util = "0.3"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 memmap2 = "0.9"
 bincode = "1.3"
-lekhani-parser = { version = "1.0.0", path = "crates/lekhani-parser" }
-lekhani-ai = { version = "1.0.0", path = "crates/lekhani-ai" }
+lekhani-parser = { git = "https://github.com/sintaulsiam/lekhani-engine", tag = "v1.1.0" }
+lekhani-ai     = { git = "https://github.com/sintaulsiam/lekhani-engine", tag = "v1.1.0" }
+lekhani-core   = { git = "https://github.com/sintaulsiam/lekhani-engine", tag = "v1.1.0" }
+
+# ── Local override for simultaneous engine development ───────────────────────
+# Uncomment when editing lekhani-engine at the same time as this repo:
+#
+# [patch."https://github.com/sintaulsiam/lekhani-engine"]
+# lekhani-parser = { path = "/mnt/data/lekhani-engine/lekhani-parser" }
+# lekhani-core   = { path = "/mnt/data/lekhani-engine/lekhani-core" }
+# lekhani-ai     = { path = "/mnt/data/lekhani-engine/lekhani-ai" }
 
 [profile.release]
 opt-level = 3
