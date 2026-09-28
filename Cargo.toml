@@ -3,7 +3,6 @@ members = [
     "crates/lekhani-settings",
     "crates/lekhani-ffi",
     "crates/lekhani-ibus",
-    "crates/lekhani-fcitx5",
     "crates/lekhani-gui",
     "crates/lekhani-cli",
 ]

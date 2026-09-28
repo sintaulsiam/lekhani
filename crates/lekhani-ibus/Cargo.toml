@@ -11,7 +11,7 @@ name = "ibus-lekhani"
 path = "src/main.rs"
 
 [dependencies]
-lekhani-core = { path = "../lekhani-core" }
+lekhani-core.workspace = true
 lekhani-settings = { path = "../lekhani-settings" }
 serde.workspace = true
 serde_json.workspace = true

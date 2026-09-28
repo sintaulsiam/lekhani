@@ -7,7 +7,7 @@ license.workspace = true
 description = "Configuration and Layout management for Lekhani"
 
 [dependencies]
-lekhani-core = { path = "../lekhani-core" }
+lekhani-core.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true

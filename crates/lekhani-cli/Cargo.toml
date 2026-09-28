@@ -11,7 +11,7 @@ name = "lekhani"
 path = "src/main.rs"
 
 [dependencies]
-lekhani-core = { path = "../lekhani-core" }
+lekhani-core.workspace = true
 lekhani-settings = { path = "../lekhani-settings" }
 clap.workspace = true
 serde.workspace = true
@@ -20,4 +20,4 @@ quick-xml.workspace = true
 thiserror.workspace = true
 anyhow.workspace = true
 hashbrown.workspace = true
-lekhani-ai = { path = "../lekhani-ai" }
+lekhani-ai.workspace = true
