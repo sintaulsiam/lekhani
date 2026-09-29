@@ -5,6 +5,9 @@ build/
 dist/
 *.bin
 !data/dictionaries/bengali_lm.bin
+!data/dictionaries/english_lm.bin
+!data/dictionaries/english_dict.bin
+!data/dictionaries/dictionary.bin
 
 # Training datasets & raw corpora
 data/*.txt
