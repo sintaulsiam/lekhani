@@ -11,7 +11,7 @@ Instructions and constraints for AI agents developing the Lekhani Bengali IME.
 
 ## 2. Memory & Architecture Rules
 - **Shared Singletons (`Arc` / `OnceLock`)**: Desktop IMEs create a new session per window. Dictionaries, layout maps, and language models MUST be wrapped in `Arc` — window creation must be an $O(1)$ 8-byte pointer bump.
-- **Zero Allocations on Keystroke**: No heap allocations during key press or candidate scoring (`hashbrown::Equivalent` with `&str` against interned `Arc<str>`).
+- **Zero Allocations on Keystroke**: No heap allocations during key press or candidate scoring (`hashbrown::Equivalent` with `&str` against interned `Arc<str>`). Use pre-allocated memory pools, scratchpad buffers, and stack-allocated arrays to handle dynamic data in the hot path.
 - **Cap Collections**: Next-word continuations map capped to `MAX_CONTINUATIONS = 6`. Call `.shrink_to_fit()` on collections after loading.
 - **Compact Shipped Model**: Keep `bengali_lm.bin` **< 6 MB**. Prune low-frequency long-tail N-grams.
 
