@@ -46,10 +46,10 @@ lekhani-core   = { git = "https://github.com/sintaulsiam/lekhani-engine", tag = 
 # ── Local override for simultaneous engine development ───────────────────────
 # Uncomment when editing lekhani-engine at the same time as this repo:
 #
-# [patch."https://github.com/sintaulsiam/lekhani-engine"]
-# lekhani-parser = { path = "/mnt/data/lekhani-engine/lekhani-parser" }
-# lekhani-core   = { path = "/mnt/data/lekhani-engine/lekhani-core" }
-# lekhani-ai     = { path = "/mnt/data/lekhani-engine/lekhani-ai" }
+[patch."https://github.com/sintaulsiam/lekhani-engine"]
+lekhani-parser = { path = "/mnt/data/lekhani-engine/lekhani-parser" }
+lekhani-core   = { path = "/mnt/data/lekhani-engine/lekhani-core" }
+lekhani-ai     = { path = "/mnt/data/lekhani-engine/lekhani-ai" }
 
 [profile.dev]
 debug = 1

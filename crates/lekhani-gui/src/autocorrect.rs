@@ -41,7 +41,7 @@ pub fn register_autocorrect_callbacks(
         if trigger.is_empty() || replacement.is_empty() {
             return;
         }
-        let mut db = db_add_clone.borrow_mut();
+        let db = db_add_clone.borrow();
         db.insert_user_autocorrect(trigger.to_string(), replacement.to_string());
         let cm = cm_ac_clone.borrow();
         let user_ac_path = cm.get_user_autocorrect_path();
@@ -65,7 +65,7 @@ pub fn register_autocorrect_callbacks(
     let app_weak_del = app_weak.clone();
     let s_weak_del = standalone_weak.clone();
     app.on_ac_delete_entry(move |trigger| {
-        let mut db = db_del_clone.borrow_mut();
+        let db = db_del_clone.borrow();
         db.remove_user_autocorrect(&trigger);
         let cm = cm_del_clone.borrow();
         let user_ac_path = cm.get_user_autocorrect_path();
@@ -147,7 +147,7 @@ pub fn register_autocorrect_callbacks(
         if trigger.is_empty() || replacement.is_empty() {
             return;
         }
-        let mut db = db_add_clone2.borrow_mut();
+        let db = db_add_clone2.borrow();
         db.insert_user_autocorrect(trigger.to_string(), replacement.to_string());
         let cm = cm_ac_clone2.borrow();
         let user_ac_path = cm.get_user_autocorrect_path();
@@ -171,7 +171,7 @@ pub fn register_autocorrect_callbacks(
     let s_weak_del2 = standalone_weak.clone();
     let app_weak_del2 = app_weak.clone();
     standalone.on_ac_delete_entry(move |trigger| {
-        let mut db = db_del_clone2.borrow_mut();
+        let db = db_del_clone2.borrow();
         db.remove_user_autocorrect(&trigger);
         let cm = cm_del_clone2.borrow();
         let user_ac_path = cm.get_user_autocorrect_path();

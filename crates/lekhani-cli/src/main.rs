@@ -95,12 +95,16 @@ enum Commands {
         min_bigram_freq: usize,
         #[arg(long, default_value_t = 4)]
         min_trigram_freq: usize,
+        #[arg(long, default_value_t = 8)]
+        min_fourgram_freq: usize,
         #[arg(long, default_value_t = 120000)]
         max_unigrams: usize,
         #[arg(long, default_value_t = 600000)]
         max_bigrams: usize,
         #[arg(long, default_value_t = 1200000)]
         max_trigrams: usize,
+        #[arg(long, default_value_t = 30000)]
+        max_fourgrams: usize,
         #[arg(short, long)]
         user: bool,
     },
@@ -138,6 +142,9 @@ enum DevCommands {
         /// Minimum frequency threshold for trigrams (default: 4)
         #[arg(long, default_value_t = 4)]
         min_trigram_freq: usize,
+        /// Minimum frequency threshold for 4-grams (default: 8)
+        #[arg(long, default_value_t = 8)]
+        min_fourgram_freq: usize,
         /// Maximum vocabulary unigrams to retain (default: 120000)
         #[arg(long, default_value_t = 120000)]
         max_unigrams: usize,
@@ -147,6 +154,9 @@ enum DevCommands {
         /// Maximum trigrams to retain (default: 1200000)
         #[arg(long, default_value_t = 1200000)]
         max_trigrams: usize,
+        /// Maximum 4-grams to retain (default: 30000)
+        #[arg(long, default_value_t = 30000)]
+        max_fourgrams: usize,
         /// Ingest directly into active user personal vocabulary and bigram memory
         #[arg(short, long)]
         user: bool,
@@ -235,6 +245,9 @@ enum AiCommands {
         /// Minimum frequency threshold for trigrams (default: 4)
         #[arg(long, default_value_t = 4)]
         min_trigram_freq: usize,
+        /// Minimum frequency threshold for 4-grams (default: 8)
+        #[arg(long, default_value_t = 8)]
+        min_fourgram_freq: usize,
         /// Maximum vocabulary unigrams to retain (default: 120000)
         #[arg(long, default_value_t = 120000)]
         max_unigrams: usize,
@@ -244,6 +257,9 @@ enum AiCommands {
         /// Maximum trigrams to retain (default: 1200000)
         #[arg(long, default_value_t = 1200000)]
         max_trigrams: usize,
+        /// Maximum 4-grams to retain (default: 30000)
+        #[arg(long, default_value_t = 30000)]
+        max_fourgrams: usize,
         /// Ingest directly into active user personal vocabulary and bigram memory
         #[arg(short, long)]
         user: bool,
@@ -564,9 +580,11 @@ fn main() -> anyhow::Result<()> {
             min_unigram_freq,
             min_bigram_freq,
             min_trigram_freq,
+            min_fourgram_freq,
             max_unigrams,
             max_bigrams,
             max_trigrams,
+            max_fourgrams,
             user,
         } => {
             handle_dev_command(
@@ -576,9 +594,11 @@ fn main() -> anyhow::Result<()> {
                     min_unigram_freq,
                     min_bigram_freq,
                     min_trigram_freq,
+                    min_fourgram_freq,
                     max_unigrams,
                     max_bigrams,
                     max_trigrams,
+                    max_fourgrams,
                     user,
                 },
                 &config_mgr,
@@ -637,9 +657,11 @@ fn handle_dev_command(dev_cmd: DevCommands, config_mgr: &ConfigManager) -> anyho
             min_unigram_freq,
             min_bigram_freq,
             min_trigram_freq,
+            min_fourgram_freq,
             max_unigrams,
             max_bigrams,
             max_trigrams,
+            max_fourgrams,
             user,
         } => {
             run_train(
@@ -648,9 +670,11 @@ fn handle_dev_command(dev_cmd: DevCommands, config_mgr: &ConfigManager) -> anyho
                 min_unigram_freq,
                 min_bigram_freq,
                 min_trigram_freq,
+                min_fourgram_freq,
                 max_unigrams,
                 max_bigrams,
                 max_trigrams,
+                max_fourgrams,
                 user,
                 config_mgr,
             )?;
@@ -747,9 +771,11 @@ fn handle_ai_subcommand(subcommand: AiCommands, config_mgr: &ConfigManager) -> a
             min_unigram_freq,
             min_bigram_freq,
             min_trigram_freq,
+            min_fourgram_freq,
             max_unigrams,
             max_bigrams,
             max_trigrams,
+            max_fourgrams,
             user,
         } => {
             run_train(
@@ -758,9 +784,11 @@ fn handle_ai_subcommand(subcommand: AiCommands, config_mgr: &ConfigManager) -> a
                 min_unigram_freq,
                 min_bigram_freq,
                 min_trigram_freq,
+                min_fourgram_freq,
                 max_unigrams,
                 max_bigrams,
                 max_trigrams,
+                max_fourgrams,
                 user,
                 config_mgr,
             )?;
@@ -851,9 +879,11 @@ fn run_train(
     min_unigram_freq: usize,
     min_bigram_freq: usize,
     min_trigram_freq: usize,
+    min_fourgram_freq: usize,
     max_unigrams: usize,
     max_bigrams: usize,
     max_trigrams: usize,
+    max_fourgrams: usize,
     user: bool,
     config_mgr: &ConfigManager,
 ) -> anyhow::Result<()> {
@@ -893,9 +923,11 @@ fn run_train(
         min_unigram_freq,
         min_bigram_freq,
         min_trigram_freq,
+        min_fourgram_freq,
         max_unigrams,
         max_bigrams,
         max_trigrams,
+        max_fourgrams,
     };
 
     let compiled = lekhani_ai::train_files_streaming(&corpus_files, &config)?;

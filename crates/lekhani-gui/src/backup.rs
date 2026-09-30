@@ -119,7 +119,7 @@ pub fn perform_import_full_backup(
 
                 // Reload user autocorrect cache & stats
                 let ac_path = cm.get_user_autocorrect_path();
-                let mut db = db_rc.borrow_mut();
+                let db = db_rc.borrow();
                 db.load_user_autocorrect(&ac_path);
                 let total_entries =
                     db.get_user_autocorrect().len() + db.get_system_autocorrect().len();
