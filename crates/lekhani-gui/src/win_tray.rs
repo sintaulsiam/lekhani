@@ -131,7 +131,7 @@ impl WindowsTray {
                 szInfo: [0; 256],
                 Anonymous: std::mem::zeroed(),
                 szInfoTitle: [0; 64],
-                dwInfoFlags: 0,
+                dwInfoFlags: 1, // NIIF_INFO
                 guidItem: std::mem::zeroed(),
                 hBalloonIcon: 0 as _,
             };
@@ -143,7 +143,23 @@ impl WindowsTray {
                 }
             }
 
+            let info_title = "Lekhani is Ready (লেখনী প্রস্তুত)\0";
+            for (i, c) in info_title.encode_utf16().enumerate() {
+                if i < 63 {
+                    nid.szInfoTitle[i] = c;
+                }
+            }
+
+            let info_msg = "Press F12 to toggle English / Bengali. Select suggestions with 1..5. Right-click for layouts.\0";
+            for (i, c) in info_msg.encode_utf16().enumerate() {
+                if i < 255 {
+                    nid.szInfo[i] = c;
+                }
+            }
+            nid.uFlags |= 0x00000010; // NIF_INFO
+
             Shell_NotifyIconW(NIM_ADD, &nid);
+
 
             Some(Self { hwnd })
         }

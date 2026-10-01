@@ -308,12 +308,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     app.on_end_drag_window(move || {
         if let Some(app) = app_weak_end.upgrade() {
             let _ = app.window().with_winit_window(|winit_window| {
-                if let Ok(pos) = winit_window.outer_position() {
+                if let Ok(mut pos) = winit_window.outer_position() {
+                    // Magnetic snapping: snap if within 24px of screen edges
+                    let snap_threshold = 24;
+                    if pos.y >= 0 && pos.y < snap_threshold {
+                        pos.y = 8;
+                    }
+                    if pos.x >= 0 && pos.x < snap_threshold {
+                        pos.x = 8;
+                    }
+                    if let Some(monitor) = winit_window.current_monitor() {
+                        let screen_w = monitor.size().width as i32;
+                        let win_w = winit_window.outer_size().width as i32;
+                        if (pos.x + win_w) > (screen_w - snap_threshold) && (pos.x + win_w) <= screen_w + 50 {
+                            pos.x = (screen_w - win_w - 8).max(8);
+                        }
+                    }
+                    winit_window.set_outer_position(pos);
+
                     let mut cm = cm_drag_end.borrow_mut();
                     if cm.config.ui.topbar_x != pos.x || cm.config.ui.topbar_y != pos.y {
                         cm.config.ui.topbar_x = pos.x;
                         cm.config.ui.topbar_y = pos.y;
-                        cm.save();
+                        let _ = cm.save();
                     }
                 }
             });
@@ -328,6 +345,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .try_dispatch_event(slint::platform::WindowEvent::PointerExited);
         }
     });
+
 
     // OSD Toast Timer
     let osd_timer = Rc::new(std::cell::RefCell::new(slint::Timer::default()));
@@ -708,7 +726,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             read_settings_from_standalone(&s, &mut cm.config);
             cm.save();
             #[cfg(windows)]
+            win_hook::reload_config();
+            #[cfg(windows)]
             let _ = win_autostart::set_autostart(s.get_set_autostart());
+
             s.set_settings_status_text("✓ All changes saved automatically".into());
             if let Some(app) = app_weak_sync.upgrade() {
                 apply_settings_to_app(&app, &cm.config);
@@ -860,7 +881,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             read_settings_from_app(&app, &mut cm.config);
             cm.save();
             #[cfg(windows)]
+            win_hook::reload_config();
+            #[cfg(windows)]
             let _ = win_autostart::set_autostart(app.get_set_autostart());
+
             app.set_settings_status_text("✓ All changes saved automatically".into());
             if let Some(s) = s_weak_sync.upgrade() {
                 apply_settings_to_standalone(&s, &cm.config);

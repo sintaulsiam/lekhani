@@ -335,6 +335,36 @@ unsafe extern "system" fn candidate_wnd_proc(
     }
 }
 
+unsafe fn is_windows_dark_mode() -> bool {
+    use windows_sys::Win32::System::Registry::{
+        RegCloseKey, RegOpenKeyW, RegQueryValueExW, HKEY_CURRENT_USER, REG_DWORD,
+    };
+    let subkey: Vec<u16> = "Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize\0"
+        .encode_utf16()
+        .collect();
+    let val_name: Vec<u16> = "AppsUseLightTheme\0".encode_utf16().collect();
+    let mut hkey = std::ptr::null_mut();
+
+    if RegOpenKeyW(HKEY_CURRENT_USER, subkey.as_ptr(), &mut hkey) == 0 {
+        let mut data: u32 = 0;
+        let mut size: u32 = std::mem::size_of::<u32>() as u32;
+        let mut val_type: u32 = 0;
+        let res = RegQueryValueExW(
+            hkey,
+            val_name.as_ptr(),
+            std::ptr::null(),
+            &mut val_type,
+            &mut data as *mut u32 as *mut u8,
+            &mut size,
+        );
+        RegCloseKey(hkey);
+        if res == 0 && val_type == REG_DWORD {
+            return data == 0; // 0 = dark mode, 1 = light mode
+        }
+    }
+    true // default to dark mode
+}
+
 unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
     let data = {
         let guard = CANDIDATE_DATA.lock().unwrap();
@@ -348,13 +378,25 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
     let mut client_rect: RECT = std::mem::zeroed();
     windows_sys::Win32::UI::WindowsAndMessaging::GetClientRect(hwnd, &mut client_rect);
 
-    // Background: #1e1e2e (Dark modern slate)
-    let bg_brush = CreateSolidBrush(0x002E1E1E);
+    let dark = is_windows_dark_mode();
+
+    // Theme colors (in 0x00BBGGRR format for GDI):
+    // Dark: #0f1a15 (rich emerald dark slate), Light: #f8fafc (clean frosted white)
+    let bg_color = if dark { 0x00151A0F } else { 0x00FCFAF8 };
+    // Border: #2f443b (subtle emerald border) or #cbd5e1 (soft light slate)
+    let border_color = if dark { 0x003B442F } else { 0x00E1D5CB };
+    // Active pill: Emerald brand #10b981 (R=16, G=185, B=129 -> 0x0081B910)
+    let active_pill_color = 0x0081B910;
+    // Active pill text: White in both modes for optimal contrast
+    let active_text_color = 0x00FFFFFF;
+    // Inactive text: #f1f5f9 (light text on dark bg) or #0f172a (dark slate text on light bg)
+    let inactive_text_color = if dark { 0x00F9F5F1 } else { 0x002A170F };
+
+    let bg_brush = CreateSolidBrush(bg_color);
     FillRect(hdc, &client_rect, bg_brush);
     DeleteObject(bg_brush as _);
 
-    // Border: #45475a
-    let border_brush = CreateSolidBrush(0x005A4745);
+    let border_brush = CreateSolidBrush(border_color);
     windows_sys::Win32::Graphics::Gdi::FrameRect(hdc, &client_rect, border_brush);
     DeleteObject(border_brush as _);
 
@@ -405,8 +447,7 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
         };
 
         if i == data.selected_index {
-            // Highlight active pill: #89b4fa (Blue accent)
-            let active_brush = CreateSolidBrush(0x00FAB489);
+            let active_brush = CreateSolidBrush(active_pill_color);
             let old_brush = SelectObject(hdc, active_brush as _);
             RoundRect(
                 hdc,
@@ -420,12 +461,11 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
             SelectObject(hdc, old_brush);
             DeleteObject(active_brush as _);
 
-            // Active text color: #11111b (dark contrast)
-            SetTextColor(hdc, 0x001B1111);
+            SetTextColor(hdc, active_text_color);
         } else {
-            // Inactive text color: #cdd6f4 (soft white)
-            SetTextColor(hdc, 0x00F4D6CD);
+            SetTextColor(hdc, inactive_text_color);
         }
+
 
         let label = format!("{}. {}", i + 1, data.candidates[i]);
         let mut label_utf16: Vec<u16> = label.encode_utf16().collect();

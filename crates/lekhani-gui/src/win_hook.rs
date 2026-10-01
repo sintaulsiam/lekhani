@@ -199,6 +199,21 @@ pub fn update_active_layout(name: &str) {
     }
 }
 
+pub fn reload_config() {
+    if let Ok(mut guard) = HOOK_STATE.lock() {
+        if let Some(ref mut state) = *guard {
+            state.config_mgr.load();
+            state.config_mgr.config.apply_to_session(&mut state.session);
+            tracing::info!(
+                "HookState reloaded configuration: toggle_key = {}",
+                state.config_mgr.config.general.toggle_key
+            );
+        }
+    }
+}
+
+
+
 /// Commit candidate by explicit index (e.g. from mouse click or shortcut)
 pub fn commit_candidate_by_index(idx: usize) {
     if let Ok(mut guard) = HOOK_STATE.lock() {
@@ -363,27 +378,33 @@ unsafe extern "system" fn low_level_keyboard_proc(
     let real_ctrl_down = r_ctrl_down || (l_ctrl_down && !is_alt_gr);
     let real_alt_down = l_alt_down;
 
-    // Check global toggle hotkeys (F12, Ctrl+Space, and configurable Shift+Space)
-    let is_toggle = if vk == VK_F12 && !real_ctrl_down && !real_alt_down && !win_down {
-        true
-    } else if vk == VK_SPACE && real_ctrl_down && !real_alt_down && !win_down {
-        true
-    } else if vk == VK_SPACE && shift_down && !real_ctrl_down && !real_alt_down && !win_down {
-        let configured_shift_space = if let Ok(guard) = HOOK_STATE.lock() {
-            guard.as_ref().map_or(false, |s| {
-                s.config_mgr
-                    .config
-                    .general
-                    .toggle_key
-                    .eq_ignore_ascii_case("Shift+Space")
-            })
-        } else {
-            false
-        };
-        configured_shift_space
+    // Check global toggle hotkeys based on user configuration with F12 safe fallback
+    let configured_toggle = if let Ok(guard) = HOOK_STATE.lock() {
+        guard
+            .as_ref()
+            .map(|s| s.config_mgr.config.general.toggle_key.clone())
+            .unwrap_or_else(|| "F12".to_string())
     } else {
-        false
+        "F12".to_string()
     };
+
+    let is_toggle = if configured_toggle.eq_ignore_ascii_case("Ctrl+Space") {
+        (vk == VK_SPACE && real_ctrl_down && !real_alt_down && !win_down)
+            || (vk == VK_F12 && !real_ctrl_down && !real_alt_down && !win_down)
+    } else if configured_toggle.eq_ignore_ascii_case("Shift+Space") {
+        (vk == VK_SPACE && shift_down && !real_ctrl_down && !real_alt_down && !win_down)
+            || (vk == VK_F12 && !real_ctrl_down && !real_alt_down && !win_down)
+    } else if configured_toggle.eq_ignore_ascii_case("Right Alt")
+        || configured_toggle.eq_ignore_ascii_case("AltGr")
+    {
+        (vk == VK_RMENU && !real_ctrl_down && !win_down)
+            || (vk == VK_F12 && !real_ctrl_down && !real_alt_down && !win_down)
+    } else {
+        // Default F12, plus allow Ctrl+Space as standard convenience
+        (vk == VK_F12 && !real_ctrl_down && !real_alt_down && !win_down)
+            || (vk == VK_SPACE && real_ctrl_down && !real_alt_down && !win_down)
+    };
+
 
     if is_toggle {
         toggle_bengali_mode();
