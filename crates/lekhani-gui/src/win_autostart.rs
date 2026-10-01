@@ -52,7 +52,7 @@ pub fn set_autostart(enable: bool) -> bool {
         {
             let res = if enable {
                 if let Ok(exe_path) = std::env::current_exe() {
-                    let path_str = format!("\"{}\"\0", exe_path.to_string_lossy());
+                    let path_str = format!("\"{}\" --tray\0", exe_path.to_string_lossy());
                     let path_utf16: Vec<u16> = path_str.encode_utf16().collect();
                     RegSetValueExW(
                         hkey,

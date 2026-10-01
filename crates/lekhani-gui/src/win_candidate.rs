@@ -1,5 +1,6 @@
 //! Native Windows Floating Candidate / Suggestion Window
-//! Displays live phonetic candidate suggestions (1..5) near the active text cursor.
+//! Displays live phonetic candidate suggestions (1..5) near the active text cursor with
+//! dynamic width scaling, Indic complex font shaping (Nirmala UI), and mouse interactivity.
 
 #![cfg(windows)]
 
@@ -11,17 +12,22 @@ use windows_sys::Win32::Graphics::Gdi::{
     DT_SINGLELINE, DT_VCENTER, HDC, PAINTSTRUCT, TRANSPARENT,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, GetCursorPos, GetGUIThreadInfo, RegisterClassW, SetWindowPos,
-    ShowWindow, CS_HREDRAW, CS_VREDRAW, GUITHREADINFO, HWND_TOPMOST, SWP_NOACTIVATE,
-    SWP_SHOWWINDOW, SW_HIDE, WNDCLASSW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST,
-    WS_POPUP,
+    CreateWindowExW, DefWindowProcW, GetCursorPos, GetForegroundWindow, GetGUIThreadInfo,
+    GetSystemMetrics, GetWindowRect, RegisterClassW, SetWindowPos, ShowWindow, CS_HREDRAW,
+    CS_VREDRAW, GUITHREADINFO, HWND_TOPMOST, SM_CXSCREEN, SM_CYSCREEN, SWP_NOACTIVATE,
+    SWP_SHOWWINDOW, SW_HIDE, WM_ERASEBKGND, WM_LBUTTONUP, WM_PAINT, WNDCLASSW,
+    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
 
 #[derive(Clone, Default)]
 pub struct CandidateData {
     pub candidates: Vec<String>,
+    pub item_widths: Vec<i32>,
     pub selected_index: usize,
     pub horizontal: bool,
+    pub total_width: i32,
+    pub height: i32,
+    pub screen_pos: (i32, i32),
 }
 
 static CANDIDATE_DATA: Mutex<Option<CandidateData>> = Mutex::new(None);
@@ -79,6 +85,17 @@ impl CandidateWindow {
         }
     }
 
+    pub fn is_visible(&self) -> bool {
+        let guard = CANDIDATE_DATA.lock().unwrap();
+        guard.as_ref().map_or(false, |d| !d.candidates.is_empty())
+    }
+
+    pub fn hit_test(&self, screen_x: i32, screen_y: i32) -> Option<usize> {
+        let guard = CANDIDATE_DATA.lock().unwrap();
+        let data = guard.as_ref()?;
+        hit_test_data(data, screen_x, screen_y)
+    }
+
     pub fn update(&self, candidates: &[String], selected_index: usize, horizontal: bool) {
         if candidates.is_empty() {
             self.hide();
@@ -86,25 +103,26 @@ impl CandidateWindow {
         }
 
         let display_cands: Vec<String> = candidates.iter().take(5).cloned().collect();
-        {
-            let mut data = CANDIDATE_DATA.lock().unwrap();
-            *data = Some(CandidateData {
-                candidates: display_cands.clone(),
-                selected_index,
-                horizontal,
-            });
+        let count = display_cands.len().max(1);
+
+        // Dynamically compute width per candidate to prevent clipping long Bengali conjuncts/words
+        let mut item_widths = Vec::with_capacity(count);
+        for c in &display_cands {
+            let char_count = c.chars().count();
+            let w = ((char_count as i32 + 3) * 11).max(68);
+            item_widths.push(w);
         }
 
-        unsafe {
-            let count = display_cands.len().max(1);
-            let (total_width, height) = if horizontal {
-                let item_width = 68;
-                ((count as i32 * item_width) + 16, 38)
-            } else {
-                let item_height = 28;
-                (160, (count as i32 * item_height) + 12)
-            };
+        let (total_width, height) = if horizontal {
+            let sum_w: i32 = item_widths.iter().sum();
+            let spacing = (count.saturating_sub(1) as i32) * 6;
+            (sum_w + spacing + 20, 38)
+        } else {
+            let max_w = item_widths.iter().cloned().max().unwrap_or(160).max(180);
+            (max_w + 16, (count as i32 * 32) + 12)
+        };
 
+        unsafe {
             let mut pt = POINT { x: 0, y: 0 };
             let mut gui_info: GUITHREADINFO = std::mem::zeroed();
             gui_info.cbSize = std::mem::size_of::<GUITHREADINFO>() as u32;
@@ -122,13 +140,31 @@ impl CandidateWindow {
                 ClientToScreen(gui_info.hwndCaret, &mut pt);
             } else {
                 GetCursorPos(&mut pt);
-                pt.y += 24;
+                // Sanity check against foreground window boundaries
+                let fg_hwnd = GetForegroundWindow();
+                if fg_hwnd != 0 as _ {
+                    let mut fg_rect: RECT = std::mem::zeroed();
+                    if GetWindowRect(fg_hwnd, &mut fg_rect) != 0 {
+                        let inside_fg = pt.x >= fg_rect.left - 100
+                            && pt.x <= fg_rect.right + 100
+                            && pt.y >= fg_rect.top - 100
+                            && pt.y <= fg_rect.bottom + 100;
+                        if !inside_fg {
+                            // Mouse is on another monitor or far away; anchor near bottom-left of target window
+                            pt.x = fg_rect.left + 30;
+                            pt.y = fg_rect.bottom - height - 40;
+                        } else {
+                            pt.y += 24;
+                        }
+                    } else {
+                        pt.y += 24;
+                    }
+                } else {
+                    pt.y += 24;
+                }
             }
 
             // Screen boundary clamping
-            use windows_sys::Win32::UI::WindowsAndMessaging::{
-                GetSystemMetrics, SM_CXSCREEN, SM_CYSCREEN,
-            };
             let screen_w = GetSystemMetrics(SM_CXSCREEN);
             let screen_h = GetSystemMetrics(SM_CYSCREEN);
 
@@ -141,6 +177,19 @@ impl CandidateWindow {
 
             if pt.y + height > screen_h - 48 {
                 pt.y = (pt.y - height - 32).max(8);
+            }
+
+            {
+                let mut data = CANDIDATE_DATA.lock().unwrap();
+                *data = Some(CandidateData {
+                    candidates: display_cands,
+                    item_widths,
+                    selected_index,
+                    horizontal,
+                    total_width,
+                    height,
+                    screen_pos: (pt.x, pt.y),
+                });
             }
 
             SetWindowPos(
@@ -167,6 +216,39 @@ impl CandidateWindow {
     }
 }
 
+fn hit_test_data(data: &CandidateData, screen_x: i32, screen_y: i32) -> Option<usize> {
+    let (win_x, win_y) = data.screen_pos;
+    if screen_x < win_x || screen_x > win_x + data.total_width {
+        return None;
+    }
+    if screen_y < win_y || screen_y > win_y + data.height {
+        return None;
+    }
+
+    let rel_x = screen_x - win_x;
+    let rel_y = screen_y - win_y;
+    let count = data.candidates.len().min(5);
+
+    if data.horizontal {
+        let mut cur_x = 8;
+        for (i, &w) in data.item_widths.iter().take(count).enumerate() {
+            if rel_x >= cur_x && rel_x <= cur_x + w {
+                return Some(i);
+            }
+            cur_x += w + 6;
+        }
+    } else {
+        let item_h = 32;
+        for i in 0..count {
+            let top = 6 + (i as i32 * item_h);
+            if rel_y >= top && rel_y <= top + item_h {
+                return Some(i);
+            }
+        }
+    }
+    None
+}
+
 #[allow(dead_code)]
 pub fn hide_candidate_window() {
     if let Ok(guard) = CANDIDATE_HWND.lock() {
@@ -188,16 +270,30 @@ unsafe extern "system" fn candidate_wnd_proc(
     lparam: LPARAM,
 ) -> LRESULT {
     match msg {
-        windows_sys::Win32::UI::WindowsAndMessaging::WM_PAINT => {
+        WM_PAINT => {
             let mut ps: PAINTSTRUCT = std::mem::zeroed();
             let hdc = BeginPaint(hwnd, &mut ps);
-
             paint_candidates(hwnd, hdc);
-
             EndPaint(hwnd, &ps);
             0
         }
-        windows_sys::Win32::UI::WindowsAndMessaging::WM_ERASEBKGND => 1,
+        WM_ERASEBKGND => 1,
+        WM_LBUTTONUP => {
+            let x = (lparam & 0xFFFF) as i16 as i32;
+            let y = ((lparam >> 16) & 0xFFFF) as i16 as i32;
+            let mut pt = POINT { x, y };
+            ClientToScreen(hwnd, &mut pt);
+
+            let cand_idx = {
+                let guard = CANDIDATE_DATA.lock().unwrap();
+                guard.as_ref().and_then(|d| hit_test_data(d, pt.x, pt.y))
+            };
+
+            if let Some(idx) = cand_idx {
+                crate::win_hook::commit_candidate_by_index(idx);
+            }
+            0
+        }
         _ => DefWindowProcW(hwnd, msg, wparam, lparam),
     }
 }
@@ -215,7 +311,7 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
     let mut client_rect: RECT = std::mem::zeroed();
     windows_sys::Win32::UI::WindowsAndMessaging::GetClientRect(hwnd, &mut client_rect);
 
-    // Background: #1e1e2e
+    // Background: #1e1e2e (Dark modern slate)
     let bg_brush = CreateSolidBrush(0x002E1E1E);
     FillRect(hdc, &client_rect, bg_brush);
     DeleteObject(bg_brush as _);
@@ -227,9 +323,10 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
 
     SetBkMode(hdc, TRANSPARENT as _);
 
-    let font_name: Vec<u16> = "Segoe UI\0".encode_utf16().collect();
+    // Prefer Nirmala UI (standard Indic font on Windows 10/11) with fallback to Vrinda and Segoe UI
+    let font_name: Vec<u16> = "Nirmala UI\0".encode_utf16().collect();
     let font = CreateFontW(
-        -14,
+        -15,
         0,
         0,
         0,
@@ -247,28 +344,31 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
     let old_font = SelectObject(hdc, font as _);
 
     let count = data.candidates.len().min(5);
-    let item_width = 68;
+    let mut cur_x = 8;
     let item_height = 28;
 
     for i in 0..count {
+        let item_w = data.item_widths.get(i).copied().unwrap_or(68);
         let item_rect = if data.horizontal {
-            RECT {
-                left: 8 + (i as i32 * item_width),
+            let r = RECT {
+                left: cur_x,
                 top: 4,
-                right: 8 + ((i as i32 + 1) * item_width) - 4,
+                right: cur_x + item_w,
                 bottom: client_rect.bottom - 4,
-            }
+            };
+            cur_x += item_w + 6;
+            r
         } else {
             RECT {
                 left: 6,
-                top: 6 + (i as i32 * item_height),
+                top: 6 + (i as i32 * 32),
                 right: client_rect.right - 6,
-                bottom: 6 + ((i as i32 + 1) * item_height) - 4,
+                bottom: 6 + (i as i32 * 32) + item_height,
             }
         };
 
         if i == data.selected_index {
-            // Highlight active pill: #89b4fa
+            // Highlight active pill: #89b4fa (Blue accent)
             let active_brush = CreateSolidBrush(0x00FAB489);
             let old_brush = SelectObject(hdc, active_brush as _);
             RoundRect(
@@ -283,10 +383,10 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
             SelectObject(hdc, old_brush);
             DeleteObject(active_brush as _);
 
-            // Active text color: #11111b (dark)
+            // Active text color: #11111b (dark contrast)
             SetTextColor(hdc, 0x001B1111);
         } else {
-            // Inactive text color: #cdd6f4 (light)
+            // Inactive text color: #cdd6f4 (soft white)
             SetTextColor(hdc, 0x00F4D6CD);
         }
 
@@ -297,7 +397,7 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
         let align_flags = if data.horizontal {
             DT_CENTER | DT_VCENTER | DT_SINGLELINE
         } else {
-            text_rect.left += 6;
+            text_rect.left += 8;
             DT_VCENTER | DT_SINGLELINE
         };
         DrawTextW(

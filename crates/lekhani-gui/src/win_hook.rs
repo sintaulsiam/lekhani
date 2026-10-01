@@ -7,21 +7,22 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use windows_sys::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-    GetKeyState, SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_KEYUP,
-    KEYEVENTF_UNICODE, VK_BACK, VK_CAPITAL, VK_CONTROL, VK_DOWN, VK_ESCAPE, VK_F12, VK_LWIN,
-    VK_MENU, VK_NUMPAD1, VK_NUMPAD5, VK_OEM_1, VK_OEM_2, VK_OEM_3, VK_OEM_4, VK_OEM_5, VK_OEM_6,
-    VK_OEM_7, VK_OEM_COMMA, VK_OEM_MINUS, VK_OEM_PERIOD, VK_OEM_PLUS, VK_RETURN, VK_RWIN, VK_SHIFT,
-    VK_SPACE, VK_TAB, VK_UP,
+    GetKeyState, GetKeyboardState, SendInput, ToUnicode, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT,
+    KEYEVENTF_KEYUP, KEYEVENTF_UNICODE, VK_BACK, VK_CAPITAL, VK_CONTROL, VK_DOWN, VK_ESCAPE,
+    VK_F12, VK_LCONTROL, VK_LMENU, VK_LWIN, VK_MENU, VK_NUMPAD1, VK_NUMPAD5, VK_OEM_1, VK_OEM_2,
+    VK_OEM_3, VK_OEM_4, VK_OEM_5, VK_OEM_6, VK_OEM_7, VK_OEM_COMMA, VK_OEM_MINUS, VK_OEM_PERIOD,
+    VK_OEM_PLUS, VK_RCONTROL, VK_RETURN, VK_RMENU, VK_RWIN, VK_SHIFT, VK_SPACE, VK_TAB, VK_UP,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CallNextHookEx, DispatchMessageW, GetMessageW, SetWindowsHookExW, UnhookWindowsHookEx, HHOOK,
-    KBDLLHOOKSTRUCT, MSG, WH_KEYBOARD_LL, WM_KEYDOWN, WM_SYSKEYDOWN,
+    KBDLLHOOKSTRUCT, MSG, MSLLHOOKSTRUCT, WH_KEYBOARD_LL, WH_MOUSE_LL, WM_KEYDOWN, WM_LBUTTONDOWN,
+    WM_MBUTTONDOWN, WM_RBUTTONDOWN, WM_SYSKEYDOWN,
 };
 
 use crate::win_candidate::CandidateWindow;
 use crate::win_osd::OsdWindow;
 use crate::win_tray::WindowsTray;
-use lekhani_core::{ActiveLayoutType, InputSession, KeycodeMapper, MODIFIER_SHIFT};
+use lekhani_core::{ActiveLayoutType, InputSession, KeycodeMapper, MODIFIER_ALT_GR, MODIFIER_SHIFT};
 use lekhani_settings::{ConfigManager, LayoutManager};
 
 static BENGALI_ACTIVE: AtomicBool = AtomicBool::new(false);
@@ -135,6 +136,7 @@ impl HookState {
 
 static HOOK_STATE: Mutex<Option<HookState>> = Mutex::new(None);
 static HOOK_HANDLE: Mutex<Option<usize>> = Mutex::new(None);
+static MOUSE_HOOK_HANDLE: Mutex<Option<usize>> = Mutex::new(None);
 
 pub fn toggle_bengali_mode() {
     let new_state = !BENGALI_ACTIVE.load(Ordering::SeqCst);
@@ -197,6 +199,38 @@ pub fn update_active_layout(name: &str) {
     }
 }
 
+/// Commit candidate by explicit index (e.g. from mouse click or shortcut)
+pub fn commit_candidate_by_index(idx: usize) {
+    if let Ok(mut guard) = HOOK_STATE.lock() {
+        if let Some(ref mut state) = *guard {
+            let candidates = state.session.get_candidates();
+            if idx < candidates.len() {
+                if let Some(committed) = state.session.commit(idx) {
+                    state.on_commit();
+                    inject_backspaces(state.uncommitted_units);
+                    inject_unicode_str(&committed);
+                    state.uncommitted_units = 0;
+                    if state
+                        .config_mgr
+                        .config
+                        .phonetic
+                        .enable_predictive_next_words
+                    {
+                        if state.session.populate_predictions() {
+                            let preds = state.session.get_candidates();
+                            state.update_candidate_window(preds, 0);
+                        } else if let Some(ref win) = state.candidate_win {
+                            win.hide();
+                        }
+                    } else if let Some(ref win) = state.candidate_win {
+                        win.hide();
+                    }
+                }
+            }
+        }
+    }
+}
+
 pub fn spawn_windows_hook(initial_layout: String, tray: Option<Arc<WindowsTray>>) {
     let cand_win = CandidateWindow::new();
     let osd_win = OsdWindow::new();
@@ -212,10 +246,16 @@ pub fn spawn_windows_hook(initial_layout: String, tray: Option<Arc<WindowsTray>>
     std::thread::spawn(|| unsafe {
         use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
         let hmod = GetModuleHandleW(std::ptr::null());
-        let hook = SetWindowsHookExW(WH_KEYBOARD_LL, Some(low_level_keyboard_proc), hmod, 0);
-        if hook != 0 as _ {
-            *HOOK_HANDLE.lock().unwrap() = Some(hook as usize);
-            tracing::info!("Windows Low-Level Keyboard Hook installed successfully");
+
+        let kbd_hook = SetWindowsHookExW(WH_KEYBOARD_LL, Some(low_level_keyboard_proc), hmod, 0);
+        let mouse_hook = SetWindowsHookExW(WH_MOUSE_LL, Some(low_level_mouse_proc), hmod, 0);
+
+        if kbd_hook != 0 as _ {
+            *HOOK_HANDLE.lock().unwrap() = Some(kbd_hook as usize);
+            if mouse_hook != 0 as _ {
+                *MOUSE_HOOK_HANDLE.lock().unwrap() = Some(mouse_hook as usize);
+            }
+            tracing::info!("Windows Low-Level Keyboard & Mouse Hooks installed successfully");
 
             let mut msg: MSG = std::mem::zeroed();
             while GetMessageW(&mut msg, 0 as _, 0, 0) > 0 {
@@ -225,6 +265,9 @@ pub fn spawn_windows_hook(initial_layout: String, tray: Option<Arc<WindowsTray>>
             if let Some(h) = *HOOK_HANDLE.lock().unwrap() {
                 UnhookWindowsHookEx(h as HHOOK);
             }
+            if let Some(mh) = *MOUSE_HOOK_HANDLE.lock().unwrap() {
+                UnhookWindowsHookEx(mh as HHOOK);
+            }
         } else {
             tracing::error!(
                 "Failed to install Windows Low-Level Keyboard Hook: {}",
@@ -232,6 +275,57 @@ pub fn spawn_windows_hook(initial_layout: String, tray: Option<Arc<WindowsTray>>
             );
         }
     });
+}
+
+unsafe extern "system" fn low_level_mouse_proc(
+    n_code: i32,
+    w_param: WPARAM,
+    l_param: LPARAM,
+) -> LRESULT {
+    if n_code < 0 {
+        return CallNextHookEx(0 as _, n_code, w_param, l_param);
+    }
+
+    let msg = w_param as u32;
+    if msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN || msg == WM_MBUTTONDOWN {
+        let mouse_struct = *(l_param as *const MSLLHOOKSTRUCT);
+        let pt = mouse_struct.pt;
+
+        // Check if user clicked inside the candidate window
+        let mut clicked_cand_idx = None;
+        if let Ok(guard) = HOOK_STATE.lock() {
+            if let Some(ref state) = *guard {
+                if let Some(ref cand_win) = state.candidate_win {
+                    if cand_win.is_visible() {
+                        clicked_cand_idx = cand_win.hit_test(pt.x, pt.y);
+                    }
+                }
+            }
+        }
+
+        if let Some(idx) = clicked_cand_idx {
+            commit_candidate_by_index(idx);
+            return 1; // Consume click event to select candidate
+        }
+
+        // Click outside candidate window:
+        // Safely commit uncommitted preedit and hide candidate window so subsequent typing
+        // in the newly clicked window does not send backspaces or corrupted preedit!
+        if let Ok(mut guard) = HOOK_STATE.lock() {
+            if let Some(ref mut state) = *guard {
+                if state.uncommitted_units > 0 || state.session.is_prediction_mode() {
+                    state.session.commit(state.session.get_selected_index());
+                    state.on_commit();
+                    state.uncommitted_units = 0;
+                    if let Some(ref win) = state.candidate_win {
+                        win.hide();
+                    }
+                }
+            }
+        }
+    }
+
+    CallNextHookEx(0 as _, n_code, w_param, l_param)
 }
 
 unsafe extern "system" fn low_level_keyboard_proc(
@@ -257,18 +351,24 @@ unsafe extern "system" fn low_level_keyboard_proc(
 
     let vk = kbd.vkCode as u16;
 
-    let ctrl_down = (GetKeyState(VK_CONTROL as i32) & 0x8000u16 as i16) != 0;
+    let is_alt_gr = (GetKeyState(VK_RMENU as i32) & 0x8000u16 as i16) != 0;
+    let l_ctrl_down = (GetKeyState(VK_LCONTROL as i32) & 0x8000u16 as i16) != 0;
+    let r_ctrl_down = (GetKeyState(VK_RCONTROL as i32) & 0x8000u16 as i16) != 0;
+    let l_alt_down = (GetKeyState(VK_LMENU as i32) & 0x8000u16 as i16) != 0;
     let shift_down = (GetKeyState(VK_SHIFT as i32) & 0x8000u16 as i16) != 0;
-    let alt_down = (GetKeyState(VK_MENU as i32) & 0x8000u16 as i16) != 0;
     let win_down =
         ((GetKeyState(VK_LWIN as i32) | GetKeyState(VK_RWIN as i32)) & 0x8000u16 as i16) != 0;
 
+    // Distinguish genuine shortcuts (Ctrl+C, Alt+Tab, Win+Key) from AltGr (VK_RMENU)
+    let real_ctrl_down = r_ctrl_down || (l_ctrl_down && !is_alt_gr);
+    let real_alt_down = l_alt_down;
+
     // Check global toggle hotkeys (F12, Ctrl+Space, and configurable Shift+Space)
-    let is_toggle = if vk == VK_F12 && !ctrl_down && !alt_down && !win_down {
+    let is_toggle = if vk == VK_F12 && !real_ctrl_down && !real_alt_down && !win_down {
         true
-    } else if vk == VK_SPACE && ctrl_down && !alt_down && !win_down {
+    } else if vk == VK_SPACE && real_ctrl_down && !real_alt_down && !win_down {
         true
-    } else if vk == VK_SPACE && shift_down && !ctrl_down && !alt_down && !win_down {
+    } else if vk == VK_SPACE && shift_down && !real_ctrl_down && !real_alt_down && !win_down {
         let configured_shift_space = if let Ok(guard) = HOOK_STATE.lock() {
             guard.as_ref().map_or(false, |s| {
                 s.config_mgr
@@ -294,8 +394,8 @@ unsafe extern "system" fn low_level_keyboard_proc(
         return CallNextHookEx(0 as _, n_code, w_param, l_param);
     }
 
-    // If Ctrl, Alt, or Win are held down, let native shortcut pass through
-    if ctrl_down || alt_down || win_down {
+    // If a genuine Ctrl, Alt, or Win shortcut is held down, pass through to native OS
+    if real_ctrl_down || real_alt_down || win_down {
         if let Ok(mut guard) = HOOK_STATE.lock() {
             if let Some(ref mut state) = *guard {
                 state.reset();
@@ -314,18 +414,6 @@ unsafe extern "system" fn low_level_keyboard_proc(
         None => return CallNextHookEx(0 as _, n_code, w_param, l_param),
     };
 
-    if state.config_mgr.check_and_reload() {
-        let cfg = state.config_mgr.config.clone();
-        cfg.apply_to_session(&mut state.session);
-        let user_ac = state.config_mgr.get_user_autocorrect_path();
-        state.session.load_user_autocorrect(user_ac);
-        let current_layout = cfg.general.active_layout.clone();
-        if current_layout != state.active_layout_name {
-            state.set_layout(&current_layout);
-        }
-    }
-
-    let shift_down = (GetKeyState(VK_SHIFT as i32) & 0x8000u16 as i16) != 0;
     let caps_locked = (GetKeyState(VK_CAPITAL as i32) & 1) != 0;
 
     // Direct Selection via 1..5 and Candidate Navigation in Phonetic Mode
@@ -548,7 +636,13 @@ unsafe extern "system" fn low_level_keyboard_proc(
             }
         }
         let keycode = state.mapper.map_keyval(ch as u32);
-        let modifier_mask = if shift_down { MODIFIER_SHIFT } else { 0 };
+        let mut modifier_mask = 0;
+        if shift_down {
+            modifier_mask |= MODIFIER_SHIFT;
+        }
+        if is_alt_gr {
+            modifier_mask |= MODIFIER_ALT_GR;
+        }
 
         let consumed = state.session.process_key(keycode, modifier_mask);
         if consumed {
@@ -587,6 +681,47 @@ unsafe extern "system" fn low_level_keyboard_proc(
 }
 
 fn vk_to_char(vk: u16, shift: bool, caps: bool) -> Option<char> {
+    // 1. Try Win32 ToUnicode with active keyboard state for international layouts (UK, AZERTY, QWERTZ)
+    unsafe {
+        let mut key_state = [0u8; 256];
+        if GetKeyboardState(key_state.as_mut_ptr()) != 0 {
+            if shift {
+                key_state[VK_SHIFT as usize] = 0x80;
+            } else {
+                key_state[VK_SHIFT as usize] = 0;
+            }
+            if caps {
+                key_state[VK_CAPITAL as usize] = 0x01;
+            } else {
+                key_state[VK_CAPITAL as usize] = 0;
+            }
+            // Clear Ctrl/Alt so AltGr or Ctrl states don't suppress base character conversion
+            key_state[VK_CONTROL as usize] = 0;
+            key_state[VK_LCONTROL as usize] = 0;
+            key_state[VK_RCONTROL as usize] = 0;
+            key_state[VK_MENU as usize] = 0;
+            key_state[VK_LMENU as usize] = 0;
+            key_state[VK_RMENU as usize] = 0;
+
+            let mut buf = [0u16; 4];
+            let res = ToUnicode(vk as u32, 0, key_state.as_ptr(), buf.as_mut_ptr(), 4, 0);
+            if res > 0 {
+                if let Some(Ok(c)) =
+                    char::decode_utf16(buf[..res as usize].iter().cloned()).next()
+                {
+                    if !c.is_control() {
+                        return Some(c);
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Fallback to standard US QWERTY mapping
+    fallback_vk_to_char(vk, shift, caps)
+}
+
+fn fallback_vk_to_char(vk: u16, shift: bool, caps: bool) -> Option<char> {
     match vk {
         0x41..=0x5A => {
             let base = (vk - 0x41) as u8;

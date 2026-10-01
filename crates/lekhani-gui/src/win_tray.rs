@@ -40,19 +40,28 @@ impl WindowsTray {
         let class_name: Vec<u16> = "LekhaniTrayClass\0".encode_utf16().collect();
 
         unsafe {
+            use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
+            let hmod = GetModuleHandleW(std::ptr::null());
+            let app_icon = LoadIconW(hmod, 1 as _);
+            let hicon = if app_icon != 0 as _ {
+                app_icon
+            } else {
+                LoadIconW(0 as _, IDI_APPLICATION)
+            };
+
             let wc = WNDCLASSEXW {
                 cbSize: std::mem::size_of::<WNDCLASSEXW>() as u32,
                 style: 0,
                 lpfnWndProc: Some(tray_wnd_proc),
                 cbClsExtra: 0,
                 cbWndExtra: 0,
-                hInstance: 0 as _,
-                hIcon: LoadIconW(0 as _, IDI_APPLICATION),
+                hInstance: hmod,
+                hIcon: hicon,
                 hCursor: 0 as _,
                 hbrBackground: 0 as _,
                 lpszMenuName: std::ptr::null(),
                 lpszClassName: class_name.as_ptr(),
-                hIconSm: LoadIconW(0 as _, IDI_APPLICATION),
+                hIconSm: hicon,
             };
 
             RegisterClassExW(&wc);
@@ -82,7 +91,7 @@ impl WindowsTray {
                 uID: 1,
                 uFlags: NIF_MESSAGE | NIF_ICON | NIF_TIP,
                 uCallbackMessage: WM_TRAYICON,
-                hIcon: LoadIconW(0 as _, IDI_APPLICATION),
+                hIcon: hicon,
                 szTip: [0; 128],
                 dwState: 0,
                 dwStateMask: 0,
@@ -94,7 +103,7 @@ impl WindowsTray {
                 hBalloonIcon: 0 as _,
             };
 
-            let tip = format!("Lekhani ({})\0", initial_layout);
+            let tip = format!("Lekhani [English - {}]\0", initial_layout);
             for (i, c) in tip.encode_utf16().enumerate() {
                 if i < 127 {
                     nid.szTip[i] = c;
@@ -132,7 +141,7 @@ impl WindowsTray {
                 hBalloonIcon: 0 as _,
             };
 
-            let mode_str = if active { "বাংলা" } else { "ENG" };
+            let mode_str = if active { "বাংলা (Active)" } else { "English" };
             let tip = format!("Lekhani [{} - {}]\0", mode_str, layout_name);
             for (i, c) in tip.encode_utf16().enumerate() {
                 if i < 127 {

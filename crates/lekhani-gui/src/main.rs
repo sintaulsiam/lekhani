@@ -36,9 +36,31 @@ use tracing::info;
 #[cfg(unix)]
 static FCITX5_AVAILABLE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
 
+#[cfg(windows)]
+unsafe fn ensure_single_instance() -> bool {
+    use windows_sys::Win32::Foundation::{GetLastError, ERROR_ALREADY_EXISTS};
+    use windows_sys::Win32::System::Threading::CreateMutexW;
+
+    let mutex_name: Vec<u16> = "Global\\LekhaniSingleInstanceMutex\0".encode_utf16().collect();
+    let handle = CreateMutexW(std::ptr::null(), 1, mutex_name.as_ptr());
+    if handle == 0 as _ || GetLastError() == ERROR_ALREADY_EXISTS {
+        false
+    } else {
+        true
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
     info!("Starting Lekhani GUI Desktop Suite...");
+
+    #[cfg(windows)]
+    unsafe {
+        if !ensure_single_instance() {
+            eprintln!("Another instance of Lekhani is already running.");
+            return Ok(());
+        }
+    }
 
     let app = TopBarWindow::new()?;
     let app_weak = app.as_weak();
@@ -212,6 +234,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let win_tray_handle = win_tray::spawn_windows_tray(current_layout.clone(), app_weak.clone());
     #[cfg(windows)]
     win_hook::spawn_windows_hook(current_layout.clone(), win_tray_handle.clone());
+
+    #[cfg(windows)]
+    let start_in_tray = args.contains(&"--tray".to_string()) || args.contains(&"--minimized".to_string());
+    #[cfg(windows)]
+    if start_in_tray {
+        let _ = app.window().with_winit_window(|winit_window| {
+            winit_window.set_visible(false);
+        });
+        if let Some(ref tray) = win_tray_handle {
+            tray.set_topbar_visible(false);
+        }
+    }
 
     // Set Native Window Icon on Winit Window
     use i_slint_backend_winit::WinitWindowAccessor;
@@ -1035,9 +1069,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    // Callbacks: Quit
+    // Callbacks: Quit / Close (Windows minimizes/hides to tray to preserve keyboard hook)
+    #[cfg(windows)]
+    let win_tray_for_close = win_tray_handle.clone();
+    #[cfg(windows)]
+    let app_weak_close = app_weak.clone();
     app.on_trigger_quit(move || {
-        let _ = slint::quit_event_loop();
+        #[cfg(windows)]
+        {
+            if let Some(app) = app_weak_close.upgrade() {
+                use i_slint_backend_winit::WinitWindowAccessor;
+                let _ = app.window().with_winit_window(|winit_window| {
+                    winit_window.set_visible(false);
+                });
+                if let Some(ref tray) = win_tray_for_close {
+                    tray.set_topbar_visible(false);
+                }
+            }
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = slint::quit_event_loop();
+        }
     });
 
     if is_standalone {
