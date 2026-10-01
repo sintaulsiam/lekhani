@@ -42,11 +42,12 @@ cargo build --manifest-path "$ROOT_DIR/Cargo.toml" \
     --target "$TARGET" \
     -p lekhani-cli \
     -p lekhani-gui \
-    -p lekhani-ffi
+    -p lekhani-ffi \
+    -p lekhani-tsf
 
 echo "  [OK] Binaries compiled successfully."
 
-# 3. Create Portable Zip Distribution
+# 4. Create Portable Zip Distribution
 echo ""
 echo "=== Step 2: Creating Portable Windows Zip Distribution ==="
 PORTABLE_DIR="$ROOT_DIR/target/portable_windows/lekhani-v$VERSION-windows-x86_64"
@@ -57,6 +58,9 @@ mkdir -p "$PORTABLE_DIR/data"
 
 cp "$ROOT_DIR/target/$TARGET/release/lekhani-gui.exe" "$PORTABLE_DIR/"
 cp "$ROOT_DIR/target/$TARGET/release/lekhani.exe" "$PORTABLE_DIR/"
+if [ -f "$ROOT_DIR/target/$TARGET/release/lekhani_tsf.dll" ]; then
+    cp "$ROOT_DIR/target/$TARGET/release/lekhani_tsf.dll" "$PORTABLE_DIR/"
+fi
 if [ -f "$ROOT_DIR/target/$TARGET/release/lekhani_ffi.dll" ]; then
     cp "$ROOT_DIR/target/$TARGET/release/lekhani_ffi.dll" "$PORTABLE_DIR/"
 fi
@@ -74,6 +78,35 @@ cat << 'EOF' > "$PORTABLE_DIR/START_LEKHANI.bat"
 start "" "%~dp0lekhani-gui.exe"
 EOF
 
+cat << 'EOF' > "$PORTABLE_DIR/REGISTER_TSF.bat"
+@echo off
+echo ======================================================
+echo    Registering Lekhani Text Services Framework (TSF)
+echo ======================================================
+echo Administrator privileges may be requested.
+regsvr32.exe "%~dp0lekhani_tsf.dll"
+if %ERRORLEVEL% EQU 0 (
+    echo [OK] Lekhani TSF Text Input Processor registered successfully.
+) else (
+    echo [ERROR] Failed to register TSF TIP. Please run as Administrator.
+)
+pause
+EOF
+
+cat << 'EOF' > "$PORTABLE_DIR/UNREGISTER_TSF.bat"
+@echo off
+echo ======================================================
+echo   Unregistering Lekhani Text Services Framework (TSF)
+echo ======================================================
+regsvr32.exe /u "%~dp0lekhani_tsf.dll"
+if %ERRORLEVEL% EQU 0 (
+    echo [OK] Lekhani TSF Text Input Processor unregistered.
+) else (
+    echo [ERROR] Failed to unregister TSF TIP. Please run as Administrator.
+)
+pause
+EOF
+
 if command -v zip >/dev/null 2>&1; then
     (cd "$ROOT_DIR/target/portable_windows" && zip -r -q "$DIST_DIR/$ZIP_NAME" "lekhani-v$VERSION-windows-x86_64")
     echo "  [OK] Created $DIST_DIR/$ZIP_NAME"
@@ -81,7 +114,7 @@ else
     echo "  [INFO] 'zip' command not found. Skipping zip creation."
 fi
 
-# 4. Inno Setup Compiler (if available)
+# 5. Inno Setup Compiler (if available)
 echo ""
 echo "=== Step 3: Checking Inno Setup Compiler (ISCC) ==="
 if command -v iscc >/dev/null 2>&1; then

@@ -26,12 +26,13 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=..\..\dist
 OutputBaseFilename=Lekhani-v{#MyAppVersion}-Setup
-SetupIconFile=..\..\data\icons\favicon.ico
+SetupIconFile=..\..\data\icons\lekhani.ico
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
 ArchitecturesInstallIn64BitMode=x64
 PrivilegesRequired=lowest
+PrivilegesRequiredOverridesAllowed=dialog
 CloseApplications=yes
 
 [Languages]
@@ -44,6 +45,7 @@ Name: "autostart"; Description: "Automatically launch Lekhani when Windows start
 [Files]
 Source: "{#SourceDir}\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "{#SourceDir}\{#MyAppCliName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#SourceDir}\lekhani_tsf.dll"; DestDir: "{app}"; Flags: ignoreversion regserver skipifsourcedoesntexist
 Source: "{#SourceDir}\lekhani.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "{#SourceDir}\lekhani_ffi.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "..\..\data\layouts\*"; DestDir: "{app}\data\layouts"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -52,14 +54,14 @@ Source: "..\..\data\icons\*"; DestDir: "{app}\data\icons"; Flags: ignoreversion 
 Source: "..\..\README.md"; DestDir: "{app}"; DestName: "README.txt"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\data\icons\favicon.ico"
-Name: "{group}\{#MyAppName} Command Line"; Filename: "{app}\{#MyAppCliName}"; IconFilename: "{app}\data\icons\favicon.ico"
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\data\icons\lekhani.ico"
+Name: "{group}\{#MyAppName} Command Line"; Filename: "{app}\{#MyAppCliName}"; IconFilename: "{app}\data\icons\lekhani.ico"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; IconFilename: "{app}\data\icons\favicon.ico"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; IconFilename: "{app}\data\icons\lekhani.ico"
 
 [Registry]
 ; Autostart on Windows Login if user checked the task
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"""; Tasks: autostart; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"" --tray"; Tasks: autostart; Flags: uninsdeletevalue
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
