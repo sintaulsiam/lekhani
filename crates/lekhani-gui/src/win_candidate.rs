@@ -5,19 +5,20 @@
 #![cfg(windows)]
 
 use std::sync::Mutex;
-use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, WPARAM};
+use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, SIZE, WPARAM};
 use windows_sys::Win32::Graphics::Gdi::{
     BeginPaint, ClientToScreen, CreateFontW, CreateSolidBrush, DeleteObject, DrawTextW, EndPaint,
-    FillRect, InvalidateRect, RoundRect, SelectObject, SetBkMode, SetTextColor, DT_CENTER,
-    DT_SINGLELINE, DT_VCENTER, HDC, PAINTSTRUCT, TRANSPARENT,
+    FillRect, GetDC, GetTextExtentPoint32W, InvalidateRect, ReleaseDC, RoundRect, SelectObject,
+    SetBkMode, SetTextColor, DT_CENTER, DT_SINGLELINE, DT_VCENTER, HDC, PAINTSTRUCT, TRANSPARENT,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, GetCursorPos, GetForegroundWindow, GetGUIThreadInfo,
-    GetSystemMetrics, GetWindowRect, RegisterClassW, SetWindowPos, ShowWindow, CS_HREDRAW,
-    CS_VREDRAW, GUITHREADINFO, HWND_TOPMOST, SM_CXSCREEN, SM_CYSCREEN, SWP_NOACTIVATE,
-    SWP_SHOWWINDOW, SW_HIDE, WM_ERASEBKGND, WM_LBUTTONUP, WM_PAINT, WNDCLASSW,
+    GetSystemMetrics, GetWindowRect, RegisterClassW, SetWindowPos, ShowWindow, CS_DROPSHADOW,
+    CS_HREDRAW, CS_VREDRAW, GUITHREADINFO, HWND_TOPMOST, SM_CXSCREEN, SM_CYSCREEN,
+    SWP_NOACTIVATE, SWP_SHOWWINDOW, SW_HIDE, WM_ERASEBKGND, WM_LBUTTONUP, WM_PAINT, WNDCLASSW,
     WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
+
 
 #[derive(Clone, Default)]
 pub struct CandidateData {
@@ -48,7 +49,7 @@ impl CandidateWindow {
 
             let class_name: Vec<u16> = "LekhaniCandidateWin\0".encode_utf16().collect();
             let wnd_class = WNDCLASSW {
-                style: CS_HREDRAW | CS_VREDRAW,
+                style: CS_HREDRAW | CS_VREDRAW | CS_DROPSHADOW,
                 lpfnWndProc: Some(candidate_wnd_proc),
                 cbClsExtra: 0,
                 cbWndExtra: 0,
@@ -105,12 +106,47 @@ impl CandidateWindow {
         let display_cands: Vec<String> = candidates.iter().take(5).cloned().collect();
         let count = display_cands.len().max(1);
 
-        // Dynamically compute width per candidate to prevent clipping long Bengali conjuncts/words
+        // Dynamically compute precise width per candidate using GDI font metrics (GetTextExtentPoint32W)
+        // to prevent clipping complex Bengali conjuncts/juktoborno without unnecessary padding.
         let mut item_widths = Vec::with_capacity(count);
-        for c in &display_cands {
-            let char_count = c.chars().count();
-            let w = ((char_count as i32 + 3) * 11).max(68);
-            item_widths.push(w);
+        unsafe {
+            let hdc_screen = GetDC(0 as _);
+            let font_name: Vec<u16> = "Nirmala UI\0".encode_utf16().collect();
+            let font = CreateFontW(
+                -15,
+                0,
+                0,
+                0,
+                600,
+                0,
+                0,
+                0,
+                1,
+                0,
+                0,
+                0,
+                0,
+                font_name.as_ptr(),
+            );
+            let old_font = SelectObject(hdc_screen, font as _);
+
+            for (i, c) in display_cands.iter().enumerate() {
+                let label = format!("{}. {}", i + 1, c);
+                let label_utf16: Vec<u16> = label.encode_utf16().collect();
+                let mut sz: SIZE = std::mem::zeroed();
+                GetTextExtentPoint32W(
+                    hdc_screen,
+                    label_utf16.as_ptr(),
+                    label_utf16.len() as i32,
+                    &mut sz,
+                );
+                let w = (sz.cx + 20).max(68);
+                item_widths.push(w);
+            }
+
+            SelectObject(hdc_screen, old_font);
+            DeleteObject(font as _);
+            ReleaseDC(0 as _, hdc_screen);
         }
 
         let (total_width, height) = if horizontal {
@@ -121,6 +157,7 @@ impl CandidateWindow {
             let max_w = item_widths.iter().cloned().max().unwrap_or(160).max(180);
             (max_w + 16, (count as i32 * 32) + 12)
         };
+
 
         unsafe {
             let mut pt = POINT { x: 0, y: 0 };
