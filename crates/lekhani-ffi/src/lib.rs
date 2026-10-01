@@ -714,6 +714,10 @@ mod tests {
                 .config
                 .phonetic
                 .enable_predictive_next_words = true;
+            (*engine_ptr)
+                .config_mgr
+                .config
+                .apply_to_session(&mut (*engine_ptr).session);
         }
 
         // Type 'a' (0x61), 'm' (0x6d), 'i' (0x69)
