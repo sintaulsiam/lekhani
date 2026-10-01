@@ -5,6 +5,7 @@ members = [
     "crates/lekhani-ibus",
     "crates/lekhani-gui",
     "crates/lekhani-cli",
+    "crates/lekhani-tsf",
 ]
 
 resolver = "2"

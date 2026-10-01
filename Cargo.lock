@@ -2945,6 +2945,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "lekhani-tsf"
+version = "1.0.0"
+dependencies = [
+ "lekhani-core",
+ "lekhani-settings",
+ "tracing",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.189"
 source = "registry+https://github.com/rust-lang/crates.io-index"
