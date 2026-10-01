@@ -12,6 +12,9 @@ path = "src/main.rs"
 
 [build-dependencies]
 slint-build = "1.4"
+winres = "0.1"
+
+
 
 [dependencies]
 lekhani-core.workspace = true
