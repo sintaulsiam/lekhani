@@ -103,7 +103,7 @@ impl CandidateWindow {
             return;
         }
 
-        let display_cands: Vec<String> = candidates.iter().take(5).cloned().collect();
+        let display_cands: Vec<String> = candidates.iter().take(6).cloned().collect();
         let count = display_cands.len().max(1);
 
         // Dynamically compute precise width per candidate using GDI font metrics (GetTextExtentPoint32W)

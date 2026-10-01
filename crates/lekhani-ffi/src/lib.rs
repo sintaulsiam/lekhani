@@ -717,6 +717,11 @@ mod tests {
             (*engine_ptr)
                 .config_mgr
                 .config
+                .phonetic
+                .enable_phrase_prediction = true;
+            (*engine_ptr)
+                .config_mgr
+                .config
                 .apply_to_session(&mut (*engine_ptr).session);
         }
 
