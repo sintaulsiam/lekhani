@@ -1,11 +1,54 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="24" height="24" fill="none">
   <defs>
-    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#a5b4fc"/>
-      <stop offset="50%" stop-color="#818cf8"/>
-      <stop offset="100%" stop-color="#c084fc"/>
+    <!-- Ambient Mint Glow -->
+    <radialGradient id="logoAmbientGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00e5b8" stop-opacity="0.3"/>
+      <stop offset="70%" stop-color="#10b981" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#00e5b8" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Nib Body Gradient -->
+    <linearGradient id="logoNibGrad" x1="50%" y1="20%" x2="50%" y2="85%">
+      <stop offset="0%" stop-color="#18483a"/>
+      <stop offset="60%" stop-color="#0e2f25"/>
+      <stop offset="100%" stop-color="#071c15"/>
+    </linearGradient>
+
+    <!-- Nib Stroke Gradient -->
+    <linearGradient id="logoNibStroke" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="50%" stop-color="#00e5b8"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+
+    <!-- Spacebar Horizon Line Gradient -->
+    <linearGradient id="logoSpacebarGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00e5b8"/>
+      <stop offset="50%" stop-color="#34d399"/>
+      <stop offset="100%" stop-color="#00e5b8"/>
     </linearGradient>
   </defs>
-  <!-- Beautiful modern rounded L glyph, perfectly centered in 24x24 box -->
-  <path d="M7 5.5 C7 4.67 7.67 4 8.5 4 H9.5 C10.33 4 11 4.67 11 5.5 V15.5 C11 16.33 11.67 17 12.5 17 H16.5 C17.33 17 18 17.67 18 18.5 C18 19.33 17.33 20 16.5 20 H10.5 C8.57 20 7 18.43 7 16.5 Z" fill="url(#logoGrad)"/>
+
+  <!-- Ambient Glow -->
+  <circle cx="54" cy="52" r="34" fill="url(#logoAmbientGlow)"/>
+
+  <!-- Fountain Pen Nib Silhouette -->
+  <path d="M 32,23 C 27,23 24,26 25,31 C 26,38 30,46 34,52 L 51.5,78.5 C 52.6,80.2 55.4,80.2 56.5,78.5 L 74,52 C 78,46 82,38 83,31 C 84,26 81,23 76,23 Z"
+        fill="url(#logoNibGrad)"
+        stroke="url(#logoNibStroke)"
+        stroke-width="2.5"
+        stroke-linejoin="round"/>
+
+  <!-- Breather Hole -->
+  <circle cx="54" cy="33" r="2.8" fill="#092019" stroke="#00e5b8" stroke-width="1.6"/>
+
+  <!-- Ink Slit Line -->
+  <line x1="54" y1="35.5" x2="54" y2="78.5" stroke="#00e5b8" stroke-width="1.8" stroke-linecap="round"/>
+
+  <!-- Bengali 'লে' Typography -->
+  <path d="M 44.685,59.002 Q 42.855,59.002 41.325,57.982 Q 39.795,56.962 38.895,55.072 Q 38.025,53.152 38.025,50.572 Q 38.025,48.592 38.565,46.672 Q 39.135,44.752 40.335,43.222 Q 41.535,41.662 43.485,40.762 Q 45.465,39.832 48.285,39.832 H 48.945 V 43.192 H 48.765 Q 47.325,43.192 46.125,43.732 Q 44.925,44.272 44.025,45.292 Q 43.125,46.312 42.615,47.722 Q 42.135,49.102 42.135,50.782 Q 42.135,52.342 42.495,53.422 Q 42.885,54.502 43.515,55.072 Q 44.175,55.642 44.985,55.642 Q 45.855,55.642 46.365,55.522 Q 46.905,55.402 47.445,55.132 L 45.885,57.802 Q 45.165,57.802 44.505,57.502 Q 43.875,57.202 43.485,56.632 Q 43.095,56.032 43.095,55.222 Q 43.095,54.202 43.845,53.482 Q 44.625,52.762 45.795,52.762 Q 47.205,52.762 47.895,53.602 Q 48.615,54.442 48.615,55.582 Q 48.615,57.202 47.535,58.102 Q 46.455,59.002 44.685,59.002 Z M 65.055,58.762 V 49.192 H 65.445 L 65.415,50.512 Q 65.175,49.852 64.515,49.312 Q 63.885,48.742 63.075,48.742 Q 62.445,48.742 62.055,49.192 Q 61.665,49.612 61.665,50.572 Q 61.665,50.872 61.695,51.142 Q 61.725,51.412 61.755,51.622 L 58.605,51.802 Q 58.305,50.272 57.555,49.432 Q 56.805,48.562 55.605,48.562 Q 54.915,48.562 54.465,48.862 Q 54.015,49.132 53.775,49.612 Q 53.535,50.092 53.535,50.752 Q 53.535,51.502 53.865,51.952 Q 54.195,52.402 54.735,52.582 Q 55.305,52.732 55.965,52.732 L 55.755,56.182 Q 54.495,56.182 53.625,55.552 Q 52.785,54.922 52.785,53.632 Q 52.785,52.552 53.535,51.862 Q 54.315,51.172 55.365,51.172 Q 56.685,51.172 57.375,51.922 Q 58.065,52.672 58.065,53.752 Q 58.065,54.952 57.225,55.732 Q 56.415,56.482 54.765,56.482 Q 53.205,56.482 52.005,55.762 Q 50.835,55.012 50.145,53.722 Q 49.485,52.402 49.485,50.692 Q 49.485,48.922 50.145,47.692 Q 50.835,46.432 52.035,45.772 Q 53.265,45.082 54.855,45.082 Q 56.385,45.082 57.705,45.742 Q 59.025,46.402 59.955,47.752 Q 60.915,49.102 61.275,51.142 L 58.485,50.752 Q 58.485,48.652 59.025,47.482 Q 59.565,46.282 60.435,45.772 Q 61.335,45.262 62.325,45.262 Q 63.585,45.262 64.545,45.892 Q 65.535,46.492 66.135,47.572 L 65.295,47.392 Q 65.205,46.732 65.145,46.072 Q 65.085,45.412 65.085,44.962 V 43.192 H 48.375 V 39.832 H 71.685 V 43.192 H 69.225 V 58.762 Z"
+        fill="#FFFFFF"/>
+
+  <!-- Keyboard Spacebar Horizon Line -->
+  <rect x="41" y="84.5" width="26" height="3.2" rx="1.6" ry="1.6" fill="url(#logoSpacebarGrad)"/>
 </svg>

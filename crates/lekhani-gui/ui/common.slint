@@ -172,9 +172,9 @@ export component BrandLogo inherits Rectangle {
 
     height: 26px;
     border-radius: 13px;
-    background: root.active ? #89b4fa25 : (ta.has-hover ? #24273a88 : transparent);
+    background: root.active ? #10b98125 : (ta.has-hover ? #24273a88 : transparent);
     border-width: 1px;
-    border-color: root.active ? #89b4fa66 : transparent;
+    border-color: root.active ? #10b98166 : transparent;
     animate background, border-color { duration: 100ms; }
 
     ta := TouchArea {
@@ -199,13 +199,14 @@ export component BrandLogo inherits Rectangle {
 
             Text {
                 text: "Lekhani";
-                color: root.active ? #89b4fa : #f8fafc;
+                color: root.active ? #10b981 : #f8fafc;
                 font-size: 13px;
                 font-weight: 700;
                 vertical-alignment: center;
             }
         }
     }
+
 }
 
 export component LayoutSelectorPill inherits Rectangle {
