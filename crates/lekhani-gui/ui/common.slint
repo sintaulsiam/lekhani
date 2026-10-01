@@ -358,6 +358,58 @@ export component ModernButton inherits Rectangle {
     }
 }
 
+export component EmojiCell inherits Rectangle {
+    in property <string> text;
+    out property <bool> has-hover: ta.has-hover;
+    callback clicked(string);
+
+    height: 36px;
+    border-radius: 8px;
+    background: ta.has-hover ? #10b98124 : #14152288;
+    border-width: 1px;
+    border-color: ta.has-hover ? #10b98166 : #24263855;
+    animate background, border-color { duration: 100ms; }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(root.text); }
+    }
+
+    Text {
+        text: root.text;
+        font-size: 19px;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+export component KaomojiCell inherits Rectangle {
+    in property <string> text;
+    out property <bool> has-hover: ta.has-hover;
+    callback clicked(string);
+
+    height: 34px;
+    border-radius: 8px;
+    background: ta.has-hover ? #10b98124 : #14152288;
+    border-width: 1px;
+    border-color: ta.has-hover ? #10b98166 : #24263855;
+    animate background, border-color { duration: 100ms; }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(root.text); }
+    }
+
+    Text {
+        text: root.text;
+        color: ta.has-hover ? #34d399 : #f1f5f9;
+        font-size: 12px;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
 export component ConfirmModal inherits Rectangle {
     in property <string> title: "Confirm Action";
     in property <string> message: "Are you sure you want to proceed?";
@@ -500,9 +552,9 @@ export component ModernToggleSwitch inherits Rectangle {
             height: 20px;
             border-radius: 10px;
             y: (parent.height - self.height) / 2;
-            background: root.checked ? #3b82f6 : #1a1f2c;
+            background: root.checked ? #10b981 : #131d18;
             border-width: 1px;
-            border-color: root.checked ? #60a5fa : #2a3348;
+            border-color: root.checked ? #34d399 : #24352b;
             animate background, border-color { duration: 120ms; }
 
             Rectangle {
@@ -552,15 +604,15 @@ export component SidebarTabItem inherits Rectangle {
     in property <image> icon;
     in property <string> label;
     in property <bool> active: false;
-    in property <color> active-color: #89b4fa;
+    in property <color> active-color: #10b981;
     in property <string> badge: "";
     callback clicked;
 
     height: 38px;
     border-radius: 8px;
-    background: root.active ? #89b4fa18 : (ta.has-hover ? #ffffff08 : transparent);
+    background: root.active ? #10b98118 : (ta.has-hover ? #ffffff08 : transparent);
     border-width: 1px;
-    border-color: root.active ? #89b4fa33 : transparent;
+    border-color: root.active ? #10b98133 : transparent;
     animate background, border-color { duration: 100ms; }
 
     ta := TouchArea {
@@ -712,13 +764,13 @@ export component SettingRow inherits Rectangle {
 
 export component SettingCard inherits Rectangle {
     in property <string> title;
-    in property <color> title-color: #89b4fa;
+    in property <color> title-color: #10b981;
     in property <image> icon;
 
-    background: #0c0d14;
+    background: #0c1310;
     border-radius: 12px;
     border-width: 1px;
-    border-color: #242638;
+    border-color: #10b98124;
 
     VerticalLayout {
         padding: 14px;
@@ -856,9 +908,46 @@ export component SettingsContent inherits ScrollView {
         if (root.active-tab == 0): VerticalLayout {
             spacing: 12px;
 
+            // Privacy Assurance Card
+            Rectangle {
+                background: #0d1b14;
+                border-radius: 10px;
+                border-width: 1px;
+                border-color: #10b98144;
+
+                VerticalLayout {
+                    padding: 12px;
+                    spacing: 6px;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        alignment: start;
+                        Image {
+                            source: @image-url("../../../data/icons/ui/settings.svg");
+                            width: 15px;
+                            height: 15px;
+                            colorize: #10b981;
+                            vertical-alignment: center;
+                        }
+                        Text {
+                            text: "100% Offline & Private • ১০০% অফলাইন ও সম্পূর্ণ নিরাপদ";
+                            color: #10b981;
+                            font-size: 11.5px;
+                            font-weight: 700;
+                            vertical-alignment: center;
+                        }
+                    }
+                    Text {
+                        text: "Lekhani requires zero network access. Keystrokes, personal vocabulary, and settings run 100% locally on your computer and never leave your machine.";
+                        color: #94a3b8;
+                        font-size: 10.5px;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+
             SettingCard {
-                title: "GENERAL PREFERENCES";
-                title-color: #cba6f7;
+                title: "GENERAL PREFERENCES • সাধারণ সেটিংস";
+                title-color: #10b981;
                 icon: @image-url("../../../data/icons/ui/settings.svg");
 
                 SettingRow {
@@ -876,14 +965,14 @@ export component SettingsContent inherits ScrollView {
                 }
 
                 SettingRow {
-                    title: "Auto-Expand Double Period (..) to Dāri (।)";
-                    subtitle: "Quickly type Bengali dāri punctuation by typing double full-stops";
+                    title: "Quick Dāri (।)";
+                    subtitle: "Type double full-stops (..) to automatically insert Bengali dāri (।)";
                     checked <=> root.set-auto-dari;
                     toggled(_) => { root.auto-save(); }
                 }
 
                 SettingRow {
-                    title: "Show Mode-Switch HUD Overlay";
+                    title: "Show Layout Switch Alert (মোড পরিবর্তন নোটিফিকেশন)";
                     subtitle: "Display an on-screen visual notification when switching layouts";
                     checked <=> root.set-show-osd;
                     toggled(_) => { root.auto-save(); }
@@ -919,7 +1008,7 @@ export component SettingsContent inherits ScrollView {
                                 alignment: center;
                                 spacing: 2px;
                                 Text {
-                                    text: "Mode Toggle Hotkey";
+                                    text: "Mode Toggle Key (বাংলা / ইংরেজি সুইচ)";
                                     color: #f1f5f9;
                                     font-size: 12px;
                                     font-weight: 600;
@@ -938,7 +1027,7 @@ export component SettingsContent inherits ScrollView {
                                 SegmentButton {
                                     label: "F12";
                                     active: root.set-toggle-key == "F12";
-                                    active-color: #cba6f7;
+                                    active-color: #10b981;
                                     clicked => {
                                         root.set-toggle-key = "F12";
                                         root.auto-save();
@@ -947,7 +1036,7 @@ export component SettingsContent inherits ScrollView {
                                 SegmentButton {
                                     label: "Ctrl+Space";
                                     active: root.set-toggle-key == "Ctrl+Space";
-                                    active-color: #cba6f7;
+                                    active-color: #10b981;
                                     clicked => {
                                         root.set-toggle-key = "Ctrl+Space";
                                         root.auto-save();
@@ -956,7 +1045,7 @@ export component SettingsContent inherits ScrollView {
                                 SegmentButton {
                                     label: "Shift+Space";
                                     active: root.set-toggle-key == "Shift+Space";
-                                    active-color: #cba6f7;
+                                    active-color: #10b981;
                                     clicked => {
                                         root.set-toggle-key = "Shift+Space";
                                         root.auto-save();
@@ -974,13 +1063,13 @@ export component SettingsContent inherits ScrollView {
             spacing: 12px;
 
             SettingCard {
-                title: "PHONETIC & BASIC TYPING";
-                title-color: #89b4fa;
+                title: "PHONETIC & BASIC TYPING • ফোনেটিক টাইপিং";
+                title-color: #10b981;
                 icon: @image-url("../../../data/icons/ui/keyboard.svg");
 
                 SettingRow {
-                    title: "Enable Dictionary Suggestions";
-                    subtitle: "Offer intelligent phonetic candidate completions as you type in Roman letters";
+                    title: "Phonetic Word Suggestions (শব্দ সাজেশন)";
+                    subtitle: "Show Bengali word suggestions as you type in English letters";
                     checked <=> root.set-use-dict;
                     toggled(_) => { root.auto-save(); }
                 }
@@ -1002,21 +1091,21 @@ export component SettingsContent inherits ScrollView {
             }
 
             SettingCard {
-                title: "AUTONOMOUS LEARNING PROFILE";
-                title-color: #89b4fa;
+                title: "TYPING MEMORY & DICTIONARY • টাইপিং মেমোরি";
+                title-color: #10b981;
                 icon: @image-url("../../../data/icons/ui/chart.svg");
 
                 HorizontalLayout {
                     spacing: 10px;
                     Text {
-                        text: "Active Model Memory:";
+                        text: "Learned Vocabulary (শেখা শব্দ):";
                         color: #94a3b8;
                         font-size: 11.5px;
                         vertical-alignment: center;
                     }
                     Text {
                         text: root.learned-stats-text;
-                        color: #89b4fa;
+                        color: #10b981;
                         font-size: 12px;
                         font-weight: 700;
                         vertical-alignment: center;
@@ -1024,8 +1113,8 @@ export component SettingsContent inherits ScrollView {
                 }
 
                 Text {
-                    text: "Lekhani continuously trains local n-grams and bigram transitions from your accepted selections. Your personalized vocabulary stays 100% private on your device.";
-                    color: #64748b;
+                    text: "Lekhani remembers words and phrases you use often to suggest them first. All typing data is stored locally and never leaves your computer.";
+                    color: #94a3b8;
                     font-size: 11px;
                     wrap: word-wrap;
                 }
@@ -1037,41 +1126,41 @@ export component SettingsContent inherits ScrollView {
             spacing: 12px;
 
             SettingCard {
-                title: "FIXED LAYOUT AUTOMATIONS (PROBHAT / JATIYA / UNIBIJOY)";
-                title-color: #a6e3a1;
+                title: "FIXED LAYOUT ASSISTANCE • লেআউট অটোমেশন";
+                title-color: #10b981;
                 icon: @image-url("../../../data/icons/ui/puzzle.svg");
 
                 SettingRow {
-                    title: "Automatic Vowel Forming";
-                    subtitle: "Converts standalone kars into independent vowel letters (e.g. অ + া ➔ আ)";
+                    title: "Auto Vowel Formation (স্বরবর্ণ গঠন)";
+                    subtitle: "Convert standalone vowel signs into independent vowels (e.g. অ + া ➔ আ)";
                     checked <=> root.set-auto-vowel;
                     toggled(_) => { root.auto-save(); }
                 }
 
                 SettingRow {
-                    title: "Automatic Chandra Position";
-                    subtitle: "Ensures Chandrabindu is automatically attached to the consonant (ক + ঁ ➔ কাঁ)";
+                    title: "Auto Chandrabindu Placement (চন্দ্রবিন্দু অবস্থান)";
+                    subtitle: "Automatically place Chandrabindu on the root consonant (ক + ঁ ➔ কাঁ)";
                     checked <=> root.set-auto-chandra;
                     toggled(_) => { root.auto-save(); }
                 }
 
                 SettingRow {
-                    title: "Traditional Kar Placement";
-                    subtitle: "Maintains classical visual typing sequence for pre-kars and post-kars";
+                    title: "Traditional Kar Sequence (প্রচলিত কার টাইপিং)";
+                    subtitle: "Supports classical visual typing sequence for pre-kars and post-kars";
                     checked <=> root.set-traditional-kar;
                     toggled(_) => { root.auto-save(); }
                 }
 
                 SettingRow {
-                    title: "Smart Reph Placement";
-                    subtitle: "Automatically repositions Bengali Reph (র্) before the appropriate root consonant";
+                    title: "Auto Reph Placement (রেফ্ অবস্থান)";
+                    subtitle: "Automatically position Bengali Reph (র্) before the root consonant";
                     checked <=> root.set-old-reph;
                     toggled(_) => { root.auto-save(); }
                 }
 
                 SettingRow {
-                    title: "Bengali Number Pad Mapping";
-                    subtitle: "Maps physical numeric keypad digits directly to Bengali numerals (০-৯)";
+                    title: "Bengali Number Pad (বাংলা সংখ্যা কিপ্যাড)";
+                    subtitle: "Map physical numeric keypad digits directly to Bengali numerals (০-৯)";
                     checked <=> root.set-numberpad;
                     has-divider: false;
                     toggled(_) => { root.auto-save(); }
@@ -1084,34 +1173,34 @@ export component SettingsContent inherits ScrollView {
             spacing: 12px;
 
             SettingCard {
-                title: "WORD SUGGESTIONS & PREDICTIONS";
-                title-color: #f38ba8;
+                title: "WORD SUGGESTIONS & PREDICTIONS • স্মার্ট প্রেডিকশন";
+                title-color: #10b981;
                 icon: @image-url("../../../data/icons/ui/chart.svg");
 
                 SettingRow {
-                    title: "Suggest Next Words";
-                    subtitle: "Suggests likely upcoming words based on sentence context";
+                    title: "Suggest Next Words (পরবর্তী শব্দ সাজেশন)";
+                    subtitle: "Suggest likely upcoming words based on sentence context";
                     checked <=> root.set-predictive-next;
                     toggled(_) => { root.auto-save(); }
                 }
 
                 SettingRow {
-                    title: "Repeated Words Prediction (দ্বিরুক্ত শব্দ)";
-                    subtitle: "Auto-completes repeated Bengali expressions (e.g. ধীরে ➔ ধীরে ধীরে)";
+                    title: "Repeated Words (দ্বিরুক্ত শব্দ)";
+                    subtitle: "Auto-suggest repeated Bengali expressions (e.g. ধীরে ➔ ধীরে ধীরে)";
                     checked <=> root.set-reduplication;
                     toggled(_) => { root.auto-save(); }
                 }
 
                 SettingRow {
-                    title: "Common Phrase Completion";
-                    subtitle: "Predicts everyday phrases, greetings, and common expressions";
+                    title: "Common Phrase Completion (প্রচলিত বাক্য)";
+                    subtitle: "Predict everyday phrases, greetings, and common expressions";
                     checked <=> root.set-phrase-prediction;
                     toggled(_) => { root.auto-save(); }
                 }
 
                 SettingRow {
-                    title: "Dynamic Math & Date Macros";
-                    subtitle: "Evaluates inline calculations like !sum(10+20) and dates like !date";
+                    title: "Quick Math & Date Tools (হিসাব ও তারিখ)";
+                    subtitle: "Evaluate inline calculations like !sum(10+20) and dates like !date";
                     checked <=> root.set-dynamic-macros;
                     has-divider: false;
                     toggled(_) => { root.auto-save(); }
@@ -1119,34 +1208,34 @@ export component SettingsContent inherits ScrollView {
             }
 
             SettingCard {
-                title: "SMART TYPING ASSISTANCE";
-                title-color: #f38ba8;
+                title: "SMART TYPING ASSISTANCE • স্মার্ট সহায়তা";
+                title-color: #10b981;
                 icon: @image-url("../../../data/icons/ui/settings.svg");
 
                 SettingRow {
-                    title: "Ignore Code & URLs (Code Shield)";
-                    subtitle: "Keeps programming syntax, variables, and URLs in English (onClick, const, --flag)";
+                    title: "Code & URL Shield (কোড ও লিংক সুরক্ষা)";
+                    subtitle: "Keep programming syntax, variables, and URLs in English (onClick, const, --flag)";
                     checked <=> root.set-code-shield;
                     toggled(_) => { root.auto-save(); }
                 }
 
                 SettingRow {
-                    title: "Auto-Separate Joined Words";
-                    subtitle: "Splits combined phonetics into proper spaced words (kemonaso ➔ কেমন আছো)";
+                    title: "Auto-Separate Joined Words (শব্দ বিভাজন)";
+                    subtitle: "Split combined phonetics into proper spaced words (kemonaso ➔ কেমন আছো)";
                     checked <=> root.set-word-segmentation;
                     toggled(_) => { root.auto-save(); }
                 }
 
                 SettingRow {
-                    title: "Recognize Informal & Regional Words";
-                    subtitle: "Converts spoken regional dialects into standard Bengali (খামু ➔ খাব)";
+                    title: "Colloquial & Dialects (আঞ্চলিক শব্দ সহায়তা)";
+                    subtitle: "Recognize spoken regional words (যেমন: খামু ➔ খাব)";
                     checked <=> root.set-colloquial-dialects;
                     toggled(_) => { root.auto-save(); }
                 }
 
                 SettingRow {
-                    title: "Expand Chat Shortcuts & Banglish";
-                    subtitle: "Expands popular SMS and social media chat shortcuts (amr ➔ আমার, kothay ➔ কোথায়)";
+                    title: "Chat Shortcuts (চ্যাট শর্টকাট প্রসার)";
+                    subtitle: "Expand popular chat shortcuts (e.g. amr ➔ আমার, kothay ➔ কোথায়)";
                     checked <=> root.set-banglish-shorthand;
                     has-divider: false;
                     toggled(_) => { root.auto-save(); }
@@ -1159,8 +1248,8 @@ export component SettingsContent inherits ScrollView {
             spacing: 12px;
 
             SettingCard {
-                title: "DATA & BACKUP MANAGEMENT";
-                title-color: #38bdf8;
+                title: "BACKUP & LOCAL DATA • ব্যাকআপ ও ডেটা";
+                title-color: #10b981;
                 icon: @image-url("../../../data/icons/ui/database.svg");
 
                 VerticalLayout {
@@ -1169,10 +1258,10 @@ export component SettingsContent inherits ScrollView {
                     // Card 1: Full Workspace Backup
                     Rectangle {
                         horizontal-stretch: 1;
-                        background: #0f111a;
+                        background: #0f1813;
                         border-radius: 9px;
                         border-width: 1px;
-                        border-color: #23273a;
+                        border-color: #1a3024;
 
                         VerticalLayout {
                             padding: 14px;
@@ -1188,9 +1277,9 @@ export component SettingsContent inherits ScrollView {
                                         width: 30px;
                                         height: 30px;
                                         border-radius: 7px;
-                                        background: #89b4fa15;
+                                        background: #10b98115;
                                         border-width: 1px;
-                                        border-color: #89b4fa33;
+                                        border-color: #10b98133;
                                         Image {
                                             x: (parent.width - self.width) / 2;
                                             y: (parent.height - self.height) / 2;
@@ -1203,14 +1292,14 @@ export component SettingsContent inherits ScrollView {
                                         alignment: center;
                                         spacing: 2px;
                                         Text {
-                                            text: "Full Workspace Archive";
+                                            text: "Full Workspace Archive (সম্পূর্ণ ব্যাকআপ)";
                                             color: #f1f5f9;
                                             font-size: 12px;
                                             font-weight: 700;
                                         }
                                         Text {
                                             text: "Complete system backup (.json)";
-                                            color: #89b4fa;
+                                            color: #10b981;
                                             font-size: 10.5px;
                                             font-weight: 600;
                                         }
@@ -1249,10 +1338,10 @@ export component SettingsContent inherits ScrollView {
                     // Card 2: Learned Vocabulary
                     Rectangle {
                         horizontal-stretch: 1;
-                        background: #0f111a;
+                        background: #0f1813;
                         border-radius: 9px;
                         border-width: 1px;
-                        border-color: #23273a;
+                        border-color: #1a3024;
 
                         VerticalLayout {
                             padding: 14px;
@@ -1268,9 +1357,9 @@ export component SettingsContent inherits ScrollView {
                                         width: 30px;
                                         height: 30px;
                                         border-radius: 7px;
-                                        background: #cba6f715;
+                                        background: #10b98115;
                                         border-width: 1px;
-                                        border-color: #cba6f733;
+                                        border-color: #10b98133;
                                         Image {
                                             x: (parent.width - self.width) / 2;
                                             y: (parent.height - self.height) / 2;
@@ -1283,14 +1372,14 @@ export component SettingsContent inherits ScrollView {
                                         alignment: center;
                                         spacing: 2px;
                                         Text {
-                                            text: "Learned Vocabulary";
+                                            text: "Learned Vocabulary (ব্যক্তিগত শব্দকোষ)";
                                             color: #f1f5f9;
                                             font-size: 12px;
                                             font-weight: 700;
                                         }
                                         Text {
-                                            text: "Personalized language model (.json)";
-                                            color: #cba6f7;
+                                            text: "Personalized vocabulary list (.json)";
+                                            color: #10b981;
                                             font-size: 10.5px;
                                             font-weight: 600;
                                         }
@@ -1298,7 +1387,7 @@ export component SettingsContent inherits ScrollView {
                                 }
 
                                 Text {
-                                    text: "Export or import only your autonomously learned vocabulary, candidate memory, and dynamic bigram transitions.";
+                                    text: "Export or import your learned vocabulary, candidate selection memory, and word transitions.";
                                     color: #94a3b8;
                                     font-size: 11px;
                                     wrap: word-wrap;

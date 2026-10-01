@@ -27,7 +27,9 @@ import {
     SettingRow,
     SettingCard,
     SettingsContent,
-    EmptyStateView
+    EmptyStateView,
+    EmojiCell,
+    KaomojiCell
 } from "common.slint";
 
 export {
@@ -76,6 +78,29 @@ export component TopBarWindow inherits Window {
     in-out property <bool> show-about-dialog: root.active-dialog == 6;
     in-out property <bool> show-conjunct-dialog: root.active-dialog == 7;
     in-out property <bool> show-stats-dialog: root.active-dialog == 8;
+    in-out property <bool> show-emoji-dialog: root.active-dialog == 9;
+
+    // Emoji & Symbols Palette properties
+    in-out property <int> emoji-tab: 0; // 0: Emojis, 1: Symbols, 2: Kaomoji
+    in-out property <string> emoji-search-query: "";
+    in-out property <string> emoji-copied-toast: "";
+    property <[string]> emoji-row-1: ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🥰", "😍"];
+    property <[string]> emoji-row-2: ["😋", "😛", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🥳", "😏", "🥺", "😭"];
+    property <[string]> emoji-row-3: ["👍", "👎", "👌", "✌️", "🤞", "🫰", "👏", "🙌", "🫶", "🤝", "🙏", "💪"];
+    property <[string]> emoji-row-4: ["❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "💔", "❤️‍🔥", "✨", "🔥"];
+    property <[string]> emoji-row-5: ["🌸", "🌹", "🌻", "💐", "🌧️", "⚡", "❄️", "☀️", "🌙", "⭐", "🎉", "☕"];
+
+    property <[string]> symbol-row-1: ["৳", "।", "॥", "৺", "৲", "৴", "৵", "৶", "৷", "৸", "৹", "—"];
+    property <[string]> symbol-row-2: ["©", "®", "™", "§", "¶", "•", "–", "‘", "’", "“", "”", "…"];
+    property <[string]> symbol-row-3: ["°", "±", "×", "÷", "≠", "≈", "≤", "≥", "√", "∞", "µ", "%"];
+    property <[string]> symbol-row-4: ["←", "→", "↑", "↓", "↔", "↕", "⇒", "⇔", "✓", "✕", "★", "💡"];
+    property <[string]> symbol-row-5: ["⚠️", "❗", "❓", "🔔", "📌", "📍", "🎯", "🏆", "➕", "➖", "➗", "⚡"];
+
+    property <[string]> kaomoji-row-1: ["(◕‿◕)", "(*^‿^*)", "(｡♥‿♥｡)", "(づ｡◕‿‿◕｡)づ"];
+    property <[string]> kaomoji-row-2: ["¯\\_(ツ)_/¯", "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧", "(✿◠‿◠)", "٩(◕‿◕｡)۶"];
+    property <[string]> kaomoji-row-3: ["(¬‿¬)", "(•‿•)", "(´∀｀)♡", "(ര‿ര)"];
+    property <[string]> kaomoji-row-4: ["(╥﹏╥)", "(╯°□°）╯︵ ┻━┻", "(o_O)", "(ง •̀_•́)ง"];
+    property <[string]> kaomoji-row-5: ["( ͡° ͜ʖ ͡°)", "ฅ^•ﻌ•^ฅ", "( ˘ ³˘)♥", "( •̀ᴗ•́ )و"];
 
     // Layout Viewer state
     in-out property <int> viewer-mode: 0; // 0: Normal, 1: Shift, 2: AltGr
@@ -288,9 +313,9 @@ export component TopBarWindow inherits Window {
                 btn_viewer := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/keyboard.svg");
                     active: root.active-dialog == 2;
-                    active-color: #89b4fa;
-                    active-bg: #89b4fa28;
-                    active-border: #89b4fa66;
+                    active-color: #10b981;
+                    active-bg: #10b98128;
+                    active-border: #10b98166;
                     clicked => {
                         root.active-dialog = root.active-dialog == 2 ? 0 : 2;
                         if (root.active-dialog == 2) {
@@ -303,9 +328,9 @@ export component TopBarWindow inherits Window {
                 btn_ac := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/pen.svg");
                     active: root.active-dialog == 3;
-                    active-color: #a6e3a1;
-                    active-bg: #a6e3a128;
-                    active-border: #a6e3a166;
+                    active-color: #10b981;
+                    active-bg: #10b98128;
+                    active-border: #10b98166;
                     clicked => {
                         root.active-dialog = root.active-dialog == 3 ? 0 : 3;
                     }
@@ -315,9 +340,9 @@ export component TopBarWindow inherits Window {
                 btn_conv := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/exchange.svg");
                     active: root.active-dialog == 4;
-                    active-color: #fab387;
-                    active-bg: #fab38728;
-                    active-border: #fab38766;
+                    active-color: #10b981;
+                    active-bg: #10b98128;
+                    active-border: #10b98166;
                     clicked => {
                         root.active-dialog = root.active-dialog == 4 ? 0 : 4;
                     }
@@ -327,21 +352,33 @@ export component TopBarWindow inherits Window {
                 btn_conjunct := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/puzzle.svg");
                     active: root.active-dialog == 7;
-                    active-color: #89dceb;
-                    active-bg: #89dceb28;
-                    active-border: #89dceb66;
+                    active-color: #10b981;
+                    active-bg: #10b98128;
+                    active-border: #10b98166;
                     clicked => {
                         root.active-dialog = root.active-dialog == 7 ? 0 : 7;
                     }
                 }
 
-                // 8. Personal Typing Telemetry & Speed (3-Bar Equalizer Vector Icon)
+                // 8. Emoji, Kaomoji & Typographical Symbols Palette (Smile Vector Icon)
+                btn_emoji := VectorIconButton {
+                    icon: @image-url("../../../data/icons/ui/smile.svg");
+                    active: root.active-dialog == 9;
+                    active-color: #10b981;
+                    active-bg: #10b98128;
+                    active-border: #10b98166;
+                    clicked => {
+                        root.active-dialog = root.active-dialog == 9 ? 0 : 9;
+                    }
+                }
+
+                // 9. Personal Typing Telemetry & Speed (3-Bar Equalizer Vector Icon)
                 btn_stats := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/chart.svg");
                     active: root.active-dialog == 8;
-                    active-color: #f9e2af;
-                    active-bg: #f9e2af28;
-                    active-border: #f9e2af66;
+                    active-color: #10b981;
+                    active-bg: #10b98128;
+                    active-border: #10b98166;
                     clicked => {
                         root.active-dialog = root.active-dialog == 8 ? 0 : 8;
                         if (root.active-dialog == 8) {
@@ -350,13 +387,13 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                // 9. Settings Button (Gear Vector Icon)
+                // 10. Settings Button (Gear Vector Icon)
                 btn_settings := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/settings.svg");
                     active: root.active-dialog == 5;
-                    active-color: #cba6f7;
-                    active-bg: #cba6f728;
-                    active-border: #cba6f766;
+                    active-color: #10b981;
+                    active-bg: #10b98128;
+                    active-border: #10b98166;
                     clicked => {
                         root.active-dialog = root.active-dialog == 5 ? 0 : 5;
                     }
@@ -1547,10 +1584,10 @@ export component TopBarWindow inherits Window {
         // ---------------------------------------------------------------------
         if (root.active-dialog == 6): Rectangle {
             width: 480px;
-            background: #11121dfa;
+            background: #0f1613fa;
             border-radius: 18px;
             border-width: 1.2px;
-            border-color: #50567a55;
+            border-color: #10b98144;
             drop-shadow-blur: 24px;
             drop-shadow-color: #000000cc;
 
@@ -1578,55 +1615,91 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                Text {
-                    text: "Lekhani (লেখনী)";
-                    color: #f1f5f9;
-                    font-size: 17px;
-                    font-weight: 800;
-                    horizontal-alignment: center;
+                VerticalLayout {
+                    spacing: 2px;
+                    alignment: center;
+                    Text {
+                        text: "Lekhani (লেখনী)";
+                        color: #f1f5f9;
+                        font-size: 17px;
+                        font-weight: 800;
+                        horizontal-alignment: center;
+                    }
+                    Text {
+                        text: "Fast, Private Bengali Keyboard for Desktop • দ্রুত ও নিরাপদ বাংলা টাইপিং";
+                        color: #94a3b8;
+                        font-size: 10.5px;
+                        horizontal-alignment: center;
+                    }
                 }
 
-                Text {
-                    text: "Version 1.0.0 • Pure Rust Architecture";
-                    color: #10b981;
-                    font-size: 12px;
-                    font-weight: 600;
-                    horizontal-alignment: center;
+                // Version Badge Pill
+                Rectangle {
+                    border-radius: 10px;
+                    background: #10b98118;
+                    border-width: 1px;
+                    border-color: #10b98144;
+                    HorizontalLayout {
+                        padding-left: 10px;
+                        padding-right: 10px;
+                        padding-top: 4px;
+                        padding-bottom: 4px;
+                        Text {
+                            text: "v1.0.0 • 100% Offline • Zero Telemetry";
+                            color: #10b981;
+                            font-size: 11px;
+                            font-weight: 700;
+                        }
+                    }
                 }
 
-                Text {
-                    text: "Author: Sintaul Mahdi Siam • Syntenieum (2026)";
-                    color: #a6e3a1;
-                    font-size: 11px;
-                    font-weight: 600;
-                    horizontal-alignment: center;
-                }
+                // Privacy Trust Assurance Card
+                Rectangle {
+                    background: #0a130e;
+                    border-radius: 10px;
+                    border-width: 1px;
+                    border-color: #10b98133;
 
-                Text {
-                    text: "© 2026 Syntenieum. All rights reserved.";
-                    color: #89dceb;
-                    font-size: 10.5px;
-                    font-weight: 500;
-                    horizontal-alignment: center;
-                }
+                    VerticalLayout {
+                        padding: 10px;
+                        spacing: 5px;
+                        HorizontalLayout {
+                            spacing: 8px;
+                            alignment: start;
+                            Image {
+                                source: @image-url("../../../data/icons/ui/settings.svg");
+                                width: 13px;
+                                height: 13px;
+                                colorize: #10b981;
+                                vertical-alignment: center;
+                            }
+                            Text {
+                                text: "100% Offline & Private (সম্পূর্ণ অফলাইন ও নিরাপদ)";
+                                color: #10b981;
+                                font-size: 10.5px;
+                                font-weight: 700;
+                                vertical-alignment: center;
+                            }
+                        }
 
-                Text {
-                    text: "Modern, Ultra-Fast Bengali Input Method Framework & Desktop Suite for Linux & Windows";
-                    color: #a6adc8;
-                    font-size: 11.5px;
-                    horizontal-alignment: center;
-                    wrap: word-wrap;
+                        Text {
+                            text: "• No Internet Access: Lekhani requires zero network access. Keystrokes never leave your PC.\n• On-Device Engine: Transliteration, spell checking, and n-grams run 100% locally on CPU.\n• Protected Local Storage: Learned words and settings remain strictly on your computer.";
+                            color: #94a3b8;
+                            font-size: 9.5px;
+                            wrap: word-wrap;
+                        }
+                    }
                 }
 
                 Rectangle {
                     height: 1px;
-                    background: #242638;
+                    background: #1a2a22;
                 }
 
                 Text {
-                    text: "Special thanks to Avro Project (OmicronLab) & OpenBangla Keyboard for their pioneering foundations in Bengali computing.";
-                    color: #f9e2af;
-                    font-size: 10px;
+                    text: "Author: Sintaul Mahdi Siam • Syntenieum (2026)\nSpecial thanks to Avro Project (OmicronLab) & OpenBangla Keyboard.";
+                    color: #64748b;
+                    font-size: 9.5px;
                     horizontal-alignment: center;
                     wrap: word-wrap;
                 }
@@ -2012,7 +2085,323 @@ export component TopBarWindow inherits Window {
         }
 
         // ---------------------------------------------------------------------
-        // 9. Mode-Switch OSD HUD Overlay (Activated on F12 / Layout Toggle)
+        // 9. Emoji, Kaomoji & Typographical Symbols Palette
+        // ---------------------------------------------------------------------
+        if (root.active-dialog == 9): Rectangle {
+            width: 480px;
+            background: #11121dfa;
+            border-radius: 18px;
+            border-width: 1.2px;
+            border-color: #10b98144;
+            drop-shadow-blur: 24px;
+            drop-shadow-color: #000000cc;
+
+            VerticalLayout {
+                padding: 14px;
+                spacing: 10px;
+
+                // Header
+                HorizontalLayout {
+                    alignment: space-between;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        HeaderIcon {
+                            source: @image-url("../../../data/icons/ui/smile.svg");
+                            colorize: #10b981;
+                        }
+
+                        VerticalLayout {
+                            alignment: center;
+                            spacing: 1px;
+                            Text {
+                                text: "ইমোজি ও প্রতীক প্যালেট";
+                                color: #f1f5f9;
+                                font-size: 13.5px;
+                                font-weight: 700;
+                            }
+                            Text {
+                                text: "Emoji, Symbols & Kaomoji Palette";
+                                color: #a6adc8;
+                                font-size: 10px;
+                            }
+                        }
+                    }
+
+                    HorizontalLayout {
+                        spacing: 6px;
+                        PopoutButton {
+                            clicked => {
+                                root.active-dialog = 0;
+                                root.detach-dialog(9);
+                            }
+                        }
+                        CloseButton {
+                            clicked => { root.active-dialog = 0; }
+                        }
+                    }
+                }
+
+                // Tab Selector
+                HorizontalLayout {
+                    spacing: 6px;
+                    Rectangle {
+                        height: 30px;
+                        border-radius: 8px;
+                        background: root.emoji-tab == 0 ? #10b98125 : #18192688;
+                        border-width: 1px;
+                        border-color: root.emoji-tab == 0 ? #10b98166 : #313244;
+                        TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => { root.emoji-tab = 0; }
+                        }
+                        Text {
+                            text: "😊 Emojis";
+                            color: root.emoji-tab == 0 ? #34d399 : #cdd6f4;
+                            font-size: 11.5px;
+                            font-weight: 600;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    Rectangle {
+                        height: 30px;
+                        border-radius: 8px;
+                        background: root.emoji-tab == 1 ? #10b98125 : #18192688;
+                        border-width: 1px;
+                        border-color: root.emoji-tab == 1 ? #10b98166 : #313244;
+                        TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => { root.emoji-tab = 1; }
+                        }
+                        Text {
+                            text: "৳ প্রতীক (Symbols)";
+                            color: root.emoji-tab == 1 ? #34d399 : #cdd6f4;
+                            font-size: 11.5px;
+                            font-weight: 600;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    Rectangle {
+                        height: 30px;
+                        border-radius: 8px;
+                        background: root.emoji-tab == 2 ? #10b98125 : #18192688;
+                        border-width: 1px;
+                        border-color: root.emoji-tab == 2 ? #10b98166 : #313244;
+                        TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => { root.emoji-tab = 2; }
+                        }
+                        Text {
+                            text: "(◕‿◕) Kaomoji";
+                            color: root.emoji-tab == 2 ? #34d399 : #cdd6f4;
+                            font-size: 11.5px;
+                            font-weight: 600;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+
+                // Grid Container
+                Rectangle {
+                    background: #0c0d14;
+                    border-radius: 10px;
+                    border-width: 1px;
+                    border-color: #242638;
+
+                    VerticalLayout {
+                        padding: 8px;
+
+                        // Tab 0: Emojis
+                        if (root.emoji-tab == 0): VerticalLayout {
+                            spacing: 4px;
+                            HorizontalLayout {
+                                spacing: 4px;
+                                for em in root.emoji-row-1: EmojiCell {
+                                    text: em;
+                                    clicked(glyph) => {
+                                        root.copy-to-clipboard(glyph);
+                                        root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                    }
+                                }
+                            }
+                            HorizontalLayout {
+                                spacing: 4px;
+                                for em in root.emoji-row-2: EmojiCell {
+                                    text: em;
+                                    clicked(glyph) => {
+                                        root.copy-to-clipboard(glyph);
+                                        root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                    }
+                                }
+                            }
+                            HorizontalLayout {
+                                spacing: 4px;
+                                for em in root.emoji-row-3: EmojiCell {
+                                    text: em;
+                                    clicked(glyph) => {
+                                        root.copy-to-clipboard(glyph);
+                                        root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                    }
+                                }
+                            }
+                            HorizontalLayout {
+                                spacing: 4px;
+                                for em in root.emoji-row-4: EmojiCell {
+                                    text: em;
+                                    clicked(glyph) => {
+                                        root.copy-to-clipboard(glyph);
+                                        root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                    }
+                                }
+                            }
+                            HorizontalLayout {
+                                spacing: 4px;
+                                for em in root.emoji-row-5: EmojiCell {
+                                    text: em;
+                                    clicked(glyph) => {
+                                        root.copy-to-clipboard(glyph);
+                                        root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Tab 1: Bengali & Typographical Symbols
+                        if (root.emoji-tab == 1): VerticalLayout {
+                            spacing: 4px;
+                            HorizontalLayout {
+                                spacing: 4px;
+                                for sym in root.symbol-row-1: EmojiCell {
+                                    text: sym;
+                                    clicked(glyph) => {
+                                        root.copy-to-clipboard(glyph);
+                                        root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                    }
+                                }
+                            }
+                            HorizontalLayout {
+                                spacing: 4px;
+                                for sym in root.symbol-row-2: EmojiCell {
+                                    text: sym;
+                                    clicked(glyph) => {
+                                        root.copy-to-clipboard(glyph);
+                                        root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                    }
+                                }
+                            }
+                            HorizontalLayout {
+                                spacing: 4px;
+                                for sym in root.symbol-row-3: EmojiCell {
+                                    text: sym;
+                                    clicked(glyph) => {
+                                        root.copy-to-clipboard(glyph);
+                                        root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                    }
+                                }
+                            }
+                            HorizontalLayout {
+                                spacing: 4px;
+                                for sym in root.symbol-row-4: EmojiCell {
+                                    text: sym;
+                                    clicked(glyph) => {
+                                        root.copy-to-clipboard(glyph);
+                                        root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                    }
+                                }
+                            }
+                            HorizontalLayout {
+                                spacing: 4px;
+                                for sym in root.symbol-row-5: EmojiCell {
+                                    text: sym;
+                                    clicked(glyph) => {
+                                        root.copy-to-clipboard(glyph);
+                                        root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                    }
+                                }
+                            }
+                        }
+
+                        // Tab 2: Kaomoji
+                        if (root.emoji-tab == 2): VerticalLayout {
+                            spacing: 4px;
+                            HorizontalLayout {
+                                spacing: 4px;
+                                for km in root.kaomoji-row-1: KaomojiCell {
+                                    text: km;
+                                    clicked(glyph) => {
+                                        root.copy-to-clipboard(glyph);
+                                        root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                    }
+                                }
+                            }
+                            HorizontalLayout {
+                                spacing: 4px;
+                                for km in root.kaomoji-row-2: KaomojiCell {
+                                    text: km;
+                                    clicked(glyph) => {
+                                        root.copy-to-clipboard(glyph);
+                                        root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                    }
+                                }
+                            }
+                            HorizontalLayout {
+                                spacing: 4px;
+                                for km in root.kaomoji-row-3: KaomojiCell {
+                                    text: km;
+                                    clicked(glyph) => {
+                                        root.copy-to-clipboard(glyph);
+                                        root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                    }
+                                }
+                            }
+                            HorizontalLayout {
+                                spacing: 4px;
+                                for km in root.kaomoji-row-4: KaomojiCell {
+                                    text: km;
+                                    clicked(glyph) => {
+                                        root.copy-to-clipboard(glyph);
+                                        root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                    }
+                                }
+                            }
+                            HorizontalLayout {
+                                spacing: 4px;
+                                for km in root.kaomoji-row-5: KaomojiCell {
+                                    text: km;
+                                    clicked(glyph) => {
+                                        root.copy-to-clipboard(glyph);
+                                        root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Status Toast / Hint Bar
+                Rectangle {
+                    height: 24px;
+                    border-radius: 6px;
+                    background: root.emoji-copied-toast != "" ? #10b98124 : transparent;
+                    animate background { duration: 120ms; }
+                    Text {
+                        text: root.emoji-copied-toast != "" ? root.emoji-copied-toast : "যেকোনো আইটেমে ক্লিক করলেই সরাসরি ক্লিপবোর্ডে কপি হবে • Click any item to copy";
+                        color: root.emoji-copied-toast != "" ? #34d399 : #6c7086;
+                        font-size: 10.5px;
+                        font-weight: root.emoji-copied-toast != "" ? 700 : 500;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // 10. Mode-Switch OSD HUD Overlay (Activated on F12 / Layout Toggle)
         // ---------------------------------------------------------------------
         if (root.show-osd): HorizontalLayout {
             alignment: center;
@@ -2186,12 +2575,35 @@ export component StandaloneDialogWindow inherits Window {
     property <[string]> latin-row-3: ["A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'"];
     property <[string]> latin-row-4: ["Z", "X", "C", "V", "B", "N", "M", ",", ".", "/"];
 
+    // Emoji & Symbols Palette properties
+    in-out property <int> emoji-tab: 0; // 0: Emojis, 1: Symbols, 2: Kaomoji
+    in-out property <string> emoji-search-query: "";
+    in-out property <string> emoji-copied-toast: "";
+    property <[string]> emoji-row-1: ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🥰", "😍"];
+    property <[string]> emoji-row-2: ["😋", "😛", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🥳", "😏", "🥺", "😭"];
+    property <[string]> emoji-row-3: ["👍", "👎", "👌", "✌️", "🤞", "🫰", "👏", "🙌", "🫶", "🤝", "🙏", "💪"];
+    property <[string]> emoji-row-4: ["❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "💔", "❤️‍🔥", "✨", "🔥"];
+    property <[string]> emoji-row-5: ["🌸", "🌹", "🌻", "💐", "🌧️", "⚡", "❄️", "☀️", "🌙", "⭐", "🎉", "☕"];
+
+    property <[string]> symbol-row-1: ["৳", "।", "॥", "৺", "৲", "৴", "৵", "৶", "৷", "৸", "৹", "—"];
+    property <[string]> symbol-row-2: ["©", "®", "™", "§", "¶", "•", "–", "‘", "’", "“", "”", "…"];
+    property <[string]> symbol-row-3: ["°", "±", "×", "÷", "≠", "≈", "≤", "≥", "√", "∞", "µ", "%"];
+    property <[string]> symbol-row-4: ["←", "→", "↑", "↓", "↔", "↕", "⇒", "⇔", "✓", "✕", "★", "💡"];
+    property <[string]> symbol-row-5: ["⚠️", "❗", "❓", "🔔", "📌", "📍", "🎯", "🏆", "➕", "➖", "➗", "⚡"];
+
+    property <[string]> kaomoji-row-1: ["(◕‿◕)", "(*^‿^*)", "(｡♥‿♥｡)", "(づ｡◕‿‿◕｡)づ"];
+    property <[string]> kaomoji-row-2: ["¯\\_(ツ)_/¯", "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧", "(✿◠‿◠)", "٩(◕‿◕｡)۶"];
+    property <[string]> kaomoji-row-3: ["(¬‿¬)", "(•‿•)", "(´∀｀)♡", "(ര‿ര)"];
+    property <[string]> kaomoji-row-4: ["(╥﹏╥)", "(╯°□°）╯︵ ┻━┻", "(o_O)", "(ง •̀_•́)ง"];
+    property <[string]> kaomoji-row-5: ["( ͡° ͜ʖ ͡°)", "ฅ^•ﻌ•^ฅ", "( ˘ ³˘)♥", "( •̀ᴗ•́ )و"];
+
     property <string> dialog-title: root.dialog-type == 2 ? "Lekhani - Keyboard Layout Viewer (" + root.viewer-selected-layout + ")" :
         root.dialog-type == 3 ? "Lekhani - AutoCorrect Manager" :
         root.dialog-type == 4 ? "Lekhani - Bijoy ⇄ Unicode Converter" :
         root.dialog-type == 5 ? "Lekhani - Settings" :
         root.dialog-type == 7 ? "Lekhani - যুক্তবর্ণ সহায়িকা (Conjunct Assistant)" :
-        root.dialog-type == 8 ? "Lekhani - Typing Telemetry & Speed" : "Lekhani Desktop Suite";
+        root.dialog-type == 8 ? "Lekhani - Typing Telemetry & Speed" :
+        root.dialog-type == 9 ? "Lekhani - ইমোজি ও প্রতীক প্যালেট (Emoji & Symbols)" : "Lekhani Desktop Suite";
 
     // Callbacks
     callback close-window();
@@ -2252,14 +2664,16 @@ export component StandaloneDialogWindow inherits Window {
                             root.dialog-type == 5 ? @image-url("../../../data/icons/ui/settings.svg") :
                             root.dialog-type == 7 ? @image-url("../../../data/icons/ui/puzzle.svg") :
                             root.dialog-type == 8 ? @image-url("../../../data/icons/ui/chart.svg") :
+                            root.dialog-type == 9 ? @image-url("../../../data/icons/ui/smile.svg") :
                             @image-url("../../../data/icons/ui/logo.svg");
                         icon-size: 18px;
                         colorize: root.dialog-type == 2 ? #89b4fa :
                             root.dialog-type == 3 ? #a6e3a1 :
                             root.dialog-type == 4 ? #fab387 :
-                            root.dialog-type == 5 ? #cba6f7 :
+                            root.dialog-type == 5 ? #10b981 :
                             root.dialog-type == 7 ? #89dceb :
-                            root.dialog-type == 8 ? #f9e2af : #89b4fa;
+                            root.dialog-type == 8 ? #f9e2af :
+                            root.dialog-type == 9 ? #10b981 : #89b4fa;
                     }
 
                     Text {
@@ -3219,6 +3633,267 @@ export component StandaloneDialogWindow inherits Window {
                 ModernButton {
                     text: "Refresh Stats";
                     clicked => { root.refresh-stats(); }
+                }
+            }
+
+            // ---------------------------------------------------------------------
+            // 9. EMOJI, KAOMOJI & SYMBOLS PALETTE (Standalone Resizable)
+            // ---------------------------------------------------------------------
+            if root.dialog-type == 9: VerticalLayout {
+                spacing: 12px;
+                vertical-stretch: 1;
+
+                // Tab Selector
+                HorizontalLayout {
+                    spacing: 8px;
+                    Rectangle {
+                        height: 32px;
+                        border-radius: 8px;
+                        background: root.emoji-tab == 0 ? #10b98125 : #18192688;
+                        border-width: 1px;
+                        border-color: root.emoji-tab == 0 ? #10b98166 : #313244;
+                        TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => { root.emoji-tab = 0; }
+                        }
+                        Text {
+                            text: "😊 Emojis";
+                            color: root.emoji-tab == 0 ? #34d399 : #cdd6f4;
+                            font-size: 12px;
+                            font-weight: 600;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    Rectangle {
+                        height: 32px;
+                        border-radius: 8px;
+                        background: root.emoji-tab == 1 ? #10b98125 : #18192688;
+                        border-width: 1px;
+                        border-color: root.emoji-tab == 1 ? #10b98166 : #313244;
+                        TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => { root.emoji-tab = 1; }
+                        }
+                        Text {
+                            text: "৳ প্রতীক (Symbols)";
+                            color: root.emoji-tab == 1 ? #34d399 : #cdd6f4;
+                            font-size: 12px;
+                            font-weight: 600;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+
+                    Rectangle {
+                        height: 32px;
+                        border-radius: 8px;
+                        background: root.emoji-tab == 2 ? #10b98125 : #18192688;
+                        border-width: 1px;
+                        border-color: root.emoji-tab == 2 ? #10b98166 : #313244;
+                        TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => { root.emoji-tab = 2; }
+                        }
+                        Text {
+                            text: "(◕‿◕) Kaomoji";
+                            color: root.emoji-tab == 2 ? #34d399 : #cdd6f4;
+                            font-size: 12px;
+                            font-weight: 600;
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+
+                Rectangle {
+                    background: #0c0d14;
+                    border-radius: 12px;
+                    border-width: 1px;
+                    border-color: #242638;
+                    vertical-stretch: 1;
+
+                    VerticalLayout {
+                        padding: 12px;
+
+                        if (root.emoji-tab == 0): VerticalLayout {
+                        spacing: 6px;
+                        HorizontalLayout {
+                            spacing: 6px;
+                            for em in root.emoji-row-1: EmojiCell {
+                                text: em;
+                                clicked(glyph) => {
+                                    root.copy-to-clipboard(glyph);
+                                    root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            for em in root.emoji-row-2: EmojiCell {
+                                text: em;
+                                clicked(glyph) => {
+                                    root.copy-to-clipboard(glyph);
+                                    root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            for em in root.emoji-row-3: EmojiCell {
+                                text: em;
+                                clicked(glyph) => {
+                                    root.copy-to-clipboard(glyph);
+                                    root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            for em in root.emoji-row-4: EmojiCell {
+                                text: em;
+                                clicked(glyph) => {
+                                    root.copy-to-clipboard(glyph);
+                                    root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            for em in root.emoji-row-5: EmojiCell {
+                                text: em;
+                                clicked(glyph) => {
+                                    root.copy-to-clipboard(glyph);
+                                    root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                }
+                            }
+                        }
+                    }
+
+                    if (root.emoji-tab == 1): VerticalLayout {
+                        spacing: 6px;
+                        HorizontalLayout {
+                            spacing: 6px;
+                            for sym in root.symbol-row-1: EmojiCell {
+                                text: sym;
+                                clicked(glyph) => {
+                                    root.copy-to-clipboard(glyph);
+                                    root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            for sym in root.symbol-row-2: EmojiCell {
+                                text: sym;
+                                clicked(glyph) => {
+                                    root.copy-to-clipboard(glyph);
+                                    root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            for sym in root.symbol-row-3: EmojiCell {
+                                text: sym;
+                                clicked(glyph) => {
+                                    root.copy-to-clipboard(glyph);
+                                    root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            for sym in root.symbol-row-4: EmojiCell {
+                                text: sym;
+                                clicked(glyph) => {
+                                    root.copy-to-clipboard(glyph);
+                                    root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            for sym in root.symbol-row-5: EmojiCell {
+                                text: sym;
+                                clicked(glyph) => {
+                                    root.copy-to-clipboard(glyph);
+                                    root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                }
+                            }
+                        }
+                    }
+
+                    if (root.emoji-tab == 2): VerticalLayout {
+                        spacing: 6px;
+                        HorizontalLayout {
+                            spacing: 6px;
+                            for km in root.kaomoji-row-1: KaomojiCell {
+                                text: km;
+                                clicked(glyph) => {
+                                    root.copy-to-clipboard(glyph);
+                                    root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            for km in root.kaomoji-row-2: KaomojiCell {
+                                text: km;
+                                clicked(glyph) => {
+                                    root.copy-to-clipboard(glyph);
+                                    root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            for km in root.kaomoji-row-3: KaomojiCell {
+                                text: km;
+                                clicked(glyph) => {
+                                    root.copy-to-clipboard(glyph);
+                                    root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            for km in root.kaomoji-row-4: KaomojiCell {
+                                text: km;
+                                clicked(glyph) => {
+                                    root.copy-to-clipboard(glyph);
+                                    root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                }
+                            }
+                        }
+                        HorizontalLayout {
+                            spacing: 6px;
+                            for km in root.kaomoji-row-5: KaomojiCell {
+                                text: km;
+                                clicked(glyph) => {
+                                    root.copy-to-clipboard(glyph);
+                                    root.emoji-copied-toast = "কপি হয়েছে: " + glyph;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+                Rectangle {
+                    height: 28px;
+                    border-radius: 6px;
+                    background: root.emoji-copied-toast != "" ? #10b98124 : transparent;
+                    animate background { duration: 120ms; }
+                    Text {
+                        text: root.emoji-copied-toast != "" ? root.emoji-copied-toast : "যেকোনো আইটেমে ক্লিক করলেই সরাসরি ক্লিপবোর্ডে কপি হবে • Click any item to copy";
+                        color: root.emoji-copied-toast != "" ? #34d399 : #6c7086;
+                        font-size: 11px;
+                        font-weight: root.emoji-copied-toast != "" ? 700 : 500;
+                        horizontal-alignment: center;
+                        vertical-alignment: center;
+                    }
                 }
             }
         }
