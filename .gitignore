@@ -8,6 +8,7 @@ dist/
 !data/dictionaries/english_lm.bin
 !data/dictionaries/english_dict.bin
 !data/dictionaries/dictionary.bin
+!data/dictionaries/phonetic_overrides.bin
 
 # Training datasets & raw corpora
 data/*.txt

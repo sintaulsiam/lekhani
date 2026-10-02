@@ -873,6 +873,7 @@ fn collect_text_files(dir: &std::path::Path, files: &mut Vec<PathBuf>) {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_train(
     input: PathBuf,
     output: Option<PathBuf>,
@@ -939,7 +940,7 @@ fn run_train(
             if let Ok(file) = std::fs::File::open(f) {
                 let reader = std::io::BufReader::new(file);
                 use std::io::BufRead;
-                for line in reader.lines().flatten() {
+                for line in reader.lines().map_while(Result::ok) {
                     let trimmed = line.trim();
                     if !trimmed.is_empty() {
                         learner.train_text(trimmed);
