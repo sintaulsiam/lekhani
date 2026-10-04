@@ -29,10 +29,24 @@ pub struct CandidateData {
     pub total_width: i32,
     pub height: i32,
     pub screen_pos: (i32, i32),
+    pub scale: f32,
 }
 
 static CANDIDATE_DATA: Mutex<Option<CandidateData>> = Mutex::new(None);
 static CANDIDATE_HWND: Mutex<Option<usize>> = Mutex::new(None);
+
+unsafe fn get_window_dpi(hwnd: HWND) -> u32 {
+    use windows_sys::Win32::Graphics::Gdi::{GetDC, GetDeviceCaps, ReleaseDC, LOGPIXELSY};
+    let hdc = GetDC(hwnd);
+    if hdc != 0 as _ {
+        let dpi = GetDeviceCaps(hdc, LOGPIXELSY as _);
+        ReleaseDC(hwnd, hdc);
+        if dpi > 0 {
+            return dpi as u32;
+        }
+    }
+    96
+}
 
 pub struct CandidateWindow {
     pub hwnd: HWND,
@@ -103,17 +117,19 @@ impl CandidateWindow {
             return;
         }
 
+        let scale = unsafe { (get_window_dpi(self.hwnd) as f32 / 96.0).max(1.0) };
         let display_cands: Vec<String> = candidates.iter().take(6).cloned().collect();
         let count = display_cands.len().max(1);
 
         // Dynamically compute precise width per candidate using GDI font metrics (GetTextExtentPoint32W)
-        // to prevent clipping complex Bengali conjuncts/juktoborno without unnecessary padding.
+        // scaled to monitor DPI to prevent clipping complex Bengali conjuncts/juktoborno.
         let mut item_widths = Vec::with_capacity(count);
         unsafe {
             let hdc_screen = GetDC(0 as _);
             let font_name: Vec<u16> = "Nirmala UI\0".encode_utf16().collect();
+            let font_size = (-15.0 * scale).round() as i32;
             let font = CreateFontW(
-                -15,
+                font_size,
                 0,
                 0,
                 0,
@@ -140,7 +156,9 @@ impl CandidateWindow {
                     label_utf16.len() as i32,
                     &mut sz,
                 );
-                let w = (sz.cx + 20).max(68);
+                let min_w = (68.0 * scale).round() as i32;
+                let pad = (20.0 * scale).round() as i32;
+                let w = (sz.cx + pad).max(min_w);
                 item_widths.push(w);
             }
 
@@ -151,11 +169,16 @@ impl CandidateWindow {
 
         let (total_width, height) = if horizontal {
             let sum_w: i32 = item_widths.iter().sum();
-            let spacing = (count.saturating_sub(1) as i32) * 6;
-            (sum_w + spacing + 20, 38)
+            let spacing = (count.saturating_sub(1) as i32) * (6.0 * scale).round() as i32;
+            (sum_w + spacing + (20.0 * scale).round() as i32, (38.0 * scale).round() as i32)
         } else {
-            let max_w = item_widths.iter().cloned().max().unwrap_or(160).max(180);
-            (max_w + 16, (count as i32 * 32) + 12)
+            let default_w = (160.0 * scale).round() as i32;
+            let min_col_w = (180.0 * scale).round() as i32;
+            let max_w = item_widths.iter().cloned().max().unwrap_or(default_w).max(min_col_w);
+            let pad = (16.0 * scale).round() as i32;
+            let row_h = (32.0 * scale).round() as i32;
+            let margin = (12.0 * scale).round() as i32;
+            (max_w + pad, (count as i32 * row_h) + margin)
         };
 
 
@@ -226,6 +249,7 @@ impl CandidateWindow {
                     total_width,
                     height,
                     screen_pos: (pt.x, pt.y),
+                    scale,
                 });
             }
 
@@ -264,20 +288,23 @@ fn hit_test_data(data: &CandidateData, screen_x: i32, screen_y: i32) -> Option<u
 
     let rel_x = screen_x - win_x;
     let rel_y = screen_y - win_y;
+    let scale = data.scale.max(1.0);
     let count = data.candidates.len().min(5);
 
     if data.horizontal {
-        let mut cur_x = 8;
+        let mut cur_x = (8.0 * scale).round() as i32;
+        let pad_x = (6.0 * scale).round() as i32;
         for (i, &w) in data.item_widths.iter().take(count).enumerate() {
             if rel_x >= cur_x && rel_x <= cur_x + w {
                 return Some(i);
             }
-            cur_x += w + 6;
+            cur_x += w + pad_x;
         }
     } else {
-        let item_h = 32;
+        let item_h = (32.0 * scale).round() as i32;
+        let pad_top = (6.0 * scale).round() as i32;
         for i in 0..count {
-            let top = 6 + (i as i32 * item_h);
+            let top = pad_top + (i as i32 * item_h);
             if rel_y >= top && rel_y <= top + item_h {
                 return Some(i);
             }
@@ -375,6 +402,7 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
         return;
     };
 
+    let scale = data.scale.max(1.0);
     let mut client_rect: RECT = std::mem::zeroed();
     windows_sys::Win32::UI::WindowsAndMessaging::GetClientRect(hwnd, &mut client_rect);
 
@@ -404,8 +432,9 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
 
     // Prefer Nirmala UI (standard Indic font on Windows 10/11) with fallback to Vrinda and Segoe UI
     let font_name: Vec<u16> = "Nirmala UI\0".encode_utf16().collect();
+    let font_size = (-15.0 * scale).round() as i32;
     let font = CreateFontW(
-        -15,
+        font_size,
         0,
         0,
         0,
@@ -423,26 +452,30 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
     let old_font = SelectObject(hdc, font as _);
 
     let count = data.candidates.len().min(5);
-    let mut cur_x = 8;
-    let item_height = 28;
+    let mut cur_x = (8.0 * scale).round() as i32;
+    let item_height = (28.0 * scale).round() as i32;
+    let pad_y = (4.0 * scale).round() as i32;
+    let pad_x = (6.0 * scale).round() as i32;
+    let radius = (8.0 * scale).round() as i32;
+    let row_h = (32.0 * scale).round() as i32;
 
     for i in 0..count {
-        let item_w = data.item_widths.get(i).copied().unwrap_or(68);
+        let item_w = data.item_widths.get(i).copied().unwrap_or((68.0 * scale).round() as i32);
         let item_rect = if data.horizontal {
             let r = RECT {
                 left: cur_x,
-                top: 4,
+                top: pad_y,
                 right: cur_x + item_w,
-                bottom: client_rect.bottom - 4,
+                bottom: client_rect.bottom - pad_y,
             };
-            cur_x += item_w + 6;
+            cur_x += item_w + pad_x;
             r
         } else {
             RECT {
-                left: 6,
-                top: 6 + (i as i32 * 32),
-                right: client_rect.right - 6,
-                bottom: 6 + (i as i32 * 32) + item_height,
+                left: pad_x,
+                top: pad_x + (i as i32 * row_h),
+                right: client_rect.right - pad_x,
+                bottom: pad_x + (i as i32 * row_h) + item_height,
             }
         };
 
@@ -455,8 +488,8 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
                 item_rect.top,
                 item_rect.right,
                 item_rect.bottom,
-                8,
-                8,
+                radius,
+                radius,
             );
             SelectObject(hdc, old_brush);
             DeleteObject(active_brush as _);
@@ -466,7 +499,6 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
             SetTextColor(hdc, inactive_text_color);
         }
 
-
         let label = format!("{}. {}", i + 1, data.candidates[i]);
         let mut label_utf16: Vec<u16> = label.encode_utf16().collect();
 
@@ -474,7 +506,7 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
         let align_flags = if data.horizontal {
             DT_CENTER | DT_VCENTER | DT_SINGLELINE
         } else {
-            text_rect.left += 8;
+            text_rect.left += (8.0 * scale).round() as i32;
             DT_VCENTER | DT_SINGLELINE
         };
         DrawTextW(

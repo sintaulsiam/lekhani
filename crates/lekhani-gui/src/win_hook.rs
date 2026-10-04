@@ -763,6 +763,16 @@ fn fallback_vk_to_char(vk: u16, shift: bool, caps: bool) -> Option<char> {
                 Some((b'0' + base) as char)
             }
         }
+        // Numpad 0..9
+        0x60..=0x69 => {
+            let base = (vk - 0x60) as u8;
+            Some((b'0' + base) as char)
+        }
+        0x6A => Some('*'), // VK_MULTIPLY
+        0x6B => Some('+'), // VK_ADD
+        0x6D => Some('-'), // VK_SUBTRACT
+        0x6E => Some('.'), // VK_DECIMAL
+        0x6F => Some('/'), // VK_DIVIDE
         VK_OEM_1 => Some(if shift { ':' } else { ';' }),
         VK_OEM_PLUS => Some(if shift { '+' } else { '=' }),
         VK_OEM_COMMA => Some(if shift { '<' } else { ',' }),

@@ -37,6 +37,19 @@ pub struct OsdWindow {
 unsafe impl Send for OsdWindow {}
 unsafe impl Sync for OsdWindow {}
 
+unsafe fn get_osd_dpi(hwnd: HWND) -> u32 {
+    use windows_sys::Win32::Graphics::Gdi::{GetDC, GetDeviceCaps, ReleaseDC, LOGPIXELSY};
+    let hdc = GetDC(hwnd);
+    if hdc != 0 as _ {
+        let dpi = GetDeviceCaps(hdc, LOGPIXELSY as _);
+        ReleaseDC(hwnd, hdc);
+        if dpi > 0 {
+            return dpi as u32;
+        }
+    }
+    96
+}
+
 impl OsdWindow {
     pub fn new() -> Option<Self> {
         unsafe {
@@ -94,8 +107,9 @@ impl OsdWindow {
         }
 
         unsafe {
-            let width = 240;
-            let height = 54;
+            let scale = (get_osd_dpi(self.hwnd) as f32 / 96.0).max(1.0);
+            let width = (240.0 * scale).round() as i32;
+            let height = (54.0 * scale).round() as i32;
 
             let screen_w = GetSystemMetrics(SM_CXSCREEN);
             let screen_h = GetSystemMetrics(SM_CYSCREEN);
@@ -183,6 +197,7 @@ unsafe fn paint_osd(hwnd: HWND, hdc: HDC) {
         return;
     };
 
+    let scale = (get_osd_dpi(hwnd) as f32 / 96.0).max(1.0);
     let mut client_rect: RECT = std::mem::zeroed();
     windows_sys::Win32::UI::WindowsAndMessaging::GetClientRect(hwnd, &mut client_rect);
 
@@ -193,10 +208,14 @@ unsafe fn paint_osd(hwnd: HWND, hdc: HDC) {
 
     // Accent border pill
     let border_color = if data.is_bengali {
-        0x00A1E3A6 // Mint green (#A6E3A1)
+        0x0081B910 // Emerald green (#10B981)
     } else {
-        0x00FAB489 // Sky blue (#89B4FA)
+        0x00A6ADC8 // Slate grey
     };
+
+    let border_radius = (14.0 * scale).round() as i32;
+    let inner_radius = (12.0 * scale).round() as i32;
+
     let border_brush = CreateSolidBrush(border_color);
     let old_brush = SelectObject(hdc, border_brush as _);
     RoundRect(
@@ -205,8 +224,8 @@ unsafe fn paint_osd(hwnd: HWND, hdc: HDC) {
         client_rect.top,
         client_rect.right,
         client_rect.bottom,
-        14,
-        14,
+        border_radius,
+        border_radius,
     );
     SelectObject(hdc, old_brush);
     DeleteObject(border_brush as _);
@@ -220,8 +239,8 @@ unsafe fn paint_osd(hwnd: HWND, hdc: HDC) {
         client_rect.top + 2,
         client_rect.right - 2,
         client_rect.bottom - 2,
-        12,
-        12,
+        inner_radius,
+        inner_radius,
     );
     SelectObject(hdc, old_inner);
     DeleteObject(inner_brush as _);
@@ -230,8 +249,9 @@ unsafe fn paint_osd(hwnd: HWND, hdc: HDC) {
 
     // Primary Title (e.g. "বাংলা" or "English")
     let font_name: Vec<u16> = "Segoe UI\0".encode_utf16().collect();
+    let font_size_title = (-18.0 * scale).round() as i32;
     let title_font = CreateFontW(
-        -18,
+        font_size_title,
         0,
         0,
         0,
@@ -255,11 +275,14 @@ unsafe fn paint_osd(hwnd: HWND, hdc: HDC) {
     }
 
     let mut title_utf16: Vec<u16> = data.title.encode_utf16().collect();
+    let pad_x = (8.0 * scale).round() as i32;
+    let title_h = (24.0 * scale).round() as i32;
+    let pad_top = (4.0 * scale).round() as i32;
     let mut title_rect = RECT {
-        left: client_rect.left + 8,
-        top: client_rect.top + 4,
-        right: client_rect.right - 8,
-        bottom: client_rect.top + 28,
+        left: client_rect.left + pad_x,
+        top: client_rect.top + pad_top,
+        right: client_rect.right - pad_x,
+        bottom: client_rect.top + pad_top + title_h,
     };
     DrawTextW(
         hdc,
@@ -270,8 +293,9 @@ unsafe fn paint_osd(hwnd: HWND, hdc: HDC) {
     );
 
     // Subtitle (e.g. "Avro Phonetic" or "Standard US")
+    let font_size_sub = (-11.0 * scale).round() as i32;
     let sub_font = CreateFontW(
-        -11,
+        font_size_sub,
         0,
         0,
         0,
@@ -291,10 +315,10 @@ unsafe fn paint_osd(hwnd: HWND, hdc: HDC) {
 
     let mut sub_utf16: Vec<u16> = data.subtitle.encode_utf16().collect();
     let mut sub_rect = RECT {
-        left: client_rect.left + 8,
-        top: client_rect.top + 28,
-        right: client_rect.right - 8,
-        bottom: client_rect.bottom - 4,
+        left: client_rect.left + pad_x,
+        top: title_rect.bottom,
+        right: client_rect.right - pad_x,
+        bottom: client_rect.bottom - pad_top,
     };
     DrawTextW(
         hdc,

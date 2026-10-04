@@ -37,15 +37,28 @@ use tracing::info;
 static FCITX5_AVAILABLE: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(true);
 
 #[cfg(windows)]
+static INSTANCE_MUTEX: std::sync::Mutex<Option<isize>> = std::sync::Mutex::new(None);
+
+#[cfg(windows)]
 unsafe fn ensure_single_instance() -> bool {
     use windows_sys::Win32::Foundation::{GetLastError, ERROR_ALREADY_EXISTS};
     use windows_sys::Win32::System::Threading::CreateMutexW;
+    use windows_sys::Win32::UI::WindowsAndMessaging::{FindWindowW, PostMessageW, WM_COMMAND};
 
-    let mutex_name: Vec<u16> = "Global\\LekhaniSingleInstanceMutex\0".encode_utf16().collect();
+    // Use Local\ for current user desktop session (runs cleanly without elevated privileges)
+    let mutex_name: Vec<u16> = "Local\\LekhaniSingleInstanceMutex\0".encode_utf16().collect();
     let handle = CreateMutexW(std::ptr::null(), 1, mutex_name.as_ptr());
-    if handle == 0 as _ || GetLastError() == ERROR_ALREADY_EXISTS {
+    let last_err = GetLastError();
+    if handle == 0 as _ || last_err == ERROR_ALREADY_EXISTS {
+        // Find existing instance tray window and signal it to restore the TopBar
+        let class_name: Vec<u16> = "LekhaniTrayClass\0".encode_utf16().collect();
+        let hwnd = FindWindowW(class_name.as_ptr(), std::ptr::null());
+        if hwnd != 0 as _ {
+            PostMessageW(hwnd, WM_COMMAND, 1000, 0); // ID_TRAY_RESTORE
+        }
         false
     } else {
+        *INSTANCE_MUTEX.lock().unwrap() = Some(handle as isize);
         true
     }
 }

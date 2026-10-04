@@ -108,9 +108,9 @@ impl WindowsTray {
                 0,
                 0,
                 0,
-                windows_sys::Win32::UI::WindowsAndMessaging::HWND_MESSAGE,
+                0 as _, // Top-level unmapped window (required for Shell_NotifyIconW notifications)
                 0 as _,
-                0 as _,
+                hmod,
                 std::ptr::null(),
             );
 
@@ -316,8 +316,10 @@ unsafe fn create_badge_icon(
     DeleteDC(hdc_mem);
     ReleaseDC(0 as _, hdc_screen);
 
-    // Create 1-bit monochrome mask (all 0s = opaque badge)
-    let hbm_mask = CreateBitmap(size, size, 1, 1, std::ptr::null());
+    // Create 1-bit monochrome mask initialized to 0s (all 0s = 100% opaque badge)
+    let mask_pitch = ((size + 15) / 16) * 2;
+    let mask_bytes = vec![0u8; (mask_pitch * size) as usize];
+    let hbm_mask = CreateBitmap(size, size, 1, 1, mask_bytes.as_ptr() as _);
 
     let icon_info = ICONINFO {
         fIcon: 1,
@@ -611,19 +613,26 @@ pub fn spawn_windows_tray(
     *APP_WEAK.lock().unwrap() = Some(app_weak);
     IS_TOPBAR_VISIBLE.store(true, Ordering::SeqCst);
 
-    let tray = WindowsTray::new(active_layout)?;
-    let tray_arc = Arc::new(tray);
-    let tray_clone = Arc::clone(&tray_arc);
+    let (tx, rx) = std::sync::mpsc::channel();
+    let initial_layout = active_layout.clone();
 
     std::thread::spawn(move || {
-        let mut msg: MSG = unsafe { std::mem::zeroed() };
-        unsafe {
-            while GetMessageW(&mut msg, 0 as _, 0, 0) > 0 {
-                DispatchMessageW(&msg);
+        let tray_opt = WindowsTray::new(initial_layout);
+        if let Some(tray) = tray_opt {
+            let tray_arc = Arc::new(tray);
+            let _ = tx.send(Some(Arc::clone(&tray_arc)));
+
+            let mut msg: MSG = unsafe { std::mem::zeroed() };
+            unsafe {
+                while GetMessageW(&mut msg, 0 as _, 0, 0) > 0 {
+                    DispatchMessageW(&msg);
+                }
             }
+            drop(tray_arc);
+        } else {
+            let _ = tx.send(None);
         }
-        drop(tray_clone);
     });
 
-    Some(tray_arc)
+    rx.recv().ok().flatten()
 }
