@@ -45,18 +45,30 @@ pub fn get_layout_rows(
 
     if is_phonetic {
         let r1 = match mode {
-            0 => vec!["`", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০", "-", "="],
-            1 => vec!["~", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "+"],
-            _ => vec!["`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "–", "≠"],
+            0 => vec![
+                "`", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯", "০", "-", "=",
+            ],
+            1 => vec![
+                "~", "!", "@", "#", "$", "%", "^", "&", "*", "(", ")", "_", "+",
+            ],
+            _ => vec![
+                "`", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "–", "≠",
+            ],
         }
         .into_iter()
         .map(String::from)
         .collect();
 
         let r2 = match mode {
-            0 => vec!["ক", "ও", "এ", "র", "ট", "য়", "উ", "ই", "ও", "প", "[", "]", "\\"],
-            1 => vec!["ক", "ঢ়", "ঈ", "ড়", "ঠ", "য়", "ঊ", "ঈ", "ঔ", "ফ", "{", "}", "|"],
-            _ => vec!["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\"],
+            0 => vec![
+                "ক", "ও", "এ", "র", "ট", "য়", "উ", "ই", "ও", "প", "[", "]", "\\",
+            ],
+            1 => vec![
+                "ক", "ঢ়", "ঈ", "ড়", "ঠ", "য়", "ঊ", "ঈ", "ঔ", "ফ", "{", "}", "|",
+            ],
+            _ => vec![
+                "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\\",
+            ],
         }
         .into_iter()
         .map(String::from)
@@ -90,7 +102,12 @@ pub fn get_layout_rows(
         .and_then(|v| v.as_object());
 
     let r1_spec = [
-        ("Key_Grave_Normal", "Key_Tilde_Normal", "Key_Grave_AltGr", "`"),
+        (
+            "Key_Grave_Normal",
+            "Key_Tilde_Normal",
+            "Key_Grave_AltGr",
+            "`",
+        ),
         ("Key_1_Normal", "Key_Exclaim_Normal", "Key_1_AltGr", "১"),
         ("Key_2_Normal", "Key_At_Normal", "Key_2_AltGr", "২"),
         ("Key_3_Normal", "Key_Hash_Normal", "Key_3_AltGr", "৩"),
@@ -101,8 +118,18 @@ pub fn get_layout_rows(
         ("Key_8_Normal", "Key_Asterisk_Normal", "Key_8_AltGr", "৮"),
         ("Key_9_Normal", "Key_ParenLeft_Normal", "Key_9_AltGr", "৯"),
         ("Key_0_Normal", "Key_ParenRight_Normal", "Key_0_AltGr", "০"),
-        ("Key_Minus_Normal", "Key_UnderScore_Normal", "Key_Minus_AltGr", "-"),
-        ("Key_Equals_Normal", "Key_Plus_Normal", "Key_Equals_AltGr", "="),
+        (
+            "Key_Minus_Normal",
+            "Key_UnderScore_Normal",
+            "Key_Minus_AltGr",
+            "-",
+        ),
+        (
+            "Key_Equals_Normal",
+            "Key_Plus_Normal",
+            "Key_Equals_AltGr",
+            "=",
+        ),
     ];
 
     let r2_spec = [
@@ -116,9 +143,24 @@ pub fn get_layout_rows(
         ("Key_i_Normal", "Key_I_Normal", "Key_i_AltGr", "i"),
         ("Key_o_Normal", "Key_O_Normal", "Key_o_AltGr", "o"),
         ("Key_p_Normal", "Key_P_Normal", "Key_p_AltGr", "p"),
-        ("Key_BracketLeft_Normal", "Key_BraceLeft_Normal", "Key_BracketLeft_AltGr", "["),
-        ("Key_BracketRight_Normal", "Key_BraceRight_Normal", "Key_BracketRight_AltGr", "]"),
-        ("Key_BackSlash_Normal", "Key_Bar_Normal", "Key_BackSlash_AltGr", "\\"),
+        (
+            "Key_BracketLeft_Normal",
+            "Key_BraceLeft_Normal",
+            "Key_BracketLeft_AltGr",
+            "[",
+        ),
+        (
+            "Key_BracketRight_Normal",
+            "Key_BraceRight_Normal",
+            "Key_BracketRight_AltGr",
+            "]",
+        ),
+        (
+            "Key_BackSlash_Normal",
+            "Key_Bar_Normal",
+            "Key_BackSlash_AltGr",
+            "\\",
+        ),
     ];
 
     let r3_spec = [
@@ -131,8 +173,18 @@ pub fn get_layout_rows(
         ("Key_j_Normal", "Key_J_Normal", "Key_j_AltGr", "j"),
         ("Key_k_Normal", "Key_K_Normal", "Key_k_AltGr", "k"),
         ("Key_l_Normal", "Key_L_Normal", "Key_l_AltGr", "l"),
-        ("Key_Semicolon_Normal", "Key_Colon_Normal", "Key_Semicolon_AltGr", ";"),
-        ("Key_Apostrophe_Normal", "Key_Quote_Normal", "Key_Apostrophe_AltGr", "'"),
+        (
+            "Key_Semicolon_Normal",
+            "Key_Colon_Normal",
+            "Key_Semicolon_AltGr",
+            ";",
+        ),
+        (
+            "Key_Apostrophe_Normal",
+            "Key_Quote_Normal",
+            "Key_Apostrophe_AltGr",
+            "'",
+        ),
     ];
 
     let r4_spec = [
@@ -143,9 +195,24 @@ pub fn get_layout_rows(
         ("Key_b_Normal", "Key_B_Normal", "Key_b_AltGr", "b"),
         ("Key_n_Normal", "Key_N_Normal", "Key_n_AltGr", "n"),
         ("Key_m_Normal", "Key_M_Normal", "Key_m_AltGr", "m"),
-        ("Key_Comma_Normal", "Key_Less_Normal", "Key_Comma_AltGr", ","),
-        ("Key_Period_Normal", "Key_Greater_Normal", "Key_Period_AltGr", "."),
-        ("Key_Slash_Normal", "Key_Question_Normal", "Key_Slash_AltGr", "/"),
+        (
+            "Key_Comma_Normal",
+            "Key_Less_Normal",
+            "Key_Comma_AltGr",
+            ",",
+        ),
+        (
+            "Key_Period_Normal",
+            "Key_Greater_Normal",
+            "Key_Period_AltGr",
+            ".",
+        ),
+        (
+            "Key_Slash_Normal",
+            "Key_Question_Normal",
+            "Key_Slash_AltGr",
+            "/",
+        ),
     ];
 
     (

@@ -303,10 +303,15 @@ unsafe extern "system" fn key_sink_on_key_down(
 
     if let Ok(mut inner) = (*base).inner.lock() {
         if inner.bengali_active {
-            let shift_down = (GetKeyState(windows_sys::Win32::UI::Input::KeyboardAndMouse::VK_SHIFT as i32) & 0x8000u16 as i16) != 0;
+            let shift_down =
+                (GetKeyState(windows_sys::Win32::UI::Input::KeyboardAndMouse::VK_SHIFT as i32)
+                    & 0x8000u16 as i16)
+                    != 0;
             if let Some(ch) = map_vk(vk, shift_down) {
                 let keycode = inner.mapper.map_keyval(ch as u32);
-                let consumed = inner.session.process_key(keycode, if shift_down { 1 } else { 0 });
+                let consumed = inner
+                    .session
+                    .process_key(keycode, if shift_down { 1 } else { 0 });
                 if consumed {
                     *pf_eaten = 1;
                     return S_OK;

@@ -91,14 +91,20 @@ unsafe extern "system" fn factory_create_instance(
     }
 
     let processor = LekhaniTextInputProcessor::new();
-    let hr = ((*processor).lp_tip_ex_vtbl.as_ref().unwrap().parent.parent.QueryInterface)(
-        processor as *mut c_void,
-        riid,
-        ppv_object,
-    );
-    ((*processor).lp_tip_ex_vtbl.as_ref().unwrap().parent.parent.Release)(
-        processor as *mut c_void,
-    );
+    let hr = ((*processor)
+        .lp_tip_ex_vtbl
+        .as_ref()
+        .unwrap()
+        .parent
+        .parent
+        .QueryInterface)(processor as *mut c_void, riid, ppv_object);
+    ((*processor)
+        .lp_tip_ex_vtbl
+        .as_ref()
+        .unwrap()
+        .parent
+        .parent
+        .Release)(processor as *mut c_void);
     hr
 }
 

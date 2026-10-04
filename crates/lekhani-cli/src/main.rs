@@ -808,13 +808,28 @@ fn handle_ai_subcommand(subcommand: AiCommands, config_mgr: &ConfigManager) -> a
             println!("╔══════════════════════════════════════════════════════╗");
             println!("║     🔬 Lekhani Autonomous Learning Deep Inspector    ║");
             println!("╠══════════════════════════════════════════════════════╣");
-            println!("║ Storage Format:         {:>28} ║", "Binary (v1 / bincode)");
+            println!(
+                "║ Storage Format:         {:>28} ║",
+                "Binary (v1 / bincode)"
+            );
             println!("║ Storage File:           {:>28} ║", "user_learned.bin");
             println!("║ File Size on Disk:      {:>28} ║", file_size_kb);
-            println!("║ Learned Vocabulary:     {:>28} ║", learner.learned_words.len());
-            println!("║ Personal Bigram Pairs:  {:>28} ║", learner.user_bigrams.len());
-            println!("║ Distinct Words Tracked: {:>28} ║", learner.observed_counts.len());
-            println!("║ Manual Candidate Favs:  {:>28} ║", learner.candidate_memory.len());
+            println!(
+                "║ Learned Vocabulary:     {:>28} ║",
+                learner.learned_words.len()
+            );
+            println!(
+                "║ Personal Bigram Pairs:  {:>28} ║",
+                learner.user_bigrams.len()
+            );
+            println!(
+                "║ Distinct Words Tracked: {:>28} ║",
+                learner.observed_counts.len()
+            );
+            println!(
+                "║ Manual Candidate Favs:  {:>28} ║",
+                learner.candidate_memory.len()
+            );
             println!("╠══════════════════════════════════════════════════════╣");
             println!("║ 📖 Sample Learned Words:                             ║");
             let mut words: Vec<_> = learner.learned_words.iter().collect();
@@ -905,7 +920,10 @@ fn run_train(
     }
 
     if corpus_files.is_empty() {
-        anyhow::bail!("No valid text files (.txt, .corpus, .md) found in {:?}", input);
+        anyhow::bail!(
+            "No valid text files (.txt, .corpus, .md) found in {:?}",
+            input
+        );
     }
 
     let total_bytes: u64 = corpus_files
@@ -1072,11 +1090,7 @@ fn run_eval(model_path: Option<PathBuf>) -> anyhow::Result<()> {
 
     println!("╠══════════════════════════════════════════════════════╣");
     println!("║ 3. Next-Word Prediction Tests:                       ║");
-    let contexts = [
-        vec!["আমি", "ভাত"],
-        vec!["বাংলাদেশ", "একটি"],
-        vec!["শুভ"],
-    ];
+    let contexts = [vec!["আমি", "ভাত"], vec!["বাংলাদেশ", "একটি"], vec!["শুভ"]];
     for ctx in &contexts {
         let preds = predictor.predict_next(ctx, 3);
         let formatted = preds.join(", ");
@@ -1085,4 +1099,3 @@ fn run_eval(model_path: Option<PathBuf>) -> anyhow::Result<()> {
     println!("╚══════════════════════════════════════════════════════╝");
     Ok(())
 }
-

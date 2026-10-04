@@ -57,7 +57,13 @@ impl IBusEngineState {
                 let user_learned = self.config_mgr.get_user_learned_path();
                 let stats_path = self.config_mgr.get_user_stats_path();
                 let stats_clone = self.session.get_stats();
-                let learner_arc = self.session.phonetic.suggestion_engine.database.learner.clone();
+                let learner_arc = self
+                    .session
+                    .phonetic
+                    .suggestion_engine
+                    .database
+                    .learner
+                    .clone();
                 std::thread::spawn(move || {
                     let _ = stats_clone.save_to_path(&stats_path);
                     if let Ok(mut l) = learner_arc.write() {

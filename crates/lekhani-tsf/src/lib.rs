@@ -22,7 +22,9 @@ use windows_sys::core::{GUID, HRESULT};
 use windows_sys::Win32::Foundation::{BOOL, HMODULE};
 
 #[cfg(windows)]
-use com::{CLASS_E_NOAGGREGATION, E_NOINTERFACE, E_POINTER, IID_ICLASSFACTORY, IID_IUNKNOWN, S_FALSE, S_OK};
+use com::{
+    CLASS_E_NOAGGREGATION, E_NOINTERFACE, E_POINTER, IID_ICLASSFACTORY, IID_IUNKNOWN, S_FALSE, S_OK,
+};
 #[cfg(windows)]
 use factory::{LekhaniClassFactory, SERVER_LOCK_COUNT};
 #[cfg(windows)]

@@ -7,11 +7,12 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use windows_sys::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
-    GetKeyState, GetKeyboardState, SendInput, ToUnicode, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT,
-    KEYEVENTF_KEYUP, KEYEVENTF_UNICODE, VK_BACK, VK_CAPITAL, VK_CONTROL, VK_DOWN, VK_ESCAPE,
-    VK_F12, VK_LCONTROL, VK_LMENU, VK_LWIN, VK_MENU, VK_NUMPAD1, VK_NUMPAD5, VK_OEM_1, VK_OEM_2,
-    VK_OEM_3, VK_OEM_4, VK_OEM_5, VK_OEM_6, VK_OEM_7, VK_OEM_COMMA, VK_OEM_MINUS, VK_OEM_PERIOD,
-    VK_OEM_PLUS, VK_RCONTROL, VK_RETURN, VK_RMENU, VK_RWIN, VK_SHIFT, VK_SPACE, VK_TAB, VK_UP,
+    GetKeyState, GetKeyboardState, SendInput, ToUnicode, INPUT, INPUT_0, INPUT_KEYBOARD,
+    KEYBDINPUT, KEYEVENTF_KEYUP, KEYEVENTF_UNICODE, VK_BACK, VK_CAPITAL, VK_CONTROL, VK_DOWN,
+    VK_ESCAPE, VK_F12, VK_LCONTROL, VK_LMENU, VK_LWIN, VK_MENU, VK_NUMPAD1, VK_NUMPAD5, VK_OEM_1,
+    VK_OEM_2, VK_OEM_3, VK_OEM_4, VK_OEM_5, VK_OEM_6, VK_OEM_7, VK_OEM_COMMA, VK_OEM_MINUS,
+    VK_OEM_PERIOD, VK_OEM_PLUS, VK_RCONTROL, VK_RETURN, VK_RMENU, VK_RWIN, VK_SHIFT, VK_SPACE,
+    VK_TAB, VK_UP,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CallNextHookEx, DispatchMessageW, GetMessageW, SetWindowsHookExW, UnhookWindowsHookEx, HHOOK,
@@ -22,7 +23,9 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 use crate::win_candidate::CandidateWindow;
 use crate::win_osd::OsdWindow;
 use crate::win_tray::WindowsTray;
-use lekhani_core::{ActiveLayoutType, InputSession, KeycodeMapper, MODIFIER_ALT_GR, MODIFIER_SHIFT};
+use lekhani_core::{
+    ActiveLayoutType, InputSession, KeycodeMapper, MODIFIER_ALT_GR, MODIFIER_SHIFT,
+};
 use lekhani_settings::{ConfigManager, LayoutManager};
 
 static BENGALI_ACTIVE: AtomicBool = AtomicBool::new(false);
@@ -114,7 +117,11 @@ impl HookState {
 
     fn update_candidate_window(&self, candidates: &[String], selected_index: usize) {
         if let Some(ref win) = self.candidate_win {
-            win.update(candidates, selected_index, self.config_mgr.config.ui.horizontal_candidates);
+            win.update(
+                candidates,
+                selected_index,
+                self.config_mgr.config.ui.horizontal_candidates,
+            );
         }
     }
 
@@ -211,8 +218,6 @@ pub fn reload_config() {
         }
     }
 }
-
-
 
 /// Commit candidate by explicit index (e.g. from mouse click or shortcut)
 pub fn commit_candidate_by_index(idx: usize) {
@@ -404,7 +409,6 @@ unsafe extern "system" fn low_level_keyboard_proc(
         (vk == VK_F12 && !real_ctrl_down && !real_alt_down && !win_down)
             || (vk == VK_SPACE && real_ctrl_down && !real_alt_down && !win_down)
     };
-
 
     if is_toggle {
         toggle_bengali_mode();
@@ -727,8 +731,7 @@ fn vk_to_char(vk: u16, shift: bool, caps: bool) -> Option<char> {
             let mut buf = [0u16; 4];
             let res = ToUnicode(vk as u32, 0, key_state.as_ptr(), buf.as_mut_ptr(), 4, 0);
             if res > 0 {
-                if let Some(Ok(c)) =
-                    char::decode_utf16(buf[..res as usize].iter().cloned()).next()
+                if let Some(Ok(c)) = char::decode_utf16(buf[..res as usize].iter().cloned()).next()
                 {
                     if !c.is_control() {
                         return Some(c);
@@ -791,13 +794,7 @@ fn fallback_vk_to_char(vk: u16, shift: bool, caps: bool) -> Option<char> {
 fn is_modifier_key(vk: u16) -> bool {
     matches!(
         vk,
-        VK_SHIFT
-            | VK_CONTROL
-            | VK_MENU
-            | VK_LWIN
-            | VK_RWIN
-            | VK_CAPITAL
-            | 0xA0..=0xA5 // VK_LSHIFT, VK_RSHIFT, VK_LCONTROL, VK_RCONTROL, VK_LMENU, VK_RMENU
+        VK_SHIFT | VK_CONTROL | VK_MENU | VK_LWIN | VK_RWIN | VK_CAPITAL | 0xA0..=0xA5 // VK_LSHIFT, VK_RSHIFT, VK_LCONTROL, VK_RCONTROL, VK_LMENU, VK_RMENU
     )
 }
 

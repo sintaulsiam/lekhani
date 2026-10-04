@@ -149,7 +149,13 @@ impl LekhaniEngineContext {
                 let user_learned = self.config_mgr.get_user_learned_path();
                 let stats_path = self.config_mgr.get_user_stats_path();
                 let stats_clone = self.session.get_stats();
-                let learner_arc = self.session.phonetic.suggestion_engine.database.learner.clone();
+                let learner_arc = self
+                    .session
+                    .phonetic
+                    .suggestion_engine
+                    .database
+                    .learner
+                    .clone();
                 std::thread::spawn(move || {
                     let _ = stats_clone.save_to_path(&stats_path);
                     if let Ok(mut l) = learner_arc.write() {
@@ -236,7 +242,13 @@ pub extern "C" fn lekhani_engine_free(ctx: *mut LekhaniEngineContext) {
             let user_learned = engine.config_mgr.get_user_learned_path();
             let stats_path = engine.config_mgr.get_user_stats_path();
             let stats_clone = engine.session.get_stats();
-            let learner_arc = engine.session.phonetic.suggestion_engine.database.learner.clone();
+            let learner_arc = engine
+                .session
+                .phonetic
+                .suggestion_engine
+                .database
+                .learner
+                .clone();
             std::thread::spawn(move || {
                 let _ = stats_clone.save_to_path(&stats_path);
                 if is_dirty {
@@ -274,7 +286,10 @@ pub extern "C" fn lekhani_engine_reload_config(ctx: *mut LekhaniEngineContext) {
     }
     let engine = unsafe { &mut *ctx };
     engine.config_mgr.load();
-    engine.config_mgr.config.apply_to_session(&mut engine.session);
+    engine
+        .config_mgr
+        .config
+        .apply_to_session(&mut engine.session);
     let user_ac = engine.config_mgr.get_user_autocorrect_path();
     if user_ac.exists() {
         engine.session.load_user_autocorrect(&user_ac);
@@ -709,6 +724,8 @@ mod tests {
                 .unwrap()
                 .clear_user_data();
             (*engine_ptr).config_mgr.config.general.active_layout = "Avro Phonetic".to_string();
+            (*engine_ptr).config_mgr.config.phonetic.ai_profile =
+                lekhani_settings::AiProfile::Balanced;
             (*engine_ptr)
                 .config_mgr
                 .config

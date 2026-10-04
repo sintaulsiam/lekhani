@@ -20,22 +20,19 @@ pub const IID_IUNKNOWN: GUID = GUID::from_u128(0x00000000_0000_0000_c000_0000000
 pub const IID_ICLASSFACTORY: GUID = GUID::from_u128(0x00000001_0000_0000_c000_000000000046);
 
 // TSF Interface IIDs
-pub const IID_ITFTEXTINPUTPROCESSOR: GUID =
-    GUID::from_u128(0xaa80e7f7_2021_11d2_93e0_0060b067b86e);
+pub const IID_ITFTEXTINPUTPROCESSOR: GUID = GUID::from_u128(0xaa80e7f7_2021_11d2_93e0_0060b067b86e);
 pub const IID_ITFTEXTINPUTPROCESSOREX: GUID =
     GUID::from_u128(0xa99b7b7e_0c8d_44db_8892_1084227f2c20);
 pub const IID_ITFKEYEVENTSINK: GUID = GUID::from_u128(0x3d61bf11_acff_428f_a87f_9007357d6457);
 pub const IID_ITFCOMPOSITIONSINK: GUID = GUID::from_u128(0xd7540241_f9a1_4364_befc_dbcd2c4395b7);
-pub const IID_ITFTHREADMGREVENTSINK: GUID =
-    GUID::from_u128(0x08466369_00e2_43dd_b43d_5382920b22a7);
+pub const IID_ITFTHREADMGREVENTSINK: GUID = GUID::from_u128(0x08466369_00e2_43dd_b43d_5382920b22a7);
 pub const IID_ITFTHREADMGR: GUID = GUID::from_u128(0xaa80e7f0_2021_11d2_93e0_0060b067b86e);
 pub const IID_ITFKEYSTROKEMGR: GUID = GUID::from_u128(0xaaa274aa_2020_11d2_93e0_0060b067b86e);
 pub const IID_ITFCONTEXT: GUID = GUID::from_u128(0xaa80e7fd_2021_11d2_93e0_0060b067b86e);
 pub const IID_ITFEDITSESSION: GUID = GUID::from_u128(0xaa80e803_2021_11d2_93e0_0060b067b86e);
 pub const IID_ITFRANGE: GUID = GUID::from_u128(0xaa80e7ff_2021_11d2_93e0_0060b067b86e);
 pub const IID_ITFCOMPOSITION: GUID = GUID::from_u128(0x20168d11_5a76_4a5b_a61b_2577314b55e3);
-pub const IID_ITFINSERTATSELECTION: GUID =
-    GUID::from_u128(0x55ce4538_a6f4_41b1_a753_367322c6db55);
+pub const IID_ITFINSERTATSELECTION: GUID = GUID::from_u128(0x55ce4538_a6f4_41b1_a753_367322c6db55);
 
 pub type TfClientId = u32;
 pub type TfEditCookie = u32;
@@ -51,8 +48,12 @@ pub struct IUnknownVtbl {
 #[repr(C)]
 pub struct IClassFactoryVtbl {
     pub parent: IUnknownVtbl,
-    pub CreateInstance:
-        unsafe extern "system" fn(*mut c_void, *mut c_void, *const GUID, *mut *mut c_void) -> HRESULT,
+    pub CreateInstance: unsafe extern "system" fn(
+        *mut c_void,
+        *mut c_void,
+        *const GUID,
+        *mut *mut c_void,
+    ) -> HRESULT,
     pub LockServer: unsafe extern "system" fn(*mut c_void, BOOL) -> HRESULT,
 }
 
@@ -66,8 +67,7 @@ pub struct ITfTextInputProcessorVtbl {
 #[repr(C)]
 pub struct ITfTextInputProcessorExVtbl {
     pub parent: ITfTextInputProcessorVtbl,
-    pub ActivateEx:
-        unsafe extern "system" fn(*mut c_void, *mut c_void, TfClientId, u32) -> HRESULT,
+    pub ActivateEx: unsafe extern "system" fn(*mut c_void, *mut c_void, TfClientId, u32) -> HRESULT,
 }
 
 #[repr(C)]

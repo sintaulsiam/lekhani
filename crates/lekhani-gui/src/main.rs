@@ -46,7 +46,9 @@ unsafe fn ensure_single_instance() -> bool {
     use windows_sys::Win32::UI::WindowsAndMessaging::{FindWindowW, PostMessageW, WM_COMMAND};
 
     // Use Local\ for current user desktop session (runs cleanly without elevated privileges)
-    let mutex_name: Vec<u16> = "Local\\LekhaniSingleInstanceMutex\0".encode_utf16().collect();
+    let mutex_name: Vec<u16> = "Local\\LekhaniSingleInstanceMutex\0"
+        .encode_utf16()
+        .collect();
     let handle = CreateMutexW(std::ptr::null(), 1, mutex_name.as_ptr());
     let last_err = GetLastError();
     if handle == 0 as _ || last_err == ERROR_ALREADY_EXISTS {
@@ -102,7 +104,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     app.set_is_bengali_mode(false);
     #[cfg(not(windows))]
     {
-        let is_fcitx5_active = match std::process::Command::new("fcitx5-remote").arg("-n").output() {
+        let is_fcitx5_active = match std::process::Command::new("fcitx5-remote")
+            .arg("-n")
+            .output()
+        {
             Ok(o) => String::from_utf8_lossy(&o.stdout).trim() == "lekhani",
             Err(e) => {
                 if e.kind() == std::io::ErrorKind::NotFound {
@@ -249,7 +254,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     win_hook::spawn_windows_hook(current_layout.clone(), win_tray_handle.clone());
 
     #[cfg(windows)]
-    let start_in_tray = args.contains(&"--tray".to_string()) || args.contains(&"--minimized".to_string());
+    let start_in_tray =
+        args.contains(&"--tray".to_string()) || args.contains(&"--minimized".to_string());
     #[cfg(windows)]
     if start_in_tray {
         let _ = app.window().with_winit_window(|winit_window| {
@@ -333,7 +339,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     if let Some(monitor) = winit_window.current_monitor() {
                         let screen_w = monitor.size().width as i32;
                         let win_w = winit_window.outer_size().width as i32;
-                        if (pos.x + win_w) > (screen_w - snap_threshold) && (pos.x + win_w) <= screen_w + 50 {
+                        if (pos.x + win_w) > (screen_w - snap_threshold)
+                            && (pos.x + win_w) <= screen_w + 50
+                        {
                             pos.x = (screen_w - win_w - 8).max(8);
                         }
                     }
@@ -358,7 +366,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .try_dispatch_event(slint::platform::WindowEvent::PointerExited);
         }
     });
-
 
     // OSD Toast Timer
     let osd_timer = Rc::new(std::cell::RefCell::new(slint::Timer::default()));
@@ -596,7 +603,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 } else {
                     sel.to_string()
                 };
-                update_standalone_viewer_ui(&standalone, &lm, &layout_name, standalone.get_viewer_mode());
+                update_standalone_viewer_ui(
+                    &standalone,
+                    &lm,
+                    &layout_name,
+                    standalone.get_viewer_mode(),
+                );
             } else if dialog_id == 5 {
                 let cm = cm_detach.borrow();
                 apply_settings_to_standalone(&standalone, &cm.config);
@@ -726,8 +738,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             s.set_conjunct_list(Rc::new(slint::VecModel::from(slint_results)).into());
         }
     });
-
-
 
     // Settings: Standalone Auto-Save
     let cm_auto_s = config_mgr_rc.clone();
@@ -1059,15 +1069,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 #[cfg(unix)]
                 {
                     if FCITX5_AVAILABLE.load(std::sync::atomic::Ordering::Relaxed) {
-                        match std::process::Command::new("fcitx5-remote").arg("-n").output() {
+                        match std::process::Command::new("fcitx5-remote")
+                            .arg("-n")
+                            .output()
+                        {
                             Ok(out) => {
-                                let im_name = String::from_utf8_lossy(&out.stdout).trim().to_string();
+                                let im_name =
+                                    String::from_utf8_lossy(&out.stdout).trim().to_string();
                                 let is_bengali = im_name == "lekhani";
                                 if app.get_is_bengali_mode() != is_bengali {
                                     app.set_is_bengali_mode(is_bengali);
                                     let layout = cm.config.general.active_layout.clone();
                                     if let Some(ref th) = tray_handle_timer {
-                                        th.update_layout(if is_bengali { &layout } else { "English" });
+                                        th.update_layout(if is_bengali {
+                                            &layout
+                                        } else {
+                                            "English"
+                                        });
                                     }
                                 }
                             }

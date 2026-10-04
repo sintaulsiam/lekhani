@@ -12,8 +12,8 @@ use std::sync::{Arc, Mutex};
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, WPARAM};
 use windows_sys::Win32::Graphics::Gdi::{
     CreateBitmap, CreateCompatibleBitmap, CreateCompatibleDC, CreateFontW, CreateSolidBrush,
-    DeleteDC, DeleteObject, DrawTextW, GetDC, ReleaseDC, RoundRect, SelectObject,
-    SetBkMode, SetTextColor, DT_CENTER, DT_SINGLELINE, DT_VCENTER, TRANSPARENT,
+    DeleteDC, DeleteObject, DrawTextW, GetDC, ReleaseDC, RoundRect, SelectObject, SetBkMode,
+    SetTextColor, DT_CENTER, DT_SINGLELINE, DT_VCENTER, TRANSPARENT,
 };
 use windows_sys::Win32::UI::Shell::{
     Shell_NotifyIconW, NIF_ICON, NIF_MESSAGE, NIF_TIP, NIM_ADD, NIM_DELETE, NIM_MODIFY,
@@ -24,10 +24,9 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     DestroyMenu, DestroyWindow, DispatchMessageW, GetCursorPos, GetMessageW, GetSystemMetrics,
     LoadIconW, PostQuitMessage, RegisterClassExW, SetForegroundWindow, TrackPopupMenu, HICON,
     ICONINFO, IDI_APPLICATION, MF_CHECKED, MF_POPUP, MF_SEPARATOR, MF_STRING, MF_UNCHECKED, MSG,
-    SM_CXSMICON, TPM_BOTTOMALIGN, TPM_LEFTALIGN, WM_APP, WM_COMMAND, WM_DESTROY,
-    WM_LBUTTONDBLCLK, WM_LBUTTONUP, WM_RBUTTONUP, WNDCLASSEXW,
+    SM_CXSMICON, TPM_BOTTOMALIGN, TPM_LEFTALIGN, WM_APP, WM_COMMAND, WM_DESTROY, WM_LBUTTONDBLCLK,
+    WM_LBUTTONUP, WM_RBUTTONUP, WNDCLASSEXW,
 };
-
 
 const WM_TRAYICON: u32 = WM_APP + 1;
 const ID_TRAY_RESTORE: usize = 1000;
@@ -160,7 +159,6 @@ impl WindowsTray {
 
             Shell_NotifyIconW(NIM_ADD, &nid);
 
-
             Some(Self { hwnd })
         }
     }
@@ -198,7 +196,11 @@ impl WindowsTray {
                 hBalloonIcon: 0 as _,
             };
 
-            let mode_str = if active { "বাংলা (Active)" } else { "English" };
+            let mode_str = if active {
+                "বাংলা (Active)"
+            } else {
+                "English"
+            };
             let tip = format!("Lekhani [{} - {}]\0", mode_str, layout_name);
             for (i, c) in tip.encode_utf16().enumerate() {
                 if i < 127 {
@@ -403,7 +405,11 @@ pub fn open_settings() {
 }
 
 unsafe fn update_tray_tooltip(hwnd: HWND, active: bool, layout_name: &str) {
-    let mode_str = if active { "বাংলা (Active)" } else { "English" };
+    let mode_str = if active {
+        "বাংলা (Active)"
+    } else {
+        "English"
+    };
     let tip = format!("Lekhani [{} - {}]\0", mode_str, layout_name);
 
     let mut nid = NOTIFYICONDATAW {
@@ -514,7 +520,12 @@ unsafe extern "system" fn tray_wnd_proc(
                 );
                 AppendMenuW(
                     hsub_layout,
-                    MF_STRING | if is_national { MF_CHECKED } else { MF_UNCHECKED },
+                    MF_STRING
+                        | if is_national {
+                            MF_CHECKED
+                        } else {
+                            MF_UNCHECKED
+                        },
                     ID_LAYOUT_NATIONAL,
                     national_label.as_ptr(),
                 );

@@ -38,9 +38,8 @@ jobs:
 
       - name: Verify Standalone Crates Packaging
         run: |
-          cargo package -p lekhani-parser --no-verify
-          cargo package -p lekhani-ai --no-verify
-          cargo check -p lekhani-parser --features wasm
+          cargo package -p lekhani-settings --no-verify --allow-dirty
+          cargo package -p lekhani-cli --no-verify --allow-dirty
 
   build:
     name: Multi-Arch Binary Builds

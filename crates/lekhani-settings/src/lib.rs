@@ -141,7 +141,6 @@ impl Default for UiConfig {
     }
 }
 
-
 impl AppConfig {
     pub fn to_suggestion_config(&self) -> lekhani_core::PhoneticSuggestionConfig {
         lekhani_core::PhoneticSuggestionConfig {
@@ -374,7 +373,7 @@ impl ConfigManager {
         // 4. Linux system paths
         candidates.push(PathBuf::from("/usr/share/lekhani/layouts"));
         candidates.push(PathBuf::from("/usr/local/share/lekhani/layouts"));
-        
+
         for c in &candidates {
             if c.exists()
                 && (c.join("avrophonetic.json").exists() || c.join("Probhat.json").exists())
@@ -458,7 +457,7 @@ impl ConfigManager {
         candidates.push(PathBuf::from("/usr/share/lekhani"));
         candidates.push(PathBuf::from("/usr/local/share/lekhani/data"));
         candidates.push(PathBuf::from("/usr/local/share/lekhani"));
-        
+
         for c in &candidates {
             if c.exists()
                 && (c.join("dictionary.json").exists()
@@ -555,7 +554,9 @@ impl ConfigManager {
         lekhani_core::atomic_write_secure(&ac_path, ac_json.as_bytes())?;
 
         if let Some(learned_val) = bundle.user_learned {
-            if let Ok(mut learner) = serde_json::from_value::<lekhani_core::AutonomousLearner>(learned_val) {
+            if let Ok(mut learner) =
+                serde_json::from_value::<lekhani_core::AutonomousLearner>(learned_val)
+            {
                 let learned_path = self.get_user_learned_path();
                 learner.dirty = true;
                 learner.save_to_path(&learned_path)?;
@@ -565,8 +566,14 @@ impl ConfigManager {
         let layout_dir = self.get_user_layout_dir();
         std::fs::create_dir_all(&layout_dir)?;
         for (name, content) in bundle.custom_layouts {
-            if name.contains("..") || name.contains('/') || name.contains('\\') || name.trim().is_empty() {
-                return Err(format!("Invalid or suspicious layout file name in backup: {}", name).into());
+            if name.contains("..")
+                || name.contains('/')
+                || name.contains('\\')
+                || name.trim().is_empty()
+            {
+                return Err(
+                    format!("Invalid or suspicious layout file name in backup: {}", name).into(),
+                );
             }
             if !name.ends_with(".json") {
                 return Err(format!("Layout file must have .json extension: {}", name).into());
@@ -652,7 +659,11 @@ mod tests {
         let system_dir = ConfigManager::get_system_layout_dir();
         layout_mgr.discover_layouts(system_dir, std::path::PathBuf::from("/nonexistent"));
         let layouts = layout_mgr.get_layout_list();
-        assert!(layouts.len() >= 6, "Should discover at least 6 layouts, got: {:?}", layouts);
+        assert!(
+            layouts.len() >= 6,
+            "Should discover at least 6 layouts, got: {:?}",
+            layouts
+        );
         for name in &layouts {
             let json = layout_mgr.load_layout_json(name);
             assert!(json.is_some(), "Layout '{}' should have valid JSON", name);
@@ -704,7 +715,8 @@ mod tests {
 
         // Export backup
         let backup_path = temp_dir.join("backup.json");
-        cm.export_backup(&backup_path).expect("Export should succeed");
+        cm.export_backup(&backup_path)
+            .expect("Export should succeed");
         assert!(backup_path.exists());
 
         // Mutate current state
@@ -715,7 +727,8 @@ mod tests {
         let _ = std::fs::write(&learned_path, "{}");
 
         // Import backup
-        cm.import_backup(&backup_path).expect("Import should succeed");
+        cm.import_backup(&backup_path)
+            .expect("Import should succeed");
 
         // Validate restored state
         assert_eq!(cm.config.general.toggle_key, "F11");
@@ -733,7 +746,10 @@ mod tests {
 
     #[test]
     fn test_backup_import_rejects_path_traversal() {
-        let temp_dir = std::env::temp_dir().join(format!("lekhani_settings_test_traversal_{}", std::process::id()));
+        let temp_dir = std::env::temp_dir().join(format!(
+            "lekhani_settings_test_traversal_{}",
+            std::process::id()
+        ));
         let conf_dir = temp_dir.join("config");
         let data_dir = temp_dir.join("data");
         let _ = std::fs::create_dir_all(&conf_dir);
@@ -766,7 +782,10 @@ mod tests {
         std::fs::write(&backup_path, serde_json::to_string(&bundle).unwrap()).unwrap();
 
         let result = cm.import_backup(&backup_path);
-        assert!(result.is_err(), "Backup import must reject path traversal attempt");
+        assert!(
+            result.is_err(),
+            "Backup import must reject path traversal attempt"
+        );
         let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }

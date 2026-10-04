@@ -152,7 +152,7 @@ jobs:
 
       - name: Compile Release Binaries
         run: |
-          cargo build --release -p lekhani-cli -p lekhani-gui -p lekhani-ffi
+          cargo build --release -p lekhani-cli -p lekhani-gui -p lekhani-ffi -p lekhani-tsf
 
       - name: Build Inno Setup Installer
         uses: Minionguyjpro/Inno-Setup-Action@v1.2.2
@@ -162,7 +162,7 @@ jobs:
       - name: Package Portable ZIP Bundle
         shell: pwsh
         run: |
-          $ver = "3.0.0"
+          $ver = "1.0.0"
           $portable = "target/portable/lekhani-v$ver-windows-x64"
           if (Test-Path $portable) {
             Remove-Item -Recurse -Force $portable
@@ -170,6 +170,9 @@ jobs:
           New-Item -ItemType Directory -Force -Path "$portable/data"
           Copy-Item -Force "target/release/lekhani-gui.exe" -Destination "$portable/"
           Copy-Item -Force "target/release/lekhani.exe" -Destination "$portable/"
+          if (Test-Path "target/release/lekhani_tsf.dll") {
+            Copy-Item -Force "target/release/lekhani_tsf.dll" -Destination "$portable/"
+          }
           if (Test-Path "target/release/lekhani.dll") {
             Copy-Item -Force "target/release/lekhani.dll" -Destination "$portable/"
           }

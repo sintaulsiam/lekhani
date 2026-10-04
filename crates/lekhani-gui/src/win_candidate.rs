@@ -14,11 +14,10 @@ use windows_sys::Win32::Graphics::Gdi::{
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, GetCursorPos, GetForegroundWindow, GetGUIThreadInfo,
     GetSystemMetrics, GetWindowRect, RegisterClassW, SetWindowPos, ShowWindow, CS_DROPSHADOW,
-    CS_HREDRAW, CS_VREDRAW, GUITHREADINFO, HWND_TOPMOST, SM_CXSCREEN, SM_CYSCREEN,
-    SWP_NOACTIVATE, SWP_SHOWWINDOW, SW_HIDE, WM_ERASEBKGND, WM_LBUTTONUP, WM_PAINT, WNDCLASSW,
-    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
+    CS_HREDRAW, CS_VREDRAW, GUITHREADINFO, HWND_TOPMOST, SM_CXSCREEN, SM_CYSCREEN, SWP_NOACTIVATE,
+    SWP_SHOWWINDOW, SW_HIDE, WM_ERASEBKGND, WM_LBUTTONUP, WM_PAINT, WNDCLASSW, WS_EX_NOACTIVATE,
+    WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
-
 
 #[derive(Clone, Default)]
 pub struct CandidateData {
@@ -170,17 +169,24 @@ impl CandidateWindow {
         let (total_width, height) = if horizontal {
             let sum_w: i32 = item_widths.iter().sum();
             let spacing = (count.saturating_sub(1) as i32) * (6.0 * scale).round() as i32;
-            (sum_w + spacing + (20.0 * scale).round() as i32, (38.0 * scale).round() as i32)
+            (
+                sum_w + spacing + (20.0 * scale).round() as i32,
+                (38.0 * scale).round() as i32,
+            )
         } else {
             let default_w = (160.0 * scale).round() as i32;
             let min_col_w = (180.0 * scale).round() as i32;
-            let max_w = item_widths.iter().cloned().max().unwrap_or(default_w).max(min_col_w);
+            let max_w = item_widths
+                .iter()
+                .cloned()
+                .max()
+                .unwrap_or(default_w)
+                .max(min_col_w);
             let pad = (16.0 * scale).round() as i32;
             let row_h = (32.0 * scale).round() as i32;
             let margin = (12.0 * scale).round() as i32;
             (max_w + pad, (count as i32 * row_h) + margin)
         };
-
 
         unsafe {
             let mut pt = POINT { x: 0, y: 0 };
@@ -460,7 +466,11 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
     let row_h = (32.0 * scale).round() as i32;
 
     for i in 0..count {
-        let item_w = data.item_widths.get(i).copied().unwrap_or((68.0 * scale).round() as i32);
+        let item_w = data
+            .item_widths
+            .get(i)
+            .copied()
+            .unwrap_or((68.0 * scale).round() as i32);
         let item_rect = if data.horizontal {
             let r = RECT {
                 left: cur_x,

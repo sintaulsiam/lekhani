@@ -20,8 +20,8 @@ pub const LANGID_BENGALI_IN: u16 = 0x0445;
 
 #[cfg(windows)]
 pub use windows_sys::Win32::UI::TextServices::{
-    CLSID_TF_CategoryMgr, CLSID_TF_InputProcessorProfiles, CLSID_TF_ThreadMgr,
-    GUID_PROP_ATTRIBUTE, GUID_PROP_COMPOSING, GUID_TFCAT_TIP_KEYBOARD,
+    CLSID_TF_CategoryMgr, CLSID_TF_InputProcessorProfiles, CLSID_TF_ThreadMgr, GUID_PROP_ATTRIBUTE,
+    GUID_PROP_COMPOSING, GUID_TFCAT_TIP_KEYBOARD,
 };
 
 #[cfg(windows)]
