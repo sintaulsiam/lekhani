@@ -145,8 +145,8 @@ impl CandidateWindow {
             );
             let old_font = SelectObject(hdc_screen, font as _);
 
-            for (i, c) in display_cands.iter().enumerate() {
-                let label = format!("{}. {}", i + 1, c);
+            for c in &display_cands {
+                let label = c.clone();
                 let label_utf16: Vec<u16> = label.encode_utf16().collect();
                 let mut sz: SIZE = std::mem::zeroed();
                 GetTextExtentPoint32W(
@@ -509,7 +509,7 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
             SetTextColor(hdc, inactive_text_color);
         }
 
-        let label = format!("{}. {}", i + 1, data.candidates[i]);
+        let label = data.candidates[i].clone();
         let mut label_utf16: Vec<u16> = label.encode_utf16().collect();
 
         let mut text_rect = item_rect;

@@ -9,10 +9,10 @@ use windows_sys::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     GetKeyState, GetKeyboardState, SendInput, ToUnicode, INPUT, INPUT_0, INPUT_KEYBOARD,
     KEYBDINPUT, KEYEVENTF_KEYUP, KEYEVENTF_UNICODE, VK_BACK, VK_CAPITAL, VK_CONTROL, VK_DOWN,
-    VK_ESCAPE, VK_F12, VK_LCONTROL, VK_LMENU, VK_LWIN, VK_MENU, VK_NUMPAD1, VK_NUMPAD5, VK_OEM_1,
+    VK_ESCAPE, VK_F12, VK_LCONTROL, VK_LMENU, VK_LWIN, VK_MENU, VK_OEM_1,
     VK_OEM_2, VK_OEM_3, VK_OEM_4, VK_OEM_5, VK_OEM_6, VK_OEM_7, VK_OEM_COMMA, VK_OEM_MINUS,
     VK_OEM_PERIOD, VK_OEM_PLUS, VK_RCONTROL, VK_RETURN, VK_RMENU, VK_RWIN, VK_SHIFT, VK_SPACE,
-    VK_TAB, VK_UP,
+    VK_TAB, VK_UP, VK_LEFT, VK_RIGHT,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CallNextHookEx, DispatchMessageW, GetMessageW, SetWindowsHookExW, UnhookWindowsHookEx, HHOOK,
@@ -441,48 +441,18 @@ unsafe extern "system" fn low_level_keyboard_proc(
 
     let caps_locked = (GetKeyState(VK_CAPITAL as i32) & 1) != 0;
 
-    // Direct Selection via 1..5 and Candidate Navigation in Phonetic Mode
+    // Candidate Navigation in Phonetic Mode (Uncommitted Preedit)
     if state.session.active_layout_type == ActiveLayoutType::Phonetic && state.uncommitted_units > 0
     {
         let candidates = state.session.get_candidates();
         if !candidates.is_empty() {
-            // Direct candidate selection with 1..5
-            let sel_num = match vk {
-                0x31..=0x35 if !shift_down => Some((vk - 0x31) as usize),
-                VK_NUMPAD1..=VK_NUMPAD5 => Some((vk - VK_NUMPAD1) as usize),
-                _ => None,
-            };
-
-            if let Some(idx) = sel_num {
-                if idx < candidates.len() {
-                    if let Some(committed) = state.session.commit(idx) {
-                        state.on_commit();
-                        inject_backspaces(state.uncommitted_units);
-                        inject_unicode_str(&committed);
-                        state.uncommitted_units = 0;
-                        if state
-                            .config_mgr
-                            .config
-                            .phonetic
-                            .enable_predictive_next_words
-                        {
-                            if state.session.populate_predictions() {
-                                let preds = state.session.get_candidates();
-                                state.update_candidate_window(preds, 0);
-                            } else if let Some(ref win) = state.candidate_win {
-                                win.hide();
-                            }
-                        } else if let Some(ref win) = state.candidate_win {
-                            win.hide();
-                        }
-                        return 1;
-                    }
+            // Candidate navigation via Tab / Shift+Tab / Down / Right
+            if vk == VK_TAB || vk == VK_DOWN || vk == VK_RIGHT {
+                if shift_down {
+                    state.session.select_prev();
+                } else {
+                    state.session.select_next();
                 }
-            }
-
-            // Candidate navigation via Tab, Down, Up
-            if vk == VK_TAB || vk == VK_DOWN {
-                state.session.select_next();
                 let candidate = state.session.get_preedit_text();
                 if !candidate.is_empty() {
                     inject_backspaces(state.uncommitted_units);
@@ -495,7 +465,8 @@ unsafe extern "system" fn low_level_keyboard_proc(
                 return 1;
             }
 
-            if vk == VK_UP {
+            // Candidate navigation via Up / Left
+            if vk == VK_UP || vk == VK_LEFT {
                 state.session.select_prev();
                 let candidate = state.session.get_preedit_text();
                 if !candidate.is_empty() {
@@ -511,41 +482,35 @@ unsafe extern "system" fn low_level_keyboard_proc(
         }
     }
 
-    // Direct Selection via 1..5 in Zero-Preedit Prediction Mode
+    // Prediction Mode Navigation (Zero Uncommitted Preedit)
     if state.session.active_layout_type == ActiveLayoutType::Phonetic
         && state.uncommitted_units == 0
         && state.session.is_prediction_mode()
     {
         let candidates = state.session.get_candidates();
-        let sel_num = match vk {
-            0x31..=0x35 if !shift_down => Some((vk - 0x31) as usize),
-            VK_NUMPAD1..=VK_NUMPAD5 => Some((vk - VK_NUMPAD1) as usize),
-            _ => None,
-        };
-
-        if let Some(idx) = sel_num {
-            if idx < candidates.len() {
-                if let Some(committed) = state.session.commit(idx) {
-                    state.on_commit();
-                    inject_unicode_str(&committed);
-                    inject_unicode_str(" ");
-                    if state
-                        .config_mgr
-                        .config
-                        .phonetic
-                        .enable_predictive_next_words
-                    {
-                        if state.session.populate_predictions() {
-                            let preds = state.session.get_candidates();
-                            state.update_candidate_window(preds, 0);
-                        } else if let Some(ref win) = state.candidate_win {
-                            win.hide();
-                        }
-                    } else if let Some(ref win) = state.candidate_win {
-                        win.hide();
-                    }
-                    return 1;
+        if !candidates.is_empty() {
+            // Tab / Shift+Tab / Down / Right navigation
+            if vk == VK_TAB || vk == VK_DOWN || vk == VK_RIGHT {
+                if shift_down {
+                    state.session.select_prev();
+                } else {
+                    state.session.select_next();
                 }
+                state.update_candidate_window(
+                    state.session.get_candidates(),
+                    state.session.get_selected_index(),
+                );
+                return 1;
+            }
+
+            // Up / Left navigation
+            if vk == VK_UP || vk == VK_LEFT {
+                state.session.select_prev();
+                state.update_candidate_window(
+                    state.session.get_candidates(),
+                    state.session.get_selected_index(),
+                );
+                return 1;
             }
         }
     }
@@ -604,6 +569,30 @@ unsafe extern "system" fn low_level_keyboard_proc(
             }
             return 1;
         } else if state.session.is_prediction_mode() {
+            if state.session.is_prediction_navigated() {
+                let idx = state.session.get_selected_index();
+                if let Some(committed) = state.session.commit(idx) {
+                    state.on_commit();
+                    inject_unicode_str(&committed);
+                    inject_unicode_str(" ");
+                    if state
+                        .config_mgr
+                        .config
+                        .phonetic
+                        .enable_predictive_next_words
+                    {
+                        if state.session.populate_predictions() {
+                            let preds = state.session.get_candidates();
+                            state.update_candidate_window(preds, 0);
+                        } else if let Some(ref win) = state.candidate_win {
+                            win.hide();
+                        }
+                    } else if let Some(ref win) = state.candidate_win {
+                        win.hide();
+                    }
+                    return 1;
+                }
+            }
             state.session.reset();
             if let Some(ref win) = state.candidate_win {
                 win.hide();
@@ -622,6 +611,17 @@ unsafe extern "system" fn low_level_keyboard_proc(
                 win.hide();
             }
         } else if state.session.is_prediction_mode() {
+            if state.session.is_prediction_navigated() {
+                let idx = state.session.get_selected_index();
+                if let Some(committed) = state.session.commit(idx) {
+                    state.on_commit();
+                    inject_unicode_str(&committed);
+                    if let Some(ref win) = state.candidate_win {
+                        win.hide();
+                    }
+                    return 1;
+                }
+            }
             state.session.reset();
             if let Some(ref win) = state.candidate_win {
                 win.hide();

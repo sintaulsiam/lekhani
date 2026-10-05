@@ -12,8 +12,8 @@ use std::sync::{Arc, Mutex};
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, WPARAM};
 use windows_sys::Win32::Graphics::Gdi::{
     CreateBitmap, CreateCompatibleBitmap, CreateCompatibleDC, CreateFontW, CreateSolidBrush,
-    DeleteDC, DeleteObject, DrawTextW, GetDC, ReleaseDC, RoundRect, SelectObject, SetBkMode,
-    SetTextColor, DT_CENTER, DT_SINGLELINE, DT_VCENTER, TRANSPARENT,
+    DeleteDC, DeleteObject, DrawTextW, FillRect, GetDC, ReleaseDC, RoundRect, SelectObject,
+    SetBkMode, SetTextColor, DT_CENTER, DT_SINGLELINE, DT_VCENTER, TRANSPARENT,
 };
 use windows_sys::Win32::UI::Shell::{
     Shell_NotifyIconW, NIF_ICON, NIF_MESSAGE, NIF_TIP, NIM_ADD, NIM_DELETE, NIM_MODIFY,
@@ -22,10 +22,10 @@ use windows_sys::Win32::UI::Shell::{
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     AppendMenuW, CreateIconIndirect, CreatePopupMenu, CreateWindowExW, DefWindowProcW, DestroyIcon,
     DestroyMenu, DestroyWindow, DispatchMessageW, GetCursorPos, GetMessageW, GetSystemMetrics,
-    LoadIconW, PostQuitMessage, RegisterClassExW, SetForegroundWindow, TrackPopupMenu, HICON,
-    ICONINFO, IDI_APPLICATION, MF_CHECKED, MF_POPUP, MF_SEPARATOR, MF_STRING, MF_UNCHECKED, MSG,
-    SM_CXSMICON, TPM_BOTTOMALIGN, TPM_LEFTALIGN, WM_APP, WM_COMMAND, WM_DESTROY, WM_LBUTTONDBLCLK,
-    WM_LBUTTONUP, WM_RBUTTONUP, WNDCLASSEXW,
+    LoadIconW, PostMessageW, PostQuitMessage, RegisterClassExW, RegisterWindowMessageW,
+    SetForegroundWindow, TrackPopupMenu, HICON, ICONINFO, IDI_APPLICATION, MF_CHECKED, MF_POPUP,
+    MF_SEPARATOR, MF_STRING, MF_UNCHECKED, MSG, SM_CXSMICON, TPM_BOTTOMALIGN, TPM_LEFTALIGN,
+    WM_APP, WM_COMMAND, WM_DESTROY, WM_LBUTTONDBLCLK, WM_LBUTTONUP, WM_RBUTTONUP, WNDCLASSEXW,
 };
 
 const WM_TRAYICON: u32 = WM_APP + 1;
@@ -43,6 +43,7 @@ static IS_BENGALI: AtomicBool = AtomicBool::new(false);
 static IS_TOPBAR_VISIBLE: AtomicBool = AtomicBool::new(true);
 static APP_WEAK: Mutex<Option<slint::Weak<crate::TopBarWindow>>> = Mutex::new(None);
 static ACTIVE_LAYOUT: Mutex<String> = Mutex::new(String::new());
+static WM_TASKBARCREATED: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
 
 static ICON_DEFAULT: Mutex<Option<usize>> = Mutex::new(None);
 static ICON_EN: Mutex<Option<usize>> = Mutex::new(None);
@@ -71,15 +72,23 @@ impl WindowsTray {
 
             // Pre-create dynamic badge icons for English and Bengali
             let icon_sz = GetSystemMetrics(SM_CXSMICON).max(16);
-            // Emerald green (#10B981) for Bengali: R=16, G=185, B=129 -> 0x0081B910
-            let hicon_bn = create_badge_icon("বা", 0x0081B910, 0x00FFFFFF, icon_sz, true);
-            // Slate blue (#3B82F6) for English: R=59, G=130, B=246 -> 0x00F6823B
-            let hicon_en = create_badge_icon("En", 0x00F6823B, 0x00FFFFFF, icon_sz, false);
+            let mut hicon_bn = create_badge_icon("বা", 0x0081B910, 0x00FFFFFF, icon_sz, true);
+            let mut hicon_en = create_badge_icon("En", 0x00F6823B, 0x00FFFFFF, icon_sz, false);
+            if hicon_bn == 0 as _ {
+                hicon_bn = hicon_default;
+            }
+            if hicon_en == 0 as _ {
+                hicon_en = hicon_default;
+            }
 
             *ICON_DEFAULT.lock().unwrap() = Some(hicon_default as usize);
             *ICON_EN.lock().unwrap() = Some(hicon_en as usize);
             *ICON_BN.lock().unwrap() = Some(hicon_bn as usize);
             *ACTIVE_LAYOUT.lock().unwrap() = initial_layout.clone();
+
+            let taskbar_str: Vec<u16> = "TaskbarCreated\0".encode_utf16().collect();
+            let tb_msg = RegisterWindowMessageW(taskbar_str.as_ptr());
+            WM_TASKBARCREATED.store(tb_msg, Ordering::SeqCst);
 
             let wc = WNDCLASSEXW {
                 cbSize: std::mem::size_of::<WNDCLASSEXW>() as u32,
@@ -149,15 +158,33 @@ impl WindowsTray {
                 }
             }
 
-            let info_msg = "Press F12 to toggle English / Bengali. Select suggestions with 1..5. Right-click for layouts.\0";
+            let info_msg = "Press F12 to toggle English / Bengali. Use Tab to cycle suggestions. Right-click for layouts.\0";
             for (i, c) in info_msg.encode_utf16().enumerate() {
                 if i < 255 {
                     nid.szInfo[i] = c;
                 }
             }
-            nid.uFlags |= 0x00000010; // NIF_INFO
 
-            Shell_NotifyIconW(NIM_ADD, &nid);
+            // Shell_NotifyIconW(NIM_ADD) must NOT include NIF_INFO on Windows 7/10/11!
+            let mut ok = Shell_NotifyIconW(NIM_ADD, &nid);
+            if ok == 0 {
+                tracing::warn!("First NIM_ADD failed, retrying with default application icon...");
+                nid.hIcon = hicon_default;
+                ok = Shell_NotifyIconW(NIM_ADD, &nid);
+            }
+
+            if ok == 0 {
+                tracing::error!(
+                    "Shell_NotifyIconW(NIM_ADD) failed: {}",
+                    windows_sys::Win32::Foundation::GetLastError()
+                );
+            } else {
+                tracing::info!("Windows System Tray Icon registered successfully");
+                // Optional welcome balloon notification via NIM_MODIFY
+                let mut nid_info = nid;
+                nid_info.uFlags |= 0x00000010; // NIF_INFO
+                let _ = Shell_NotifyIconW(NIM_MODIFY, &nid_info);
+            }
 
             Some(Self { hwnd })
         }
@@ -254,13 +281,27 @@ unsafe fn create_badge_icon(
     is_bengali: bool,
 ) -> HICON {
     let hdc_screen = GetDC(0 as _);
+    if hdc_screen == 0 as _ {
+        return 0 as _;
+    }
     let hdc_mem = CreateCompatibleDC(hdc_screen);
+    if hdc_mem == 0 as _ {
+        ReleaseDC(0 as _, hdc_screen);
+        return 0 as _;
+    }
     let hbm_color = CreateCompatibleBitmap(hdc_screen, size, size);
+    if hbm_color == 0 as _ {
+        DeleteDC(hdc_mem);
+        ReleaseDC(0 as _, hdc_screen);
+        return 0 as _;
+    }
     let old_bmp = SelectObject(hdc_mem, hbm_color as _);
 
-    // Background pill/rounded badge
+    // Clear and fill badge with solid color (eliminating uninitialized memory)
     let brush = CreateSolidBrush(bg_color);
     let old_brush = SelectObject(hdc_mem, brush as _);
+    let full_rect = RECT { left: 0, top: 0, right: size, bottom: size };
+    FillRect(hdc_mem, &full_rect, brush);
     RoundRect(hdc_mem, 0, 0, size, size, 6, 6);
     SelectObject(hdc_mem, old_brush);
     DeleteObject(brush as _);
@@ -461,112 +502,153 @@ unsafe fn switch_layout_from_tray(hwnd: HWND, new_layout: &str) {
     update_tray_tooltip(hwnd, IS_BENGALI.load(Ordering::SeqCst), new_layout);
 }
 
+unsafe fn show_tray_menu(hwnd: HWND) {
+    let mut pt = POINT { x: 0, y: 0 };
+    GetCursorPos(&mut pt);
+
+    let hmenu = CreatePopupMenu();
+    let restore_label: Vec<u16> = if IS_TOPBAR_VISIBLE.load(Ordering::SeqCst) {
+        "Hide TopBar\0".encode_utf16().collect()
+    } else {
+        "Show TopBar\0".encode_utf16().collect()
+    };
+    let toggle_label: Vec<u16> = if IS_BENGALI.load(Ordering::SeqCst) {
+        "Switch to English (F12)\0".encode_utf16().collect()
+    } else {
+        "Switch to Bengali (F12)\0".encode_utf16().collect()
+    };
+    let settings_label: Vec<u16> = "Settings...\0".encode_utf16().collect();
+    let exit_label: Vec<u16> = "Exit Lekhani\0".encode_utf16().collect();
+
+    AppendMenuW(hmenu, MF_STRING, ID_TRAY_RESTORE, restore_label.as_ptr());
+    AppendMenuW(hmenu, MF_SEPARATOR, 0, std::ptr::null());
+    AppendMenuW(hmenu, MF_STRING, ID_TRAY_TOGGLE, toggle_label.as_ptr());
+
+    // Layout submenu
+    let hsub_layout = CreatePopupMenu();
+    let cur_layout = ACTIVE_LAYOUT.lock().unwrap().clone();
+
+    let is_avro = cur_layout == "Avro Phonetic" || cur_layout.is_empty();
+    let is_probaho = cur_layout.contains("Flow") || cur_layout.contains("প্রবাহ");
+    let is_national = cur_layout.contains("National") || cur_layout.contains("জাতীয়");
+    let is_probhat = cur_layout.contains("Probhat") || cur_layout.contains("प्रभात");
+
+    let avro_label: Vec<u16> = "Avro Phonetic\0".encode_utf16().collect();
+    let probaho_label: Vec<u16> = "Lekhani প্রবাহ (Flow)\0".encode_utf16().collect();
+    let national_label: Vec<u16> = "জাতীয় (National)\0".encode_utf16().collect();
+    let probhat_label: Vec<u16> = "Probhat (प्रभात)\0".encode_utf16().collect();
+
+    AppendMenuW(
+        hsub_layout,
+        MF_STRING | if is_avro { MF_CHECKED } else { MF_UNCHECKED },
+        ID_LAYOUT_AVRO,
+        avro_label.as_ptr(),
+    );
+    AppendMenuW(
+        hsub_layout,
+        MF_STRING | if is_probaho { MF_CHECKED } else { MF_UNCHECKED },
+        ID_LAYOUT_PROBAHO,
+        probaho_label.as_ptr(),
+    );
+    AppendMenuW(
+        hsub_layout,
+        MF_STRING
+            | if is_national {
+                MF_CHECKED
+            } else {
+                MF_UNCHECKED
+            },
+        ID_LAYOUT_NATIONAL,
+        national_label.as_ptr(),
+    );
+    AppendMenuW(
+        hsub_layout,
+        MF_STRING | if is_probhat { MF_CHECKED } else { MF_UNCHECKED },
+        ID_LAYOUT_PROBHAT,
+        probhat_label.as_ptr(),
+    );
+
+    let layout_sub_title: Vec<u16> = "Keyboard Layout\0".encode_utf16().collect();
+    AppendMenuW(
+        hmenu,
+        MF_POPUP,
+        hsub_layout as usize,
+        layout_sub_title.as_ptr(),
+    );
+
+    AppendMenuW(hmenu, MF_SEPARATOR, 0, std::ptr::null());
+    AppendMenuW(hmenu, MF_STRING, ID_TRAY_SETTINGS, settings_label.as_ptr());
+    AppendMenuW(hmenu, MF_SEPARATOR, 0, std::ptr::null());
+    AppendMenuW(hmenu, MF_STRING, ID_TRAY_EXIT, exit_label.as_ptr());
+
+    SetForegroundWindow(hwnd);
+    TrackPopupMenu(
+        hmenu,
+        TPM_LEFTALIGN | TPM_BOTTOMALIGN,
+        pt.x,
+        pt.y,
+        0,
+        hwnd,
+        std::ptr::null(),
+    );
+    PostMessageW(hwnd, 0, 0, 0); // WM_NULL (mandatory per Win32 tray documentation)
+    DestroyMenu(hmenu);
+}
+
 unsafe extern "system" fn tray_wnd_proc(
     hwnd: HWND,
     msg: u32,
     wparam: WPARAM,
     lparam: LPARAM,
 ) -> LRESULT {
+    let taskbar_msg = WM_TASKBARCREATED.load(Ordering::Relaxed);
+    if taskbar_msg != 0 && msg == taskbar_msg {
+        // Re-register tray icon if explorer restarted
+        let is_bn = IS_BENGALI.load(Ordering::SeqCst);
+        let cur_layout = ACTIVE_LAYOUT.lock().unwrap().clone();
+        let icon = if is_bn {
+            ICON_BN.lock().unwrap().unwrap_or(0) as HICON
+        } else {
+            ICON_EN.lock().unwrap().unwrap_or(0) as HICON
+        };
+        let mut nid = NOTIFYICONDATAW {
+            cbSize: std::mem::size_of::<NOTIFYICONDATAW>() as u32,
+            hWnd: hwnd,
+            uID: 1,
+            uFlags: NIF_MESSAGE | NIF_ICON | NIF_TIP,
+            uCallbackMessage: WM_TRAYICON,
+            hIcon: icon,
+            szTip: [0; 128],
+            dwState: 0,
+            dwStateMask: 0,
+            szInfo: [0; 256],
+            Anonymous: std::mem::zeroed(),
+            szInfoTitle: [0; 64],
+            dwInfoFlags: 0,
+            guidItem: std::mem::zeroed(),
+            hBalloonIcon: 0 as _,
+        };
+        let tip = format!("Lekhani [{}]\0", cur_layout);
+        for (i, c) in tip.encode_utf16().enumerate() {
+            if i < 127 {
+                nid.szTip[i] = c;
+            }
+        }
+        Shell_NotifyIconW(NIM_ADD, &nid);
+        return 0;
+    }
+
     match msg {
         WM_TRAYICON => {
-            let event = lparam as u32;
-            if event == WM_RBUTTONUP {
-                let mut pt = POINT { x: 0, y: 0 };
-                GetCursorPos(&mut pt);
-
-                let hmenu = CreatePopupMenu();
-                let restore_label: Vec<u16> = if IS_TOPBAR_VISIBLE.load(Ordering::SeqCst) {
-                    "Hide TopBar\0".encode_utf16().collect()
-                } else {
-                    "Show TopBar\0".encode_utf16().collect()
-                };
-                let toggle_label: Vec<u16> = if IS_BENGALI.load(Ordering::SeqCst) {
-                    "Switch to English (F12)\0".encode_utf16().collect()
-                } else {
-                    "Switch to Bengali (F12)\0".encode_utf16().collect()
-                };
-                let settings_label: Vec<u16> = "Settings...\0".encode_utf16().collect();
-                let exit_label: Vec<u16> = "Exit Lekhani\0".encode_utf16().collect();
-
-                AppendMenuW(hmenu, MF_STRING, ID_TRAY_RESTORE, restore_label.as_ptr());
-                AppendMenuW(hmenu, MF_SEPARATOR, 0, std::ptr::null());
-                AppendMenuW(hmenu, MF_STRING, ID_TRAY_TOGGLE, toggle_label.as_ptr());
-
-                // Layout submenu
-                let hsub_layout = CreatePopupMenu();
-                let cur_layout = ACTIVE_LAYOUT.lock().unwrap().clone();
-
-                let is_avro = cur_layout == "Avro Phonetic" || cur_layout.is_empty();
-                let is_probaho = cur_layout.contains("Flow") || cur_layout.contains("প্রবাহ");
-                let is_national = cur_layout.contains("National") || cur_layout.contains("জাতীয়");
-                let is_probhat = cur_layout.contains("Probhat") || cur_layout.contains("प्रभात");
-
-                let avro_label: Vec<u16> = "Avro Phonetic\0".encode_utf16().collect();
-                let probaho_label: Vec<u16> = "Lekhani প্রবাহ (Flow)\0".encode_utf16().collect();
-                let national_label: Vec<u16> = "জাতীয় (National)\0".encode_utf16().collect();
-                let probhat_label: Vec<u16> = "Probhat (प्रभात)\0".encode_utf16().collect();
-
-                AppendMenuW(
-                    hsub_layout,
-                    MF_STRING | if is_avro { MF_CHECKED } else { MF_UNCHECKED },
-                    ID_LAYOUT_AVRO,
-                    avro_label.as_ptr(),
-                );
-                AppendMenuW(
-                    hsub_layout,
-                    MF_STRING | if is_probaho { MF_CHECKED } else { MF_UNCHECKED },
-                    ID_LAYOUT_PROBAHO,
-                    probaho_label.as_ptr(),
-                );
-                AppendMenuW(
-                    hsub_layout,
-                    MF_STRING
-                        | if is_national {
-                            MF_CHECKED
-                        } else {
-                            MF_UNCHECKED
-                        },
-                    ID_LAYOUT_NATIONAL,
-                    national_label.as_ptr(),
-                );
-                AppendMenuW(
-                    hsub_layout,
-                    MF_STRING | if is_probhat { MF_CHECKED } else { MF_UNCHECKED },
-                    ID_LAYOUT_PROBHAT,
-                    probhat_label.as_ptr(),
-                );
-
-                let layout_sub_title: Vec<u16> = "Keyboard Layout\0".encode_utf16().collect();
-                AppendMenuW(
-                    hmenu,
-                    MF_POPUP,
-                    hsub_layout as usize,
-                    layout_sub_title.as_ptr(),
-                );
-
-                AppendMenuW(hmenu, MF_SEPARATOR, 0, std::ptr::null());
-                AppendMenuW(hmenu, MF_STRING, ID_TRAY_SETTINGS, settings_label.as_ptr());
-                AppendMenuW(hmenu, MF_SEPARATOR, 0, std::ptr::null());
-                AppendMenuW(hmenu, MF_STRING, ID_TRAY_EXIT, exit_label.as_ptr());
-
-                SetForegroundWindow(hwnd);
-                TrackPopupMenu(
-                    hmenu,
-                    TPM_LEFTALIGN | TPM_BOTTOMALIGN,
-                    pt.x,
-                    pt.y,
-                    0,
-                    hwnd,
-                    std::ptr::null(),
-                );
-                DestroyMenu(hmenu);
+            let event = (lparam as u32) & 0xFFFF;
+            if event == WM_RBUTTONUP || event == 0x007B /* WM_CONTEXTMENU */ {
+                show_tray_menu(hwnd);
             } else if event == WM_LBUTTONUP {
-                // If topbar is hidden/minimized to tray, left-click restores it!
-                // If topbar is already visible, left-click toggles language state.
+                // Left click gives options if topbar is visible, or restores topbar if hidden
                 if !IS_TOPBAR_VISIBLE.load(Ordering::SeqCst) {
                     restore_topbar();
                 } else {
-                    crate::win_hook::toggle_bengali_mode();
+                    show_tray_menu(hwnd);
                 }
             } else if event == WM_LBUTTONDBLCLK {
                 // Double-clicking tray icon always restores TopBar
