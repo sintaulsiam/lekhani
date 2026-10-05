@@ -300,7 +300,12 @@ unsafe fn create_badge_icon(
     // Clear and fill badge with solid color (eliminating uninitialized memory)
     let brush = CreateSolidBrush(bg_color);
     let old_brush = SelectObject(hdc_mem, brush as _);
-    let full_rect = RECT { left: 0, top: 0, right: size, bottom: size };
+    let full_rect = RECT {
+        left: 0,
+        top: 0,
+        right: size,
+        bottom: size,
+    };
     FillRect(hdc_mem, &full_rect, brush);
     RoundRect(hdc_mem, 0, 0, size, size, 6, 6);
     SelectObject(hdc_mem, old_brush);
@@ -641,7 +646,9 @@ unsafe extern "system" fn tray_wnd_proc(
     match msg {
         WM_TRAYICON => {
             let event = (lparam as u32) & 0xFFFF;
-            if event == WM_RBUTTONUP || event == 0x007B /* WM_CONTEXTMENU */ {
+            if event == WM_RBUTTONUP || event == 0x007B
+            /* WM_CONTEXTMENU */
+            {
                 show_tray_menu(hwnd);
             } else if event == WM_LBUTTONUP {
                 // Left click gives options if topbar is visible, or restores topbar if hidden
