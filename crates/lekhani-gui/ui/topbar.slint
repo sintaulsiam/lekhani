@@ -172,7 +172,7 @@ export component TopBarWindow inherits Window {
     in-out property <bool> show-osd: false;
     in-out property <string> osd-title: "Avro Phonetic";
     in-out property <string> osd-subtitle: "বাংলা মোড সক্রিয় (Bengali Active)";
-    in-out property <string> osd-icon: "🇧🇩";
+    in-out property <string> osd-icon: "বা";
     in-out property <color> osd-badge-color: #a6e3a1;
     in-out property <color> osd-badge-bg: #a6e3a122;
 
@@ -458,6 +458,53 @@ export component TopBarWindow inherits Window {
                         CloseButton {
                             clicked => { root.active-dialog = 0; }
                         }
+                    }
+
+                    // English (Standard) Passthrough Mode Option
+                    Rectangle {
+                        height: 30px;
+                        border-radius: 7px;
+                        border-width: 1px;
+                        border-color: !root.is-bengali-mode ? #f6823b55 : transparent;
+                        background: !root.is-bengali-mode ? #f6823b20 : (en_item_ta.has-hover ? #2e231c : transparent);
+                        animate background { duration: 100ms; }
+
+                        en_item_ta := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                if (root.is-bengali-mode) {
+                                    root.toggle-layout-mode();
+                                }
+                                root.active-dialog = 0;
+                            }
+                        }
+
+                        HorizontalLayout {
+                            padding-left: 10px;
+                            padding-right: 10px;
+                            spacing: 6px;
+                            alignment: space-between;
+                            Text {
+                                text: "English (Standard)";
+                                color: !root.is-bengali-mode ? #f6823b : #cdd6f4;
+                                font-size: 12px;
+                                font-weight: !root.is-bengali-mode ? 700 : 500;
+                                vertical-alignment: center;
+                            }
+
+                            if (!root.is-bengali-mode): Text {
+                                text: "✓";
+                                color: #f6823b;
+                                font-size: 13px;
+                                font-weight: 800;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        height: 1px;
+                        background: #313244;
                     }
 
                     for layout[idx] in root.available-layouts: Rectangle {

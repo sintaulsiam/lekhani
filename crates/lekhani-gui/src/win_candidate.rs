@@ -7,16 +7,17 @@
 use std::sync::Mutex;
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, SIZE, WPARAM};
 use windows_sys::Win32::Graphics::Gdi::{
-    BeginPaint, ClientToScreen, CreateFontW, CreateSolidBrush, DeleteObject, DrawTextW, EndPaint,
-    FillRect, GetDC, GetTextExtentPoint32W, InvalidateRect, ReleaseDC, RoundRect, SelectObject,
-    SetBkMode, SetTextColor, DT_CENTER, DT_SINGLELINE, DT_VCENTER, HDC, PAINTSTRUCT, TRANSPARENT,
+    BeginPaint, ClientToScreen, CreateFontW, CreateRoundRectRgn, CreateSolidBrush, DeleteObject,
+    DrawTextW, EndPaint, FillRect, GetDC, GetTextExtentPoint32W, InvalidateRect, ReleaseDC,
+    RoundRect, SelectObject, SetBkMode, SetTextColor, DT_CENTER, DT_SINGLELINE, DT_VCENTER, HDC,
+    PAINTSTRUCT, TRANSPARENT,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, GetCursorPos, GetForegroundWindow, GetGUIThreadInfo,
-    GetSystemMetrics, GetWindowRect, RegisterClassW, SetWindowPos, ShowWindow, CS_DROPSHADOW,
-    CS_HREDRAW, CS_VREDRAW, GUITHREADINFO, HWND_TOPMOST, SM_CXSCREEN, SM_CYSCREEN, SWP_NOACTIVATE,
-    SWP_SHOWWINDOW, SW_HIDE, WM_ERASEBKGND, WM_LBUTTONUP, WM_PAINT, WNDCLASSW, WS_EX_NOACTIVATE,
-    WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
+    GetSystemMetrics, GetWindowRect, RegisterClassW, SetWindowPos, SetWindowRgn, ShowWindow,
+    CS_DROPSHADOW, CS_HREDRAW, CS_VREDRAW, GUITHREADINFO, HWND_TOPMOST, SM_CXSCREEN, SM_CYSCREEN,
+    SWP_NOACTIVATE, SWP_SHOWWINDOW, SW_HIDE, WM_ERASEBKGND, WM_LBUTTONUP, WM_PAINT, WNDCLASSW,
+    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
 
 #[derive(Clone, Default)]
@@ -104,6 +105,19 @@ impl CandidateWindow {
         guard.as_ref().map_or(false, |d| !d.candidates.is_empty())
     }
 
+    pub fn is_point_inside(&self, screen_x: i32, screen_y: i32) -> bool {
+        let guard = CANDIDATE_DATA.lock().unwrap();
+        if let Some(ref data) = *guard {
+            let (win_x, win_y) = data.screen_pos;
+            screen_x >= win_x
+                && screen_x <= win_x + data.total_width
+                && screen_y >= win_y
+                && screen_y <= win_y + data.height
+        } else {
+            false
+        }
+    }
+
     pub fn hit_test(&self, screen_x: i32, screen_y: i32) -> Option<usize> {
         let guard = CANDIDATE_DATA.lock().unwrap();
         let data = guard.as_ref()?;
@@ -117,7 +131,7 @@ impl CandidateWindow {
         }
 
         let scale = unsafe { (get_window_dpi(self.hwnd) as f32 / 96.0).max(1.0) };
-        let display_cands: Vec<String> = candidates.iter().take(6).cloned().collect();
+        let display_cands: Vec<String> = candidates.iter().take(5).cloned().collect();
         let count = display_cands.len().max(1);
 
         // Dynamically compute precise width per candidate using GDI font metrics (GetTextExtentPoint32W)
@@ -126,7 +140,7 @@ impl CandidateWindow {
         unsafe {
             let hdc_screen = GetDC(0 as _);
             let font_name: Vec<u16> = "Nirmala UI\0".encode_utf16().collect();
-            let font_size = (-15.0 * scale).round() as i32;
+            let font_size = (-13.5 * scale).round() as i32;
             let font = CreateFontW(
                 font_size,
                 0,
@@ -155,8 +169,8 @@ impl CandidateWindow {
                     label_utf16.len() as i32,
                     &mut sz,
                 );
-                let min_w = (68.0 * scale).round() as i32;
-                let pad = (20.0 * scale).round() as i32;
+                let min_w = (52.0 * scale).round() as i32;
+                let pad = (16.0 * scale).round() as i32;
                 let w = (sz.cx + pad).max(min_w);
                 item_widths.push(w);
             }
@@ -168,23 +182,23 @@ impl CandidateWindow {
 
         let (total_width, height) = if horizontal {
             let sum_w: i32 = item_widths.iter().sum();
-            let spacing = (count.saturating_sub(1) as i32) * (6.0 * scale).round() as i32;
+            let spacing = (count.saturating_sub(1) as i32) * (5.0 * scale).round() as i32;
             (
-                sum_w + spacing + (20.0 * scale).round() as i32,
-                (38.0 * scale).round() as i32,
+                sum_w + spacing + (14.0 * scale).round() as i32,
+                (30.0 * scale).round() as i32,
             )
         } else {
-            let default_w = (160.0 * scale).round() as i32;
-            let min_col_w = (180.0 * scale).round() as i32;
+            let default_w = (150.0 * scale).round() as i32;
+            let min_col_w = (160.0 * scale).round() as i32;
             let max_w = item_widths
                 .iter()
                 .cloned()
                 .max()
                 .unwrap_or(default_w)
                 .max(min_col_w);
-            let pad = (16.0 * scale).round() as i32;
-            let row_h = (32.0 * scale).round() as i32;
-            let margin = (12.0 * scale).round() as i32;
+            let pad = (14.0 * scale).round() as i32;
+            let row_h = (26.0 * scale).round() as i32;
+            let margin = (10.0 * scale).round() as i32;
             (max_w + pad, (count as i32 * row_h) + margin)
         };
 
@@ -268,6 +282,14 @@ impl CandidateWindow {
                 height,
                 SWP_NOACTIVATE | SWP_SHOWWINDOW,
             );
+
+            // Apply modern smooth rounded corners to the native Win32 window
+            let corner_r = (10.0 * scale).round() as i32;
+            let rgn = CreateRoundRectRgn(0, 0, total_width + 1, height + 1, corner_r, corner_r);
+            if rgn != 0 as _ {
+                SetWindowRgn(self.hwnd, rgn, 1);
+            }
+
             InvalidateRect(self.hwnd, std::ptr::null(), 1);
         }
     }
@@ -296,27 +318,34 @@ fn hit_test_data(data: &CandidateData, screen_x: i32, screen_y: i32) -> Option<u
     let rel_y = screen_y - win_y;
     let scale = data.scale.max(1.0);
     let count = data.candidates.len().min(5);
+    if count == 0 {
+        return None;
+    }
 
     if data.horizontal {
-        let mut cur_x = (8.0 * scale).round() as i32;
-        let pad_x = (6.0 * scale).round() as i32;
+        let mut cur_x = (6.0 * scale).round() as i32;
+        let pad_x = (5.0 * scale).round() as i32;
         for (i, &w) in data.item_widths.iter().take(count).enumerate() {
-            if rel_x >= cur_x && rel_x <= cur_x + w {
+            if rel_x >= cur_x && rel_x <= cur_x + w + pad_x {
                 return Some(i);
             }
             cur_x += w + pad_x;
         }
+        if rel_x < (6.0 * scale).round() as i32 {
+            return Some(0);
+        }
+        Some(count - 1)
     } else {
-        let item_h = (32.0 * scale).round() as i32;
-        let pad_top = (6.0 * scale).round() as i32;
+        let item_h = (26.0 * scale).round() as i32;
+        let pad_top = (4.0 * scale).round() as i32;
         for i in 0..count {
             let top = pad_top + (i as i32 * item_h);
             if rel_y >= top && rel_y <= top + item_h {
                 return Some(i);
             }
         }
+        Some(0)
     }
-    None
 }
 
 #[allow(dead_code)]
@@ -438,7 +467,7 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
 
     // Prefer Nirmala UI (standard Indic font on Windows 10/11) with fallback to Vrinda and Segoe UI
     let font_name: Vec<u16> = "Nirmala UI\0".encode_utf16().collect();
-    let font_size = (-15.0 * scale).round() as i32;
+    let font_size = (-13.5 * scale).round() as i32;
     let font = CreateFontW(
         font_size,
         0,
@@ -458,34 +487,34 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
     let old_font = SelectObject(hdc, font as _);
 
     let count = data.candidates.len().min(5);
-    let mut cur_x = (8.0 * scale).round() as i32;
-    let item_height = (28.0 * scale).round() as i32;
+    let mut cur_x = (6.0 * scale).round() as i32;
+    let item_height = (22.0 * scale).round() as i32;
     let pad_y = (4.0 * scale).round() as i32;
-    let pad_x = (6.0 * scale).round() as i32;
-    let radius = (8.0 * scale).round() as i32;
-    let row_h = (32.0 * scale).round() as i32;
+    let pad_x = (5.0 * scale).round() as i32;
+    let radius = (6.0 * scale).round() as i32;
+    let row_h = (26.0 * scale).round() as i32;
 
     for i in 0..count {
         let item_w = data
             .item_widths
             .get(i)
             .copied()
-            .unwrap_or((68.0 * scale).round() as i32);
+            .unwrap_or((52.0 * scale).round() as i32);
         let item_rect = if data.horizontal {
             let r = RECT {
                 left: cur_x,
                 top: pad_y,
                 right: cur_x + item_w,
-                bottom: client_rect.bottom - pad_y,
+                bottom: pad_y + item_height,
             };
             cur_x += item_w + pad_x;
             r
         } else {
             RECT {
-                left: pad_x,
-                top: pad_x + (i as i32 * row_h),
-                right: client_rect.right - pad_x,
-                bottom: pad_x + (i as i32 * row_h) + item_height,
+                left: (6.0 * scale).round() as i32,
+                top: pad_y + (i as i32 * row_h),
+                right: client_rect.right - (6.0 * scale).round() as i32,
+                bottom: pad_y + (i as i32 * row_h) + item_height,
             }
         };
 

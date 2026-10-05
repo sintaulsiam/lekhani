@@ -217,10 +217,10 @@ export component LayoutSelectorPill inherits Rectangle {
     callback clicked;
 
     height: 26px;
-    background: root.active ? #25283d : (ta.has-hover ? #24273a : #181926bb);
+    background: root.active ? (root.is-bengali ? #25283d : #36281e) : (ta.has-hover ? (root.is-bengali ? #24273a : #2e231c) : (root.is-bengali ? #181926bb : #201a18bb));
     border-radius: 13px;
     border-width: 1px;
-    border-color: root.active ? #89b4fa88 : (ta.has-hover ? #585b70 : #33364d);
+    border-color: root.active ? (root.is-bengali ? #89b4fa88 : #f6823b88) : (ta.has-hover ? (root.is-bengali ? #585b70 : #8c5b36) : (root.is-bengali ? #33364d : #4a3424));
     animate background, border-color { duration: 100ms; }
 
     ta := TouchArea {
@@ -237,10 +237,10 @@ export component LayoutSelectorPill inherits Rectangle {
             alignment: center;
 
             Text {
-                text: root.layout-name;
-                color: root.active ? #89b4fa : #cdd6f4;
+                text: root.is-bengali ? root.layout-name : "English";
+                color: root.is-bengali ? (root.active ? #89b4fa : #cdd6f4) : (root.active ? #f6823b : #fab387);
                 font-size: 12px;
-                font-weight: 500;
+                font-weight: 600;
                 vertical-alignment: center;
             }
 
@@ -251,7 +251,7 @@ export component LayoutSelectorPill inherits Rectangle {
                     source: @image-url("../../../data/icons/ui/chevron_down.svg");
                     width: 9px;
                     height: 9px;
-                    colorize: root.active ? #89b4fa : (ta.has-hover ? #cdd6f4 : #9399b2);
+                    colorize: root.is-bengali ? (root.active ? #89b4fa : (ta.has-hover ? #cdd6f4 : #9399b2)) : (root.active ? #f6823b : (ta.has-hover ? #fab387 : #c47c49));
                     horizontal-alignment: center;
                 }
             }

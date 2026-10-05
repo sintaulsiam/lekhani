@@ -56,14 +56,14 @@ pub fn show_mode_osd(
     app.set_osd_title(layout_name.into());
     if is_bengali {
         app.set_osd_subtitle("বাংলা মোড সক্রিয় (Bengali Active)".into());
-        app.set_osd_icon("🇧🇩".into());
+        app.set_osd_icon("বা".into());
         app.set_osd_badge_color(slint::Color::from_rgb_u8(166, 227, 161)); // #a6e3a1 Green
         app.set_osd_badge_bg(slint::Color::from_argb_u8(40, 166, 227, 161));
     } else {
         app.set_osd_subtitle("English Mode Active (F12 to switch)".into());
-        app.set_osd_icon("🌐".into());
-        app.set_osd_badge_color(slint::Color::from_rgb_u8(137, 180, 250)); // #89b4fa Blue
-        app.set_osd_badge_bg(slint::Color::from_argb_u8(40, 137, 180, 250));
+        app.set_osd_icon("EN".into());
+        app.set_osd_badge_color(slint::Color::from_rgb_u8(246, 130, 59)); // #f6823b Warm Amber
+        app.set_osd_badge_bg(slint::Color::from_argb_u8(40, 246, 130, 59));
     }
     app.set_show_osd(true);
 

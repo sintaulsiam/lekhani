@@ -54,12 +54,17 @@ Source: "..\..\data\icons\*"; DestDir: "{app}\data\icons"; Flags: ignoreversion 
 Source: "..\..\README.md"; DestDir: "{app}"; DestName: "README.txt"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\data\icons\lekhani.ico"
-Name: "{group}\{#MyAppName} Command Line"; Filename: "{app}\{#MyAppCliName}"; IconFilename: "{app}\data\icons\lekhani.ico"
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\data\icons\lekhani.ico"; Comment: "Lekhani Bengali Input Method"
+Name: "{autoprograms}\{#MyAppName} Command Line"; Filename: "{app}\{#MyAppCliName}"; WorkingDir: "{app}"; IconFilename: "{app}\data\icons\lekhani.ico"; Comment: "Lekhani CLI Tools"
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\data\icons\lekhani.ico"
+Name: "{group}\{#MyAppName} Command Line"; Filename: "{app}\{#MyAppCliName}"; WorkingDir: "{app}"; IconFilename: "{app}\data\icons\lekhani.ico"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon; IconFilename: "{app}\data\icons\lekhani.ico"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Tasks: desktopicon; IconFilename: "{app}\data\icons\lekhani.ico"
 
 [Registry]
+; Register AppUserModelID for Windows 10/11 Start Menu and Taskbar indexing
+Root: HKCU; Subkey: "Software\Classes\AppUserModelId\Lekhani.IME"; ValueType: string; ValueName: "DisplayName"; ValueData: "{#MyAppName}"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\AppUserModelId\Lekhani.IME"; ValueType: string; ValueName: "IconUri"; ValueData: "{app}\data\icons\lekhani.ico"; Flags: uninsdeletekey
 ; Autostart on Windows Login if user checked the task
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"" --tray"; Tasks: autostart; Flags: uninsdeletevalue
 

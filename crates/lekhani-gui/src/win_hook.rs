@@ -313,10 +313,12 @@ unsafe extern "system" fn low_level_mouse_proc(
 
         // Check if user clicked inside the candidate window
         let mut clicked_cand_idx = None;
+        let mut is_inside_cand_win = false;
         if let Ok(guard) = HOOK_STATE.lock() {
             if let Some(ref state) = *guard {
                 if let Some(ref cand_win) = state.candidate_win {
                     if cand_win.is_visible() {
+                        is_inside_cand_win = cand_win.is_point_inside(pt.x, pt.y);
                         clicked_cand_idx = cand_win.hit_test(pt.x, pt.y);
                     }
                 }
@@ -326,6 +328,10 @@ unsafe extern "system" fn low_level_mouse_proc(
         if let Some(idx) = clicked_cand_idx {
             commit_candidate_by_index(idx);
             return 1; // Consume click event to select candidate
+        }
+
+        if is_inside_cand_win {
+            return 1; // Consume stray click on candidate window padding/border so it does not dismiss
         }
 
         // Click outside candidate window:
@@ -419,6 +425,27 @@ unsafe extern "system" fn low_level_keyboard_proc(
         return CallNextHookEx(0 as _, n_code, w_param, l_param);
     }
 
+    // Optional instant candidate selection via Ctrl+1..Ctrl+5
+    if real_ctrl_down && !real_alt_down && !shift_down && !win_down {
+        if (0x31..=0x35).contains(&vk) {
+            let target_idx = (vk - 0x31) as usize;
+            let mut committed_candidate = false;
+            if let Ok(guard) = HOOK_STATE.lock() {
+                if let Some(ref s) = *guard {
+                    let candidates = s.session.get_candidates();
+                    let visible_count = candidates.len().min(5);
+                    if target_idx < visible_count {
+                        committed_candidate = true;
+                    }
+                }
+            }
+            if committed_candidate {
+                commit_candidate_by_index(target_idx);
+                return 1;
+            }
+        }
+    }
+
     // If a genuine Ctrl, Alt, or Win shortcut is held down, pass through to native OS
     if real_ctrl_down || real_alt_down || win_down {
         if let Ok(mut guard) = HOOK_STATE.lock() {
@@ -446,12 +473,21 @@ unsafe extern "system" fn low_level_keyboard_proc(
     {
         let candidates = state.session.get_candidates();
         if !candidates.is_empty() {
+            let visible_count = candidates.len().min(5);
             // Candidate navigation via Tab / Shift+Tab / Down / Right
             if vk == VK_TAB || vk == VK_DOWN || vk == VK_RIGHT {
                 if shift_down {
                     state.session.select_prev();
+                    while state.session.get_selected_index() >= visible_count {
+                        state.session.select_prev();
+                    }
                 } else {
                     state.session.select_next();
+                    if state.session.get_selected_index() >= visible_count {
+                        while state.session.get_selected_index() != 0 {
+                            state.session.select_next();
+                        }
+                    }
                 }
                 let candidate = state.session.get_preedit_text();
                 if !candidate.is_empty() {
@@ -468,6 +504,9 @@ unsafe extern "system" fn low_level_keyboard_proc(
             // Candidate navigation via Up / Left
             if vk == VK_UP || vk == VK_LEFT {
                 state.session.select_prev();
+                while state.session.get_selected_index() >= visible_count {
+                    state.session.select_prev();
+                }
                 let candidate = state.session.get_preedit_text();
                 if !candidate.is_empty() {
                     inject_backspaces(state.uncommitted_units);
@@ -489,12 +528,21 @@ unsafe extern "system" fn low_level_keyboard_proc(
     {
         let candidates = state.session.get_candidates();
         if !candidates.is_empty() {
+            let visible_count = candidates.len().min(5);
             // Tab / Shift+Tab / Down / Right navigation
             if vk == VK_TAB || vk == VK_DOWN || vk == VK_RIGHT {
                 if shift_down {
                     state.session.select_prev();
+                    while state.session.get_selected_index() >= visible_count {
+                        state.session.select_prev();
+                    }
                 } else {
                     state.session.select_next();
+                    if state.session.get_selected_index() >= visible_count {
+                        while state.session.get_selected_index() != 0 {
+                            state.session.select_next();
+                        }
+                    }
                 }
                 state.update_candidate_window(
                     state.session.get_candidates(),
@@ -506,6 +554,9 @@ unsafe extern "system" fn low_level_keyboard_proc(
             // Up / Left navigation
             if vk == VK_UP || vk == VK_LEFT {
                 state.session.select_prev();
+                while state.session.get_selected_index() >= visible_count {
+                    state.session.select_prev();
+                }
                 state.update_candidate_window(
                     state.session.get_candidates(),
                     state.session.get_selected_index(),
