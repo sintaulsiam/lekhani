@@ -40,9 +40,9 @@ futures-util = "0.3"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 memmap2 = "0.9"
 bincode = "1.3"
-lekhani-parser = { git = "https://github.com/sintaulsiam/lekhani-engine", tag = "v1.2.0" }
-lekhani-ai     = { git = "https://github.com/sintaulsiam/lekhani-engine", tag = "v1.2.0" }
-lekhani-core   = { git = "https://github.com/sintaulsiam/lekhani-engine", tag = "v1.2.0" }
+lekhani-parser = { version = "1.2.0", git = "https://github.com/sintaulsiam/lekhani-engine", tag = "v1.2.0" }
+lekhani-ai     = { version = "1.2.0", git = "https://github.com/sintaulsiam/lekhani-engine", tag = "v1.2.0" }
+lekhani-core   = { version = "1.2.0", git = "https://github.com/sintaulsiam/lekhani-engine", tag = "v1.2.0" }
 
 # ── Local override for simultaneous engine development ───────────────────────
 # Uncomment when editing lekhani-engine at the same time as this repo:
