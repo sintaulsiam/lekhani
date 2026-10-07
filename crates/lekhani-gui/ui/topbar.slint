@@ -244,29 +244,29 @@ export component TopBarWindow inherits Window {
         // Main Floating TopBar (Sleek Compact Dynamic Island Ribbon)
         // ---------------------------------------------------------------------
         Rectangle {
-            width: 515px;
-            height: 40px;
-            background: #11121df6;
-            border-radius: 20px;
-            border-width: 1.2px;
-            border-color: #50567a55;
-            drop-shadow-blur: 16px;
-            drop-shadow-color: #000000aa;
+            width: root.is-windows ? 438px : 412px;
+            height: 32px;
+            background: #0e131cf8;
+            border-radius: 16px;
+            border-width: 1px;
+            border-color: #283248;
+            drop-shadow-blur: 14px;
+            drop-shadow-color: #000000bb;
 
             HorizontalLayout {
-                padding-left: 10px;
-                padding-right: 10px;
-                padding-top: 7px;
-                padding-bottom: 7px;
-                spacing: 5px;
+                padding-left: 8px;
+                padding-right: 8px;
+                padding-top: 4px;
+                padding-bottom: 4px;
+                spacing: 4px;
                 alignment: center;
 
                 // 1. Drag Handle Grip
                 Rectangle {
-                    width: 14px;
-                    height: 26px;
+                    width: 12px;
+                    height: 24px;
                     border-radius: 4px;
-                    background: drag_ta.has-hover ? #31324466 : transparent;
+                    background: drag_ta.has-hover ? #33415555 : transparent;
                     animate background { duration: 100ms; }
 
                     drag_ta := TouchArea {
@@ -285,9 +285,9 @@ export component TopBarWindow inherits Window {
                         x: (parent.width - self.width) / 2;
                         y: (parent.height - self.height) / 2;
                         source: @image-url("../../../data/icons/ui/grip.svg");
-                        width: 10px;
-                        height: 14px;
-                        colorize: drag_ta.has-hover ? #89b4fa : #585b70;
+                        width: 9px;
+                        height: 13px;
+                        colorize: drag_ta.has-hover ? #38bdf8 : #64748b;
                     }
                 }
 
@@ -313,9 +313,6 @@ export component TopBarWindow inherits Window {
                 btn_viewer := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/keyboard.svg");
                     active: root.active-dialog == 2;
-                    active-color: #10b981;
-                    active-bg: #10b98128;
-                    active-border: #10b98166;
                     clicked => {
                         root.active-dialog = root.active-dialog == 2 ? 0 : 2;
                         if (root.active-dialog == 2) {
@@ -328,9 +325,6 @@ export component TopBarWindow inherits Window {
                 btn_ac := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/pen.svg");
                     active: root.active-dialog == 3;
-                    active-color: #10b981;
-                    active-bg: #10b98128;
-                    active-border: #10b98166;
                     clicked => {
                         root.active-dialog = root.active-dialog == 3 ? 0 : 3;
                     }
@@ -340,21 +334,15 @@ export component TopBarWindow inherits Window {
                 btn_conv := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/exchange.svg");
                     active: root.active-dialog == 4;
-                    active-color: #10b981;
-                    active-bg: #10b98128;
-                    active-border: #10b98166;
                     clicked => {
                         root.active-dialog = root.active-dialog == 4 ? 0 : 4;
                     }
                 }
 
-                // 7. Conjunct Assistant Button (Assistant Sparkles Vector Icon)
+                // 7. Conjunct Assistant Button (Puzzle Vector Icon)
                 btn_conjunct := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/puzzle.svg");
                     active: root.active-dialog == 7;
-                    active-color: #10b981;
-                    active-bg: #10b98128;
-                    active-border: #10b98166;
                     clicked => {
                         root.active-dialog = root.active-dialog == 7 ? 0 : 7;
                     }
@@ -364,21 +352,15 @@ export component TopBarWindow inherits Window {
                 btn_emoji := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/smile.svg");
                     active: root.active-dialog == 9;
-                    active-color: #10b981;
-                    active-bg: #10b98128;
-                    active-border: #10b98166;
                     clicked => {
                         root.active-dialog = root.active-dialog == 9 ? 0 : 9;
                     }
                 }
 
-                // 9. Personal Typing Telemetry & Speed (3-Bar Equalizer Vector Icon)
+                // 9. Personal Typing Telemetry & Speed (Chart Vector Icon)
                 btn_stats := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/chart.svg");
                     active: root.active-dialog == 8;
-                    active-color: #10b981;
-                    active-bg: #10b98128;
-                    active-border: #10b98166;
                     clicked => {
                         root.active-dialog = root.active-dialog == 8 ? 0 : 8;
                         if (root.active-dialog == 8) {
@@ -391,33 +373,22 @@ export component TopBarWindow inherits Window {
                 btn_settings := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/settings.svg");
                     active: root.active-dialog == 5;
-                    active-color: #10b981;
-                    active-bg: #10b98128;
-                    active-border: #10b98166;
                     clicked => {
                         root.active-dialog = root.active-dialog == 5 ? 0 : 5;
                     }
                 }
 
-                // 10. Minimize to System Tray Button (Windows)
+                // 11. Minimize to System Tray Button (Windows)
                 if root.is-windows: btn_minimize := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/minimize.svg");
-                    icon-color: #fab387;
                     active: false;
-                    active-color: #fab387;
-                    active-bg: #fab38728;
-                    active-border: #fab38766;
                     clicked => { root.trigger-minimize(); }
                 }
 
-                // 11. Exit TopBar Button (Close Vector Icon)
+                // 12. Exit TopBar Button (Close Vector Icon)
                 btn_close := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/close.svg");
-                    icon-color: #f38ba8;
                     active: false;
-                    active-color: #f38ba8;
-                    active-bg: #f38ba828;
-                    active-border: #f38ba866;
                     clicked => { root.trigger-quit(); }
                 }
             }
@@ -427,15 +398,15 @@ export component TopBarWindow inherits Window {
         // 1. Layout Dropdown Popup Panel
         // ---------------------------------------------------------------------
         if (root.active-dialog == 1): HorizontalLayout {
-            padding-left: 95px;
+            padding-left: 75px;
             alignment: start;
             Rectangle {
                 width: 220px;
-                background: #11121dfa;
-                border-radius: 14px;
-                border-width: 1.2px;
-                border-color: #50567a66;
-                drop-shadow-blur: 20px;
+                background: #0e131cfa;
+                border-radius: 12px;
+                border-width: 1px;
+                border-color: #283248;
+                drop-shadow-blur: 18px;
                 drop-shadow-color: #000000cc;
 
                 VerticalLayout {
@@ -448,10 +419,10 @@ export component TopBarWindow inherits Window {
                         padding-top: 2px;
                         padding-bottom: 2px;
                         Text {
-                            text: "KEYBOARD LAYOUTS";
-                            color: #89b4fa;
+                            text: "KEYBOARD LAYOUT";
+                            color: #94a3b8;
                             font-size: 9.5px;
-                            font-weight: 800;
+                            font-weight: 700;
                             vertical-alignment: center;
                         }
 
@@ -462,11 +433,11 @@ export component TopBarWindow inherits Window {
 
                     // English (Standard) Passthrough Mode Option
                     Rectangle {
-                        height: 30px;
-                        border-radius: 7px;
+                        height: 28px;
+                        border-radius: 6px;
                         border-width: 1px;
-                        border-color: !root.is-bengali-mode ? #f6823b55 : transparent;
-                        background: !root.is-bengali-mode ? #f6823b20 : (en_item_ta.has-hover ? #2e231c : transparent);
+                        border-color: !root.is-bengali-mode ? #38bdf855 : transparent;
+                        background: !root.is-bengali-mode ? #38bdf818 : (en_item_ta.has-hover ? #1e2638 : transparent);
                         animate background { duration: 100ms; }
 
                         en_item_ta := TouchArea {
@@ -486,16 +457,16 @@ export component TopBarWindow inherits Window {
                             alignment: space-between;
                             Text {
                                 text: "English (Standard)";
-                                color: !root.is-bengali-mode ? #f6823b : #cdd6f4;
-                                font-size: 12px;
+                                color: !root.is-bengali-mode ? #38bdf8 : #cbd5e1;
+                                font-size: 11.5px;
                                 font-weight: !root.is-bengali-mode ? 700 : 500;
                                 vertical-alignment: center;
                             }
 
                             if (!root.is-bengali-mode): Text {
                                 text: "✓";
-                                color: #f6823b;
-                                font-size: 13px;
+                                color: #38bdf8;
+                                font-size: 12px;
                                 font-weight: 800;
                                 vertical-alignment: center;
                             }
@@ -504,15 +475,15 @@ export component TopBarWindow inherits Window {
 
                     Rectangle {
                         height: 1px;
-                        background: #313244;
+                        background: #283248;
                     }
 
                     for layout[idx] in root.available-layouts: Rectangle {
-                        height: 30px;
-                        border-radius: 7px;
+                        height: 28px;
+                        border-radius: 6px;
                         border-width: 1px;
-                        border-color: layout == root.active-layout-name ? #89b4fa55 : transparent;
-                        background: layout == root.active-layout-name ? #89b4fa20 : (layout_item_ta.has-hover ? #24253a : transparent);
+                        border-color: (root.is-bengali-mode && layout == root.active-layout-name) ? #38bdf855 : transparent;
+                        background: (root.is-bengali-mode && layout == root.active-layout-name) ? #38bdf818 : (layout_item_ta.has-hover ? #1e2638 : transparent);
                         animate background { duration: 100ms; }
 
                         layout_item_ta := TouchArea {
@@ -530,16 +501,16 @@ export component TopBarWindow inherits Window {
                             alignment: space-between;
                             Text {
                                 text: layout;
-                                color: layout == root.active-layout-name ? #89b4fa : #cdd6f4;
-                                font-size: 12px;
-                                font-weight: layout == root.active-layout-name ? 700 : 500;
+                                color: (root.is-bengali-mode && layout == root.active-layout-name) ? #38bdf8 : #cbd5e1;
+                                font-size: 11.5px;
+                                font-weight: (root.is-bengali-mode && layout == root.active-layout-name) ? 700 : 500;
                                 vertical-alignment: center;
                             }
 
-                            if (layout == root.active-layout-name): Text {
+                            if (root.is-bengali-mode && layout == root.active-layout-name): Text {
                                 text: "✓";
-                                color: #a6e3a1;
-                                font-size: 13px;
+                                color: #38bdf8;
+                                font-size: 12px;
                                 font-weight: 800;
                                 vertical-alignment: center;
                             }
@@ -1027,11 +998,11 @@ export component TopBarWindow inherits Window {
         // 5. Settings Dialog Window
         // ---------------------------------------------------------------------
         if (root.active-dialog == 5): Rectangle {
-            width: 515px;
-            background: #11121dfa;
-            border-radius: 18px;
-            border-width: 1.2px;
-            border-color: #50567a55;
+            width: 480px;
+            background: #0e131cfa;
+            border-radius: 16px;
+            border-width: 1px;
+            border-color: #283248;
             drop-shadow-blur: 24px;
             drop-shadow-color: #000000cc;
 

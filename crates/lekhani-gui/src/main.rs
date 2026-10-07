@@ -392,7 +392,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let layout: slint::SharedString = layout_name.into();
             let _ = slint::invoke_from_event_loop(move || {
                 if let Some(app) = app_weak.upgrade() {
-                    app.invoke_notify_mode_change(active, layout);
+                    app.set_is_bengali_mode(active);
+                    if active {
+                        app.set_active_layout_name(layout);
+                    }
                 }
             });
         }));
@@ -420,6 +423,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             th.update_layout(&name);
         }
         if let Some(app) = app_weak_layout.upgrade() {
+            app.set_is_bengali_mode(true);
             app.set_active_layout_name(name.clone());
             app.set_viewer_selected_layout(name.clone());
             app.set_show_layout_menu(false);
@@ -438,23 +442,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-    #[cfg(not(windows))]
     let cm_toggle = config_mgr_rc.clone();
-    #[cfg(not(windows))]
     let app_weak_toggle = app_weak.clone();
-    #[cfg(not(windows))]
     let osd_timer_toggle = osd_timer.clone();
     #[cfg(unix)]
     let tray_handle_toggle = tray_handle.clone();
     app.on_toggle_layout_mode(move || {
-        #[cfg(windows)]
-        win_hook::toggle_bengali_mode();
-
-        #[cfg(not(windows))]
         if let Some(app) = app_weak_toggle.upgrade() {
             let is_bengali = app.get_is_bengali_mode();
             let new_mode = !is_bengali;
             app.set_is_bengali_mode(new_mode);
+
+            #[cfg(windows)]
+            win_hook::set_bengali_mode(new_mode);
+
             let cm = cm_toggle.borrow();
             let layout = cm.config.general.active_layout.clone();
             if new_mode {
@@ -463,6 +464,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     th.update_layout(&layout);
                 }
                 show_mode_osd(&app, &osd_timer_toggle, &layout, true);
+                #[cfg(unix)]
                 let _ = std::process::Command::new("fcitx5-remote")
                     .arg("-s")
                     .arg("lekhani")
@@ -473,6 +475,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     th.update_layout("English");
                 }
                 show_mode_osd(&app, &osd_timer_toggle, "English", false);
+                #[cfg(unix)]
                 let _ = std::process::Command::new("fcitx5-remote")
                     .arg("-s")
                     .arg("keyboard-us")

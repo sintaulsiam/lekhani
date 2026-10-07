@@ -486,6 +486,7 @@ unsafe fn update_tray_tooltip(hwnd: HWND, active: bool, layout_name: &str) {
 unsafe fn switch_layout_from_tray(hwnd: HWND, new_layout: &str) {
     *ACTIVE_LAYOUT.lock().unwrap() = new_layout.to_string();
     crate::win_hook::update_active_layout(new_layout);
+    crate::win_hook::set_bengali_mode(true);
 
     // Save to user configuration
     let mut cfg_mgr = lekhani_settings::ConfigManager::new();
@@ -498,13 +499,14 @@ unsafe fn switch_layout_from_tray(hwnd: HWND, new_layout: &str) {
         if let Ok(guard) = APP_WEAK.lock() {
             if let Some(ref weak) = *guard {
                 if let Some(app) = weak.upgrade() {
+                    app.set_is_bengali_mode(true);
                     app.set_active_layout_name(layout_str.into());
                 }
             }
         }
     });
 
-    update_tray_tooltip(hwnd, IS_BENGALI.load(Ordering::SeqCst), new_layout);
+    update_tray_tooltip(hwnd, true, new_layout);
 }
 
 unsafe fn show_tray_menu(hwnd: HWND) {

@@ -33,18 +33,18 @@ export struct HeatmapEntry {
 export component VectorIconButton inherits Rectangle {
     in property <image> icon;
     in property <bool> active: false;
-    in property <color> icon-color: #a6adc8;
-    in property <color> active-color: #89b4fa;
-    in property <color> active-bg: #89b4fa25;
-    in property <color> active-border: #89b4fa55;
+    in property <color> icon-color: #94a3b8;
+    in property <color> active-color: #38bdf8;
+    in property <color> active-bg: #38bdf820;
+    in property <color> active-border: #38bdf855;
     out property <bool> has-hover: ta.has-hover;
     callback clicked;
 
-    width: 26px;
-    height: 26px;
-    border-radius: 13px;
+    width: 24px;
+    height: 24px;
+    border-radius: 12px;
     border-width: 1px;
-    border-color: root.active ? root.active-border : (ta.has-hover ? #45475a88 : transparent);
+    border-color: root.active ? root.active-border : (ta.has-hover ? #334155 : transparent);
     background: root.active ? root.active-bg : (ta.has-hover ? #ffffff14 : transparent);
     animate background, border-color { duration: 100ms; }
 
@@ -57,20 +57,20 @@ export component VectorIconButton inherits Rectangle {
         x: (parent.width - self.width) / 2;
         y: (parent.height - self.height) / 2;
         source: root.icon;
-        width: 14px;
-        height: 14px;
-        colorize: root.active ? root.active-color : (ta.has-hover ? #ffffff : root.icon-color);
+        width: 13px;
+        height: 13px;
+        colorize: root.active ? root.active-color : (ta.has-hover ? #f8fafc : root.icon-color);
     }
 }
 
 export component CloseButton inherits Rectangle {
     callback clicked;
-    width: 24px;
-    height: 24px;
-    border-radius: 12px;
-    background: ta.has-hover ? #f38ba828 : transparent;
+    width: 22px;
+    height: 22px;
+    border-radius: 11px;
+    background: ta.has-hover ? #ef444422 : transparent;
     border-width: 1px;
-    border-color: ta.has-hover ? #f38ba855 : transparent;
+    border-color: ta.has-hover ? #ef444455 : transparent;
     animate background, border-color { duration: 100ms; }
 
     ta := TouchArea {
@@ -82,20 +82,20 @@ export component CloseButton inherits Rectangle {
         x: (parent.width - self.width) / 2;
         y: (parent.height - self.height) / 2;
         source: @image-url("../../../data/icons/ui/close.svg");
-        width: 12px;
-        height: 12px;
-        colorize: ta.has-hover ? #f38ba8 : #6c7086;
+        width: 11px;
+        height: 11px;
+        colorize: ta.has-hover ? #ef4444 : #94a3b8;
     }
 }
 
 export component PopoutButton inherits Rectangle {
     callback clicked;
-    width: 24px;
-    height: 24px;
-    border-radius: 12px;
-    background: ta.has-hover ? #89b4fa28 : transparent;
+    width: 22px;
+    height: 22px;
+    border-radius: 11px;
+    background: ta.has-hover ? #38bdf822 : transparent;
     border-width: 1px;
-    border-color: ta.has-hover ? #89b4fa55 : transparent;
+    border-color: ta.has-hover ? #38bdf855 : transparent;
     animate background, border-color { duration: 100ms; }
 
     ta := TouchArea {
@@ -107,19 +107,19 @@ export component PopoutButton inherits Rectangle {
         x: (parent.width - self.width) / 2;
         y: (parent.height - self.height) / 2;
         source: @image-url("../../../data/icons/ui/popout.svg");
-        width: 12px;
-        height: 12px;
-        colorize: ta.has-hover ? #89b4fa : #6c7086;
+        width: 11px;
+        height: 11px;
+        colorize: ta.has-hover ? #38bdf8 : #94a3b8;
     }
 }
 
 export component HeaderIcon inherits Rectangle {
     in property <image> source;
-    in property <color> colorize: #89b4fa;
-    in property <length> icon-size: 16px;
+    in property <color> colorize: #38bdf8;
+    in property <length> icon-size: 15px;
 
     width: root.icon-size + 2px;
-    height: 24px;
+    height: 22px;
 
     Image {
         x: (parent.width - self.width) / 2;
@@ -134,10 +134,10 @@ export component HeaderIcon inherits Rectangle {
 export component SegmentButton inherits Rectangle {
     in property <string> label;
     in property <bool> active: false;
-    in property <color> active-color: #3b82f6;
+    in property <color> active-color: #38bdf8;
     callback clicked;
 
-    height: 26px;
+    height: 24px;
     border-radius: 6px;
     background: root.active ? #1e293b : (ta.has-hover ? #151a24 : transparent);
     border-width: 1px;
@@ -152,12 +152,12 @@ export component SegmentButton inherits Rectangle {
     VerticalLayout {
         alignment: center;
         HorizontalLayout {
-            padding-left: 12px;
-            padding-right: 12px;
+            padding-left: 10px;
+            padding-right: 10px;
             alignment: center;
             Text {
                 text: root.label;
-                color: root.active ? #ffffff : (ta.has-hover ? #e2e8f0 : #94a3b8);
+                color: root.active ? #ffffff : (ta.has-hover ? #f8fafc : #94a3b8);
                 font-size: 11.5px;
                 font-weight: root.active ? 700 : 500;
             }
@@ -170,11 +170,11 @@ export component BrandLogo inherits Rectangle {
     out property <bool> has-hover: ta.has-hover;
     callback clicked;
 
-    height: 26px;
-    border-radius: 13px;
-    background: root.active ? #10b98125 : (ta.has-hover ? #24273a88 : transparent);
+    height: 24px;
+    border-radius: 12px;
+    background: root.active ? #38bdf820 : (ta.has-hover ? #ffffff14 : transparent);
     border-width: 1px;
-    border-color: root.active ? #10b98166 : transparent;
+    border-color: root.active ? #38bdf866 : transparent;
     animate background, border-color { duration: 100ms; }
 
     ta := TouchArea {
@@ -185,28 +185,27 @@ export component BrandLogo inherits Rectangle {
     VerticalLayout {
         alignment: center;
         HorizontalLayout {
-            padding-left: 8px;
-            padding-right: 9px;
-            spacing: 6px;
+            padding-left: 7px;
+            padding-right: 8px;
+            spacing: 5px;
             alignment: center;
 
             Image {
                 source: @image-url("../../../data/icons/ui/logo.svg");
-                width: 16px;
-                height: 16px;
+                width: 14px;
+                height: 14px;
                 horizontal-alignment: center;
             }
 
             Text {
                 text: "Lekhani";
-                color: root.active ? #10b981 : #f8fafc;
-                font-size: 13px;
+                color: root.active ? #38bdf8 : #f8fafc;
+                font-size: 12px;
                 font-weight: 700;
                 vertical-alignment: center;
             }
         }
     }
-
 }
 
 export component LayoutSelectorPill inherits Rectangle {
@@ -216,11 +215,11 @@ export component LayoutSelectorPill inherits Rectangle {
     out property <bool> has-hover: ta.has-hover;
     callback clicked;
 
-    height: 26px;
-    background: root.active ? (root.is-bengali ? #25283d : #36281e) : (ta.has-hover ? (root.is-bengali ? #24273a : #2e231c) : (root.is-bengali ? #181926bb : #201a18bb));
-    border-radius: 13px;
+    height: 24px;
+    background: root.active ? #1e2638 : (ta.has-hover ? #1e2638 : (root.is-bengali ? #131926 : #181d28));
+    border-radius: 12px;
     border-width: 1px;
-    border-color: root.active ? (root.is-bengali ? #89b4fa88 : #f6823b88) : (ta.has-hover ? (root.is-bengali ? #585b70 : #8c5b36) : (root.is-bengali ? #33364d : #4a3424));
+    border-color: root.active ? (root.is-bengali ? #38bdf888 : #94a3b888) : (ta.has-hover ? (root.is-bengali ? #475569 : #475569) : (root.is-bengali ? #2c384e : #334155));
     animate background, border-color { duration: 100ms; }
 
     ta := TouchArea {
@@ -231,27 +230,36 @@ export component LayoutSelectorPill inherits Rectangle {
     VerticalLayout {
         alignment: center;
         HorizontalLayout {
-            padding-left: 11px;
-            padding-right: 9px;
+            padding-left: 9px;
+            padding-right: 7px;
             spacing: 5px;
             alignment: center;
 
+            // Crisp mode indicator dot
+            Rectangle {
+                width: 6px;
+                height: 6px;
+                border-radius: 3px;
+                background: root.is-bengali ? #38bdf8 : #94a3b8;
+                y: (parent.height - self.height) / 2;
+            }
+
             Text {
                 text: root.is-bengali ? root.layout-name : "English";
-                color: root.is-bengali ? (root.active ? #89b4fa : #cdd6f4) : (root.active ? #f6823b : #fab387);
-                font-size: 12px;
+                color: root.is-bengali ? (root.active ? #38bdf8 : #f8fafc) : (root.active ? #f8fafc : #cbd5e1);
+                font-size: 11.5px;
                 font-weight: 600;
                 vertical-alignment: center;
             }
 
             VerticalLayout {
                 alignment: center;
-                padding-top: 2px;
+                padding-top: 1px;
                 Image {
                     source: @image-url("../../../data/icons/ui/chevron_down.svg");
-                    width: 9px;
-                    height: 9px;
-                    colorize: root.is-bengali ? (root.active ? #89b4fa : (ta.has-hover ? #cdd6f4 : #9399b2)) : (root.active ? #f6823b : (ta.has-hover ? #fab387 : #c47c49));
+                    width: 8px;
+                    height: 8px;
+                    colorize: root.is-bengali ? (root.active ? #38bdf8 : (ta.has-hover ? #f8fafc : #94a3b8)) : (root.active ? #f8fafc : (ta.has-hover ? #cbd5e1 : #64748b));
                     horizontal-alignment: center;
                 }
             }
@@ -552,9 +560,9 @@ export component ModernToggleSwitch inherits Rectangle {
             height: 20px;
             border-radius: 10px;
             y: (parent.height - self.height) / 2;
-            background: root.checked ? #10b981 : #131d18;
+            background: root.checked ? #38bdf8 : #1e293b;
             border-width: 1px;
-            border-color: root.checked ? #34d399 : #24352b;
+            border-color: root.checked ? #0284c7 : #334155;
             animate background, border-color { duration: 120ms; }
 
             Rectangle {
@@ -578,9 +586,9 @@ export component CopyButton inherits Rectangle {
     width: 28px;
     height: 28px;
     border-radius: 6px;
-    background: ta.has-hover ? #89b4fa22 : #181926aa;
+    background: ta.has-hover ? #38bdf822 : #181926aa;
     border-width: 1px;
-    border-color: ta.has-hover ? #89b4fa66 : #2d3045;
+    border-color: ta.has-hover ? #38bdf866 : #2d3045;
     animate background, border-color { duration: 100ms; }
 
     ta := TouchArea {
@@ -594,7 +602,7 @@ export component CopyButton inherits Rectangle {
             source: @image-url("../../../data/icons/ui/copy.svg");
             width: 13px;
             height: 13px;
-            colorize: root.copied ? #a6e3a1 : (ta.has-hover ? #89b4fa : #a6adc8);
+            colorize: root.copied ? #38bdf8 : (ta.has-hover ? #f8fafc : #94a3b8);
             horizontal-alignment: center;
         }
     }
@@ -604,15 +612,15 @@ export component SidebarTabItem inherits Rectangle {
     in property <image> icon;
     in property <string> label;
     in property <bool> active: false;
-    in property <color> active-color: #10b981;
+    in property <color> active-color: #38bdf8;
     in property <string> badge: "";
     callback clicked;
 
-    height: 38px;
+    height: 36px;
     border-radius: 8px;
-    background: root.active ? #10b98118 : (ta.has-hover ? #ffffff08 : transparent);
+    background: root.active ? #38bdf818 : (ta.has-hover ? #ffffff08 : transparent);
     border-width: 1px;
-    border-color: root.active ? #10b98133 : transparent;
+    border-color: root.active ? #38bdf833 : transparent;
     animate background, border-color { duration: 100ms; }
 
     ta := TouchArea {
