@@ -8,13 +8,14 @@ use std::sync::Mutex;
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, SIZE, WPARAM};
 use windows_sys::Win32::Graphics::Gdi::{
     BeginPaint, ClientToScreen, CreateFontW, CreateRoundRectRgn, CreateSolidBrush, DeleteObject,
-    DrawTextW, EndPaint, FillRect, GetDC, GetTextExtentPoint32W, InvalidateRect, ReleaseDC,
-    RoundRect, SelectObject, SetBkMode, SetTextColor, DT_CENTER, DT_SINGLELINE, DT_VCENTER, HDC,
+    DrawTextW, EndPaint, FillRect, GetDC, GetMonitorInfoW, GetTextExtentPoint32W, InvalidateRect,
+    MonitorFromPoint, ReleaseDC, RoundRect, SelectObject, SetBkMode, SetTextColor, SetWindowRgn,
+    DT_CENTER, DT_SINGLELINE, DT_VCENTER, HDC, MONITORINFO, MONITOR_DEFAULTTONEAREST,
     PAINTSTRUCT, TRANSPARENT,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, GetCursorPos, GetForegroundWindow, GetGUIThreadInfo,
-    GetSystemMetrics, GetWindowRect, RegisterClassW, SetWindowPos, SetWindowRgn, ShowWindow,
+    GetSystemMetrics, GetWindowRect, RegisterClassW, SetWindowPos, ShowWindow,
     CS_DROPSHADOW, CS_HREDRAW, CS_VREDRAW, GUITHREADINFO, HWND_TOPMOST, SM_CXSCREEN, SM_CYSCREEN,
     SWP_NOACTIVATE, SWP_SHOWWINDOW, SW_HIDE, WM_ERASEBKGND, WM_LBUTTONUP, WM_PAINT, WNDCLASSW,
     WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
@@ -244,19 +245,36 @@ impl CandidateWindow {
                 }
             }
 
-            // Screen boundary clamping
-            let screen_w = GetSystemMetrics(SM_CXSCREEN);
-            let screen_h = GetSystemMetrics(SM_CYSCREEN);
+            // Multi-monitor aware screen boundary clamping using MonitorFromPoint & rcWork
+            let mut monitor_info: MONITORINFO = std::mem::zeroed();
+            monitor_info.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
+            let h_monitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+            let (work_left, work_top, work_right, work_bottom) = if h_monitor != 0 as _
+                && GetMonitorInfoW(h_monitor, &mut monitor_info) != 0
+            {
+                (
+                    monitor_info.rcWork.left,
+                    monitor_info.rcWork.top,
+                    monitor_info.rcWork.right,
+                    monitor_info.rcWork.bottom,
+                )
+            } else {
+                (0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN))
+            };
 
-            if pt.x + total_width > screen_w - 8 {
-                pt.x = (screen_w - total_width - 8).max(8);
+            if pt.x + total_width > work_right - 8 {
+                pt.x = (work_right - total_width - 8).max(work_left + 8);
             }
-            if pt.x < 8 {
-                pt.x = 8;
+            if pt.x < work_left + 8 {
+                pt.x = work_left + 8;
             }
 
-            if pt.y + height > screen_h - 48 {
-                pt.y = (pt.y - height - 32).max(8);
+            if pt.y + height > work_bottom - 8 {
+                // If it overflows bottom of the screen, flip above the caret
+                pt.y = (pt.y - height - 32).max(work_top + 8);
+            }
+            if pt.y < work_top + 8 {
+                pt.y = work_top + 8;
             }
 
             {

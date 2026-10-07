@@ -52,7 +52,7 @@ pub struct PhoneticConfig {
     pub include_english: bool,
     #[serde(default = "default_false")]
     pub enter_key_closes_candidate_window: bool,
-    #[serde(default = "default_true")]
+    #[serde(default = "default_false")]
     pub enable_predictive_next_words: bool,
     #[serde(default = "default_false")]
     pub enable_code_shield: bool,
@@ -106,7 +106,7 @@ impl Default for PhoneticConfig {
             use_dictionary: true,
             include_english: true,
             enter_key_closes_candidate_window: false,
-            enable_predictive_next_words: true,
+            enable_predictive_next_words: false,
             enable_code_shield: false,
             enable_word_segmentation: false,
             enable_colloquial_dialects: true,

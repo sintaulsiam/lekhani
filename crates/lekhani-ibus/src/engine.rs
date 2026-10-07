@@ -375,7 +375,22 @@ impl LekhaniIBusEngine {
                 }
                 return Ok(false);
             }
-            IBUS_KEY_RIGHT | IBUS_KEY_DOWN => {
+            IBUS_KEY_RIGHT | IBUS_KEY_LEFT => {
+                if st.session.is_active() {
+                    let sel = st.session.get_selected_index();
+                    if let Some(committed) = st.commit(sel) {
+                        let _ = Self::commit_text(&emitter, &committed).await;
+                        let _ = Self::hide_lookup_table(&emitter).await;
+                        let _ = Self::hide_preedit_text(&emitter).await;
+                        st.session.clear_context();
+                    }
+                } else if st.session.is_prediction_mode() {
+                    st.session.reset();
+                    let _ = Self::hide_lookup_table(&emitter).await;
+                }
+                return Ok(false);
+            }
+            IBUS_KEY_DOWN => {
                 if st.session.is_active() || st.session.is_prediction_mode() {
                     st.session.select_next();
                     let cands = st.session.get_candidates();
@@ -385,7 +400,7 @@ impl LekhaniIBusEngine {
                 }
                 return Ok(false);
             }
-            IBUS_KEY_LEFT | IBUS_KEY_UP => {
+            IBUS_KEY_UP => {
                 if st.session.is_active() || st.session.is_prediction_mode() {
                     st.session.select_prev();
                     let cands = st.session.get_candidates();
@@ -397,7 +412,12 @@ impl LekhaniIBusEngine {
             }
             IBUS_KEY_TAB => {
                 if st.session.is_active() || st.session.is_prediction_mode() {
-                    st.session.select_next();
+                    let is_shift = (state_mask & 1) != 0;
+                    if is_shift {
+                        st.session.select_prev();
+                    } else {
+                        st.session.select_next();
+                    }
                     let cands = st.session.get_candidates();
                     let sel = st.session.get_selected_index() as u32;
                     let _ = Self::update_lookup_table(&emitter, cands, sel, true).await;

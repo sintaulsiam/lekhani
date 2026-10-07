@@ -24,6 +24,7 @@ const KEY_UP: u32 = 0xff52;
 const KEY_RIGHT: u32 = 0xff53;
 const KEY_DOWN: u32 = 0xff54;
 const KEY_TAB: u32 = 0xff09;
+const KEY_ISO_LEFT_TAB: u32 = 0xfe20;
 const KEY_ALT_R: u32 = 0xffea;
 const KEY_ISO_LEVEL3_SHIFT: u32 = 0xfe03;
 const KEY_ESCAPE: u32 = 0xff1b;
@@ -493,8 +494,8 @@ pub extern "C" fn lekhani_engine_process_key(
         return false;
     }
 
-    // Navigation & Candidate Selection
-    if keyval == KEY_RIGHT || keyval == KEY_DOWN || keyval == KEY_TAB {
+    // Candidate Navigation & Selection (strictly Down, Up, Tab, Shift+Tab)
+    if keyval == KEY_DOWN || keyval == KEY_TAB {
         if engine.session.is_active() {
             engine.session.select_next();
             engine.update_cached_strings();
@@ -503,11 +504,31 @@ pub extern "C" fn lekhani_engine_process_key(
         return false;
     }
 
-    if keyval == KEY_LEFT || keyval == KEY_UP {
+    if keyval == KEY_UP || keyval == KEY_ISO_LEFT_TAB {
         if engine.session.is_active() {
             engine.session.select_prev();
             engine.update_cached_strings();
             return true;
+        }
+        return false;
+    }
+
+    // Left and Right Arrow keys:
+    // When in prediction mode, dismiss predictions and return false so host app moves cursor.
+    // When composing, commit active candidate and return false so host app moves cursor.
+    if keyval == KEY_LEFT || keyval == KEY_RIGHT {
+        if engine.session.is_prediction_mode() {
+            engine.session.reset();
+            engine.update_cached_strings();
+            return false;
+        }
+        if engine.session.is_active() {
+            let idx = engine.session.get_selected_index();
+            if let Some(committed) = engine.commit(idx) {
+                engine.last_commit = CString::new(committed).ok();
+            }
+            engine.update_cached_strings();
+            return false;
         }
         return false;
     }

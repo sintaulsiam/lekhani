@@ -7,7 +7,11 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Mutex;
 use windows_sys::core::{GUID, HRESULT};
 use windows_sys::Win32::Foundation::{BOOL, LPARAM, WPARAM};
-use windows_sys::Win32::UI::Input::KeyboardAndMouse::{GetKeyState, VK_F12, VK_SPACE};
+use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
+    GetKeyState, VK_BACK, VK_DOWN, VK_ESCAPE, VK_F12, VK_LEFT, VK_OEM_1, VK_OEM_2, VK_OEM_3,
+    VK_OEM_4, VK_OEM_5, VK_OEM_6, VK_OEM_7, VK_OEM_COMMA, VK_OEM_MINUS, VK_OEM_PERIOD,
+    VK_OEM_PLUS, VK_RETURN, VK_RIGHT, VK_SHIFT, VK_SPACE, VK_TAB, VK_UP,
+};
 
 use crate::com::*;
 use crate::guid::guid_eq;
@@ -261,11 +265,25 @@ unsafe extern "system" fn key_sink_on_test_key_down(
         }
 
         if inner.bengali_active {
-            if (0x41..=0x5A).contains(&vk)
-                || (0x30..=0x39).contains(&vk)
-                || vk == VK_SPACE
-                || inner.session.is_active()
-            {
+            // Desktop rule: Left and Right arrow keys MUST move the cursor in the host app,
+            // never cycle candidates or block caret movement.
+            if vk == VK_LEFT || vk == VK_RIGHT {
+                *pf_eaten = 0;
+                return S_OK;
+            }
+
+            if inner.session.is_active() {
+                match vk {
+                    VK_BACK | VK_RETURN | VK_ESCAPE | VK_TAB | VK_DOWN | VK_UP => {
+                        *pf_eaten = 1;
+                        return S_OK;
+                    }
+                    _ => {}
+                }
+            }
+
+            let shift_down = (GetKeyState(VK_SHIFT as i32) & 0x8000u16 as i16) != 0;
+            if map_vk(vk, shift_down).is_some() {
                 *pf_eaten = 1;
                 return S_OK;
             }
@@ -303,10 +321,63 @@ unsafe extern "system" fn key_sink_on_key_down(
 
     if let Ok(mut inner) = (*base).inner.lock() {
         if inner.bengali_active {
-            let shift_down =
-                (GetKeyState(windows_sys::Win32::UI::Input::KeyboardAndMouse::VK_SHIFT as i32)
-                    & 0x8000u16 as i16)
-                    != 0;
+            let shift_down = (GetKeyState(VK_SHIFT as i32) & 0x8000u16 as i16) != 0;
+
+            // Arrow keys: if active/prediction, commit current candidate or reset context,
+            // but return pf_eaten = 0 so Windows passes the arrow key to the text caret.
+            if vk == VK_LEFT || vk == VK_RIGHT {
+                if inner.session.is_active() {
+                    let sel = inner.session.get_selected_index();
+                    let _ = inner.session.commit(sel);
+                } else {
+                    inner.session.clear_context();
+                }
+                *pf_eaten = 0;
+                return S_OK;
+            }
+
+            // IME navigation & control keys when active
+            if inner.session.is_active() {
+                match vk {
+                    VK_BACK => {
+                        let consumed = inner.session.process_backspace();
+                        *pf_eaten = if consumed { 1 } else { 0 };
+                        return S_OK;
+                    }
+                    VK_RETURN => {
+                        let sel = inner.session.get_selected_index();
+                        let _ = inner.session.commit(sel);
+                        *pf_eaten = 1;
+                        return S_OK;
+                    }
+                    VK_ESCAPE => {
+                        inner.session.reset();
+                        *pf_eaten = 1;
+                        return S_OK;
+                    }
+                    VK_TAB => {
+                        if shift_down {
+                            inner.session.select_prev();
+                        } else {
+                            inner.session.select_next();
+                        }
+                        *pf_eaten = 1;
+                        return S_OK;
+                    }
+                    VK_DOWN => {
+                        inner.session.select_next();
+                        *pf_eaten = 1;
+                        return S_OK;
+                    }
+                    VK_UP => {
+                        inner.session.select_prev();
+                        *pf_eaten = 1;
+                        return S_OK;
+                    }
+                    _ => {}
+                }
+            }
+
             if let Some(ch) = map_vk(vk, shift_down) {
                 let keycode = inner.mapper.map_keyval(ch as u32);
                 let consumed = inner
@@ -397,6 +468,17 @@ fn map_vk(vk: u16, shift: bool) -> Option<char> {
             }
         }
         VK_SPACE => Some(' '),
+        VK_OEM_1 => Some(if shift { ':' } else { ';' }),
+        VK_OEM_PLUS => Some(if shift { '+' } else { '=' }),
+        VK_OEM_COMMA => Some(if shift { '<' } else { ',' }),
+        VK_OEM_MINUS => Some(if shift { '_' } else { '-' }),
+        VK_OEM_PERIOD => Some(if shift { '>' } else { '.' }),
+        VK_OEM_2 => Some(if shift { '?' } else { '/' }),
+        VK_OEM_3 => Some(if shift { '~' } else { '`' }),
+        VK_OEM_4 => Some(if shift { '{' } else { '[' }),
+        VK_OEM_5 => Some(if shift { '|' } else { '\\' }),
+        VK_OEM_6 => Some(if shift { '}' } else { ']' }),
+        VK_OEM_7 => Some(if shift { '"' } else { '\'' }),
         _ => None,
     }
 }

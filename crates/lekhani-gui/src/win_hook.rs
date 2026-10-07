@@ -474,8 +474,21 @@ unsafe extern "system" fn low_level_keyboard_proc(
         let candidates = state.session.get_candidates();
         if !candidates.is_empty() {
             let visible_count = candidates.len().min(5);
-            // Candidate navigation via Tab / Shift+Tab / Down / Right
-            if vk == VK_TAB || vk == VK_DOWN || vk == VK_RIGHT {
+
+            // Left / Right Arrow while composing:
+            // Commit active candidate, close suggestion window, and pass through to OS so the text cursor moves naturally!
+            if vk == VK_LEFT || vk == VK_RIGHT {
+                state.session.commit(state.session.get_selected_index());
+                state.on_commit();
+                state.uncommitted_units = 0;
+                if let Some(ref win) = state.candidate_win {
+                    win.hide();
+                }
+                return CallNextHookEx(0 as _, n_code, w_param, l_param);
+            }
+
+            // Candidate navigation strictly via Tab / Shift+Tab / Down
+            if vk == VK_TAB || vk == VK_DOWN {
                 if shift_down {
                     state.session.select_prev();
                     while state.session.get_selected_index() >= visible_count {
@@ -501,8 +514,8 @@ unsafe extern "system" fn low_level_keyboard_proc(
                 return 1;
             }
 
-            // Candidate navigation via Up / Left
-            if vk == VK_UP || vk == VK_LEFT {
+            // Candidate navigation via Up
+            if vk == VK_UP {
                 state.session.select_prev();
                 while state.session.get_selected_index() >= visible_count {
                     state.session.select_prev();
@@ -529,8 +542,21 @@ unsafe extern "system" fn low_level_keyboard_proc(
         let candidates = state.session.get_candidates();
         if !candidates.is_empty() {
             let visible_count = candidates.len().min(5);
-            // Tab / Shift+Tab / Down / Right navigation
-            if vk == VK_TAB || vk == VK_DOWN || vk == VK_RIGHT {
+
+            // Left / Right / Home / End / PageUp / PageDown in Prediction Mode:
+            // Dismiss suggestions and pass through so the user moves their text cursor smoothly!
+            if vk == VK_LEFT || vk == VK_RIGHT || vk == 0x24 /* VK_HOME */ || vk == 0x23 /* VK_END */
+                || vk == 0x21 /* VK_PRIOR */ || vk == 0x22 /* VK_NEXT */
+            {
+                state.session.reset();
+                if let Some(ref win) = state.candidate_win {
+                    win.hide();
+                }
+                return CallNextHookEx(0 as _, n_code, w_param, l_param);
+            }
+
+            // Tab / Shift+Tab / Down navigation
+            if vk == VK_TAB || vk == VK_DOWN {
                 if shift_down {
                     state.session.select_prev();
                     while state.session.get_selected_index() >= visible_count {
@@ -551,8 +577,8 @@ unsafe extern "system" fn low_level_keyboard_proc(
                 return 1;
             }
 
-            // Up / Left navigation
-            if vk == VK_UP || vk == VK_LEFT {
+            // Up navigation
+            if vk == VK_UP {
                 state.session.select_prev();
                 while state.session.get_selected_index() >= visible_count {
                     state.session.select_prev();
