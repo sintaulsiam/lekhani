@@ -30,6 +30,10 @@ export struct HeatmapEntry {
     percentage: string,
 }
 
+export struct EmojiGridRow {
+    items: [string],
+}
+
 export component VectorIconButton inherits Rectangle {
     in property <image> icon;
     in property <bool> active: false;
@@ -371,7 +375,8 @@ export component EmojiCell inherits Rectangle {
     out property <bool> has-hover: ta.has-hover;
     callback clicked(string);
 
-    height: 36px;
+    width: 42px;
+    height: 42px;
     border-radius: 8px;
     background: ta.has-hover ? #10b98124 : #14152288;
     border-width: 1px;
@@ -385,7 +390,8 @@ export component EmojiCell inherits Rectangle {
 
     Text {
         text: root.text;
-        font-size: 19px;
+        font-family: "Noto Color Emoji, Noto Emoji, Symbola, sans-serif";
+        font-size: 20px;
         horizontal-alignment: center;
         vertical-alignment: center;
     }
@@ -396,7 +402,9 @@ export component KaomojiCell inherits Rectangle {
     out property <bool> has-hover: ta.has-hover;
     callback clicked(string);
 
-    height: 34px;
+    height: 38px;
+    min-width: 140px;
+    horizontal-stretch: 1;
     border-radius: 8px;
     background: ta.has-hover ? #10b98124 : #14152288;
     border-width: 1px;
@@ -410,7 +418,66 @@ export component KaomojiCell inherits Rectangle {
 
     Text {
         text: root.text;
+        font-family: "Noto Sans, Noto Sans Bengali, Symbola, sans-serif";
         color: ta.has-hover ? #34d399 : #f1f5f9;
+        font-size: 13px;
+        font-weight: 600;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+export component CategoryChip inherits Rectangle {
+    in property <string> text;
+    in property <bool> active: false;
+    callback clicked();
+
+    height: 24px;
+    border-radius: 6px;
+    background: root.active ? #10b98125 : #18192666;
+    border-width: 1px;
+    border-color: root.active ? #10b98166 : #31324466;
+    animate background, border-color { duration: 100ms; }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+
+    HorizontalLayout {
+        padding-left: 8px;
+        padding-right: 8px;
+        alignment: center;
+        Text {
+            text: root.text;
+            color: root.active ? #34d399 : (ta.has-hover ? #f1f5f9 : #a6adc8);
+            font-size: 11px;
+            font-weight: root.active ? 700 : 500;
+            vertical-alignment: center;
+        }
+    }
+}
+
+export component PaletteTabButton inherits Rectangle {
+    in property <string> text;
+    in property <bool> active: false;
+    callback clicked();
+
+    height: 30px;
+    border-radius: 8px;
+    background: root.active ? #10b98125 : #18192688;
+    border-width: 1px;
+    border-color: root.active ? #10b98166 : #313244;
+    animate background, border-color { duration: 100ms; }
+
+    ta := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+
+    Text {
+        text: root.text;
+        color: root.active ? #34d399 : (ta.has-hover ? #f1f5f9 : #cdd6f4);
         font-size: 12px;
         font-weight: 600;
         horizontal-alignment: center;
