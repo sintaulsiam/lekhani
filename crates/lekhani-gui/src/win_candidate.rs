@@ -7,11 +7,11 @@
 use std::sync::Mutex;
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, SIZE, WPARAM};
 use windows_sys::Win32::Graphics::Gdi::{
-    BeginPaint, ClientToScreen, CreateFontW, CreatePen, CreateRoundRectRgn, CreateSolidBrush, DeleteObject,
-    DrawTextW, EndPaint, FillRect, GetDC, GetMonitorInfoW, GetTextExtentPoint32W, InvalidateRect,
-    LineTo, MonitorFromPoint, MoveToEx, ReleaseDC, RoundRect, SelectObject, SetBkMode, SetTextColor, SetWindowRgn,
-    DT_CENTER, DT_LEFT, DT_SINGLELINE, DT_VCENTER, HDC, MONITORINFO, MONITOR_DEFAULTTONEAREST,
-    PAINTSTRUCT, PS_SOLID, TRANSPARENT,
+    BeginPaint, BitBlt, ClientToScreen, CreateCompatibleBitmap, CreateCompatibleDC, CreateFontW, CreatePen,
+    CreateRoundRectRgn, CreateSolidBrush, DeleteDC, DeleteObject, DrawTextW, EndPaint, FillRect, GetDC,
+    GetMonitorInfoW, GetTextExtentPoint32W, InvalidateRect, LineTo, MonitorFromPoint, MoveToEx, ReleaseDC,
+    RoundRect, SelectObject, SetBkMode, SetTextColor, SetWindowRgn, DT_CENTER, DT_LEFT, DT_SINGLELINE,
+    DT_VCENTER, HDC, MONITORINFO, MONITOR_DEFAULTTONEAREST, PAINTSTRUCT, PS_SOLID, SRCCOPY, TRANSPARENT,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, GetCursorPos, GetForegroundWindow, GetGUIThreadInfo,
@@ -98,6 +98,8 @@ impl CandidateWindow {
                 return None;
             }
 
+            apply_dwm_modern_styling(hwnd, is_windows_dark_mode());
+
             *CANDIDATE_HWND.lock().unwrap() = Some(hwnd as usize);
             Some(Self { hwnd })
         }
@@ -137,6 +139,13 @@ impl CandidateWindow {
         let display_cands: Vec<String> = candidates.iter().take(5).cloned().collect();
         let count = display_cands.len().max(1);
 
+        let is_prediction = aux_text.is_empty();
+        let badge_text = if is_prediction {
+            "✨ প্রস্তাবনা".to_string()
+        } else {
+            aux_text.to_string()
+        };
+
         // Dynamically compute precise width per candidate using GDI font metrics (GetTextExtentPoint32W)
         // scaled to monitor DPI to prevent clipping complex Bengali conjuncts/juktoborno.
         let mut aux_width = 0;
@@ -163,8 +172,8 @@ impl CandidateWindow {
             );
             let old_font = SelectObject(hdc_screen, font as _);
 
-            for c in &display_cands {
-                let label = c.clone();
+            for (i, c) in display_cands.iter().enumerate() {
+                let label = format!("{}. {}", i + 1, c);
                 let label_utf16: Vec<u16> = label.encode_utf16().collect();
                 let mut sz: SIZE = std::mem::zeroed();
                 GetTextExtentPoint32W(
@@ -173,21 +182,21 @@ impl CandidateWindow {
                     label_utf16.len() as i32,
                     &mut sz,
                 );
-                let min_w = (52.0 * scale).round() as i32;
-                let pad = (16.0 * scale).round() as i32;
+                let min_w = (58.0 * scale).round() as i32;
+                let pad = (18.0 * scale).round() as i32;
                 let w = (sz.cx + pad).max(min_w);
                 item_widths.push(w);
             }
 
-            if !aux_text.is_empty() {
+            if !badge_text.is_empty() {
                 let segoe_name: Vec<u16> = "Segoe UI\0".encode_utf16().collect();
-                let segoe_size = (-12.0 * scale).round() as i32;
+                let segoe_size = (-11.5 * scale).round() as i32;
                 let segoe_font = CreateFontW(
                     segoe_size, 0, 0, 0, 700, 0, 0, 0, 1, 0, 0, 0, 0,
                     segoe_name.as_ptr(),
                 );
                 SelectObject(hdc_screen, segoe_font as _);
-                let aux_utf16: Vec<u16> = aux_text.encode_utf16().collect();
+                let aux_utf16: Vec<u16> = badge_text.encode_utf16().collect();
                 let mut sz_aux: SIZE = std::mem::zeroed();
                 GetTextExtentPoint32W(
                     hdc_screen,
@@ -307,7 +316,7 @@ impl CandidateWindow {
             {
                 let mut data = CANDIDATE_DATA.lock().unwrap();
                 *data = Some(CandidateData {
-                    aux_text: aux_text.to_string(),
+                    aux_text: badge_text,
                     aux_width,
                     candidates: display_cands,
                     item_widths,
@@ -319,6 +328,8 @@ impl CandidateWindow {
                     scale,
                 });
             }
+
+            apply_dwm_modern_styling(self.hwnd, is_windows_dark_mode());
 
             SetWindowPos(
                 self.hwnd,
@@ -484,6 +495,50 @@ unsafe fn is_windows_dark_mode() -> bool {
     true // default to dark mode
 }
 
+unsafe fn apply_dwm_modern_styling(hwnd: HWND, dark: bool) {
+    use windows_sys::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryA};
+    let lib = LoadLibraryA(c"dwmapi.dll".as_ptr() as *const u8);
+    if lib != 0 as _ {
+        let fn_ptr = GetProcAddress(lib, c"DwmSetWindowAttribute".as_ptr() as *const u8);
+        if let Some(dwm_set_attr) = fn_ptr {
+            type DwmSetAttrFn = unsafe extern "system" fn(
+                HWND,
+                u32,
+                *const std::ffi::c_void,
+                u32,
+            ) -> i32;
+            let set_attr: DwmSetAttrFn = std::mem::transmute(dwm_set_attr);
+
+            // DWMWA_USE_IMMERSIVE_DARK_MODE (20)
+            let dark_val: u32 = if dark { 1 } else { 0 };
+            set_attr(
+                hwnd,
+                20,
+                &dark_val as *const _ as *const std::ffi::c_void,
+                std::mem::size_of::<u32>() as u32,
+            );
+
+            // DWMWA_WINDOW_CORNER_PREFERENCE (33): DWMWCP_ROUND (2)
+            let corner_pref: u32 = 2;
+            set_attr(
+                hwnd,
+                33,
+                &corner_pref as *const _ as *const std::ffi::c_void,
+                std::mem::size_of::<u32>() as u32,
+            );
+
+            // DWMWA_BORDER_COLOR (34): Emerald/Slate border
+            let border_color: u32 = if dark { 0x003B442F } else { 0x00CBD5E1 };
+            set_attr(
+                hwnd,
+                34,
+                &border_color as *const _ as *const std::ffi::c_void,
+                std::mem::size_of::<u32>() as u32,
+            );
+        }
+    }
+}
+
 unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
     let data = {
         let guard = CANDIDATE_DATA.lock().unwrap();
@@ -497,14 +552,31 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
     let scale = data.scale.max(1.0);
     let mut client_rect: RECT = std::mem::zeroed();
     windows_sys::Win32::UI::WindowsAndMessaging::GetClientRect(hwnd, &mut client_rect);
+    let win_w = client_rect.right - client_rect.left;
+    let win_h = client_rect.bottom - client_rect.top;
+    if win_w <= 0 || win_h <= 0 {
+        return;
+    }
 
     let dark = is_windows_dark_mode();
 
+    // Create double-buffer off-screen memory DC to prevent flicker
+    let mem_dc = CreateCompatibleDC(hdc);
+    if mem_dc == 0 as _ {
+        return;
+    }
+    let mem_bmp = CreateCompatibleBitmap(hdc, win_w, win_h);
+    if mem_bmp == 0 as _ {
+        DeleteDC(mem_dc);
+        return;
+    }
+    let old_bmp = SelectObject(mem_dc, mem_bmp as _);
+
     // Theme colors (in 0x00BBGGRR format for GDI):
-    // Dark: #0f1a15 (rich emerald dark slate), Light: #f8fafc (clean frosted white)
-    let bg_color = if dark { 0x00151A0F } else { 0x00FCFAF8 };
-    // Border: #2f443b (subtle emerald border) or #cbd5e1 (soft light slate)
-    let border_color = if dark { 0x003B442F } else { 0x00E1D5CB };
+    // Dark: #0d1612 (rich deep emerald slate), Light: #f8fafc (clean frosted white)
+    let bg_color = if dark { 0x0012160D } else { 0x00FCFAF8 };
+    // Border: #263b31 (subtle emerald border) or #cbd5e1 (soft light slate)
+    let border_color = if dark { 0x00313B26 } else { 0x00E1D5CB };
     // Active pill: Emerald brand #10b981 (R=16, G=185, B=129 -> 0x0081B910)
     let active_pill_color = 0x0081B910;
     // Active pill text: White in both modes for optimal contrast
@@ -513,16 +585,16 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
     let inactive_text_color = if dark { 0x00F9F5F1 } else { 0x002A170F };
 
     let bg_brush = CreateSolidBrush(bg_color);
-    FillRect(hdc, &client_rect, bg_brush);
+    FillRect(mem_dc, &client_rect, bg_brush);
     DeleteObject(bg_brush as _);
 
     let border_brush = CreateSolidBrush(border_color);
-    windows_sys::Win32::Graphics::Gdi::FrameRect(hdc, &client_rect, border_brush);
+    windows_sys::Win32::Graphics::Gdi::FrameRect(mem_dc, &client_rect, border_brush);
     DeleteObject(border_brush as _);
 
-    SetBkMode(hdc, TRANSPARENT as _);
+    SetBkMode(mem_dc, TRANSPARENT as _);
 
-    // Prefer Nirmala UI (standard Indic font on Windows 10/11) with fallback to Vrinda and Segoe UI
+    // Prefer Nirmala UI (standard Indic font on Windows 10/11)
     let font_name: Vec<u16> = "Nirmala UI\0".encode_utf16().collect();
     let font_size = (-13.5 * scale).round() as i32;
     let font = CreateFontW(
@@ -542,9 +614,9 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
         font_name.as_ptr(),
     );
 
-    // Segoe UI font for English phonetic input badge
+    // Segoe UI font for English phonetic input / Prediction badge
     let segoe_name: Vec<u16> = "Segoe UI\0".encode_utf16().collect();
-    let segoe_size = (-12.0 * scale).round() as i32;
+    let segoe_size = (-11.5 * scale).round() as i32;
     let segoe_font = CreateFontW(
         segoe_size,
         0,
@@ -570,13 +642,32 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
     let radius = (6.0 * scale).round() as i32;
     let row_h = (26.0 * scale).round() as i32;
 
-    // English phonetic input badge theme colors:
-    let aux_bg_color = if dark { 0x00262114 } else { 0x00E8EDF2 };
-    let aux_border_color = if dark { 0x004A3C20 } else { 0x00CBD5E1 };
-    let aux_text_color = if dark { 0x00F8BD38 } else { 0x000284C7 };
-    let sep_color = if dark { 0x003B442F } else { 0x00CBD5E1 };
+    // Badge styling
+    let is_prediction = data.aux_text.starts_with("✨");
+    let aux_bg_color = if is_prediction {
+        if dark { 0x00332211 } else { 0x00F5EBE0 }
+    } else if dark {
+        0x00262114
+    } else {
+        0x00E8EDF2
+    };
+    let aux_border_color = if is_prediction {
+        if dark { 0x00664422 } else { 0x00D0B89C }
+    } else if dark {
+        0x004A3C20
+    } else {
+        0x00CBD5E1
+    };
+    let aux_text_color = if is_prediction {
+        if dark { 0x00FAC878 } else { 0x008A4B1A }
+    } else if dark {
+        0x00F8BD38
+    } else {
+        0x000284C7
+    };
+    let sep_color = if dark { 0x00313B26 } else { 0x00CBD5E1 };
 
-    // 1. Paint English Phonetic Input Badge (if non-empty)
+    // 1. Paint Badge (if non-empty)
     if data.horizontal && data.aux_width > 0 && !data.aux_text.is_empty() {
         let aux_rect = RECT {
             left: cur_x,
@@ -586,11 +677,11 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
         };
 
         let aux_brush = CreateSolidBrush(aux_bg_color);
-        let old_brush = SelectObject(hdc, aux_brush as _);
+        let old_brush = SelectObject(mem_dc, aux_brush as _);
         let aux_pen = CreatePen(PS_SOLID as _, 1, aux_border_color);
-        let old_pen = SelectObject(hdc, aux_pen as _);
+        let old_pen = SelectObject(mem_dc, aux_pen as _);
         RoundRect(
-            hdc,
+            mem_dc,
             aux_rect.left,
             aux_rect.top,
             aux_rect.right,
@@ -598,31 +689,31 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
             radius,
             radius,
         );
-        SelectObject(hdc, old_pen);
+        SelectObject(mem_dc, old_pen);
         DeleteObject(aux_pen as _);
-        SelectObject(hdc, old_brush);
+        SelectObject(mem_dc, old_brush);
         DeleteObject(aux_brush as _);
 
-        let old_f = SelectObject(hdc, segoe_font as _);
-        SetTextColor(hdc, aux_text_color);
+        let old_f = SelectObject(mem_dc, segoe_font as _);
+        SetTextColor(mem_dc, aux_text_color);
         let mut aux_utf16: Vec<u16> = data.aux_text.encode_utf16().collect();
         let mut draw_rect = aux_rect;
         DrawTextW(
-            hdc,
+            mem_dc,
             aux_utf16.as_mut_ptr(),
             aux_utf16.len() as i32,
             &mut draw_rect,
             DT_CENTER | DT_VCENTER | DT_SINGLELINE,
         );
-        SelectObject(hdc, old_f);
+        SelectObject(mem_dc, old_f);
 
         cur_x += data.aux_width + (4.0 * scale).round() as i32;
 
         let sep_pen = CreatePen(PS_SOLID as _, 1, sep_color);
-        let old_pen = SelectObject(hdc, sep_pen as _);
-        MoveToEx(hdc, cur_x, pad_y + (2.0 * scale).round() as i32, std::ptr::null_mut());
-        LineTo(hdc, cur_x, pad_y + item_height - (2.0 * scale).round() as i32);
-        SelectObject(hdc, old_pen);
+        let old_pen = SelectObject(mem_dc, sep_pen as _);
+        MoveToEx(mem_dc, cur_x, pad_y + (2.0 * scale).round() as i32, std::ptr::null_mut());
+        LineTo(mem_dc, cur_x, pad_y + item_height - (2.0 * scale).round() as i32);
+        SelectObject(mem_dc, old_pen);
         DeleteObject(sep_pen as _);
 
         cur_x += (5.0 * scale).round() as i32;
@@ -638,33 +729,33 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
             bottom: (4.0 * scale).round() as i32 + header_h,
         };
 
-        let old_f = SelectObject(hdc, segoe_font as _);
-        SetTextColor(hdc, aux_text_color);
+        let old_f = SelectObject(mem_dc, segoe_font as _);
+        SetTextColor(mem_dc, aux_text_color);
         let header_str = format!("{}  ›", data.aux_text);
         let mut header_utf16: Vec<u16> = header_str.encode_utf16().collect();
         let mut draw_rect = header_rect;
         DrawTextW(
-            hdc,
+            mem_dc,
             header_utf16.as_mut_ptr(),
             header_utf16.len() as i32,
             &mut draw_rect,
             DT_LEFT | DT_VCENTER | DT_SINGLELINE,
         );
-        SelectObject(hdc, old_f);
+        SelectObject(mem_dc, old_f);
 
         let sep_y = (4.0 * scale).round() as i32 + header_h + (2.0 * scale).round() as i32;
         let sep_pen = CreatePen(PS_SOLID as _, 1, sep_color);
-        let old_pen = SelectObject(hdc, sep_pen as _);
-        MoveToEx(hdc, (6.0 * scale).round() as i32, sep_y, std::ptr::null_mut());
-        LineTo(hdc, client_rect.right - (6.0 * scale).round() as i32, sep_y);
-        SelectObject(hdc, old_pen);
+        let old_pen = SelectObject(mem_dc, sep_pen as _);
+        MoveToEx(mem_dc, (6.0 * scale).round() as i32, sep_y, std::ptr::null_mut());
+        LineTo(mem_dc, client_rect.right - (6.0 * scale).round() as i32, sep_y);
+        SelectObject(mem_dc, old_pen);
         DeleteObject(sep_pen as _);
 
         header_offset = header_h + (4.0 * scale).round() as i32;
     }
 
-    // 2. Paint Bengali candidates with Nirmala UI
-    let old_font = SelectObject(hdc, font as _);
+    // 2. Paint Candidates with numbering
+    let old_font = SelectObject(mem_dc, font as _);
 
     for i in 0..count {
         let item_w = data
@@ -692,9 +783,9 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
 
         if i == data.selected_index {
             let active_brush = CreateSolidBrush(active_pill_color);
-            let old_brush = SelectObject(hdc, active_brush as _);
+            let old_brush = SelectObject(mem_dc, active_brush as _);
             RoundRect(
-                hdc,
+                mem_dc,
                 item_rect.left,
                 item_rect.top,
                 item_rect.right,
@@ -702,15 +793,15 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
                 radius,
                 radius,
             );
-            SelectObject(hdc, old_brush);
+            SelectObject(mem_dc, old_brush);
             DeleteObject(active_brush as _);
 
-            SetTextColor(hdc, active_text_color);
+            SetTextColor(mem_dc, active_text_color);
         } else {
-            SetTextColor(hdc, inactive_text_color);
+            SetTextColor(mem_dc, inactive_text_color);
         }
 
-        let label = data.candidates[i].clone();
+        let label = format!("{}. {}", i + 1, data.candidates[i]);
         let mut label_utf16: Vec<u16> = label.encode_utf16().collect();
 
         let mut text_rect = item_rect;
@@ -721,7 +812,7 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
             DT_VCENTER | DT_SINGLELINE
         };
         DrawTextW(
-            hdc,
+            mem_dc,
             label_utf16.as_mut_ptr(),
             label_utf16.len() as i32,
             &mut text_rect,
@@ -729,7 +820,25 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
         );
     }
 
-    SelectObject(hdc, old_font);
+    SelectObject(mem_dc, old_font);
     DeleteObject(font as _);
     DeleteObject(segoe_font as _);
+
+    // Blit from double-buffered memory DC to screen HDC in one atomic hardware operation
+    BitBlt(
+        hdc,
+        0,
+        0,
+        win_w,
+        win_h,
+        mem_dc,
+        0,
+        0,
+        SRCCOPY,
+    );
+
+    // Clean up memory DC and bitmap
+    SelectObject(mem_dc, old_bmp);
+    DeleteObject(mem_bmp as _);
+    DeleteDC(mem_dc);
 }
