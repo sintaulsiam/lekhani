@@ -491,7 +491,7 @@ unsafe fn switch_layout_from_tray(hwnd: HWND, new_layout: &str) {
     // Save to user configuration
     let mut cfg_mgr = lekhani_settings::ConfigManager::new();
     cfg_mgr.config.general.active_layout = new_layout.to_string();
-    let _ = cfg_mgr.save();
+    cfg_mgr.save();
 
     // Sync Slint TopBar UI
     let layout_str = new_layout.to_string();
@@ -666,7 +666,7 @@ unsafe extern "system" fn tray_wnd_proc(
             0
         }
         WM_COMMAND => {
-            let id = wparam as usize;
+            let id = wparam;
             match id {
                 ID_TRAY_RESTORE => {
                     toggle_topbar_visibility();

@@ -7,11 +7,11 @@
 use std::sync::Mutex;
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, SIZE, WPARAM};
 use windows_sys::Win32::Graphics::Gdi::{
-    BeginPaint, ClientToScreen, CreateFontW, CreateRoundRectRgn, CreateSolidBrush, DeleteObject,
+    BeginPaint, ClientToScreen, CreateFontW, CreatePen, CreateRoundRectRgn, CreateSolidBrush, DeleteObject,
     DrawTextW, EndPaint, FillRect, GetDC, GetMonitorInfoW, GetTextExtentPoint32W, InvalidateRect,
-    MonitorFromPoint, ReleaseDC, RoundRect, SelectObject, SetBkMode, SetTextColor, SetWindowRgn,
-    DT_CENTER, DT_SINGLELINE, DT_VCENTER, HDC, MONITORINFO, MONITOR_DEFAULTTONEAREST,
-    PAINTSTRUCT, TRANSPARENT,
+    LineTo, MonitorFromPoint, MoveToEx, ReleaseDC, RoundRect, SelectObject, SetBkMode, SetTextColor, SetWindowRgn,
+    DT_CENTER, DT_LEFT, DT_SINGLELINE, DT_VCENTER, HDC, MONITORINFO, MONITOR_DEFAULTTONEAREST,
+    PAINTSTRUCT, PS_SOLID, TRANSPARENT,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, GetCursorPos, GetForegroundWindow, GetGUIThreadInfo,
@@ -23,6 +23,8 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
 
 #[derive(Clone, Default)]
 pub struct CandidateData {
+    pub aux_text: String,
+    pub aux_width: i32,
     pub candidates: Vec<String>,
     pub item_widths: Vec<i32>,
     pub selected_index: usize,
@@ -103,7 +105,7 @@ impl CandidateWindow {
 
     pub fn is_visible(&self) -> bool {
         let guard = CANDIDATE_DATA.lock().unwrap();
-        guard.as_ref().map_or(false, |d| !d.candidates.is_empty())
+        guard.as_ref().is_some_and(|d| !d.candidates.is_empty())
     }
 
     pub fn is_point_inside(&self, screen_x: i32, screen_y: i32) -> bool {
@@ -125,7 +127,7 @@ impl CandidateWindow {
         hit_test_data(data, screen_x, screen_y)
     }
 
-    pub fn update(&self, candidates: &[String], selected_index: usize, horizontal: bool) {
+    pub fn update(&self, aux_text: &str, candidates: &[String], selected_index: usize, horizontal: bool) {
         if candidates.is_empty() {
             self.hide();
             return;
@@ -137,6 +139,7 @@ impl CandidateWindow {
 
         // Dynamically compute precise width per candidate using GDI font metrics (GetTextExtentPoint32W)
         // scaled to monitor DPI to prevent clipping complex Bengali conjuncts/juktoborno.
+        let mut aux_width = 0;
         let mut item_widths = Vec::with_capacity(count);
         unsafe {
             let hdc_screen = GetDC(0 as _);
@@ -176,6 +179,27 @@ impl CandidateWindow {
                 item_widths.push(w);
             }
 
+            if !aux_text.is_empty() {
+                let segoe_name: Vec<u16> = "Segoe UI\0".encode_utf16().collect();
+                let segoe_size = (-12.0 * scale).round() as i32;
+                let segoe_font = CreateFontW(
+                    segoe_size, 0, 0, 0, 700, 0, 0, 0, 1, 0, 0, 0, 0,
+                    segoe_name.as_ptr(),
+                );
+                SelectObject(hdc_screen, segoe_font as _);
+                let aux_utf16: Vec<u16> = aux_text.encode_utf16().collect();
+                let mut sz_aux: SIZE = std::mem::zeroed();
+                GetTextExtentPoint32W(
+                    hdc_screen,
+                    aux_utf16.as_ptr(),
+                    aux_utf16.len() as i32,
+                    &mut sz_aux,
+                );
+                let pad_aux = (16.0 * scale).round() as i32;
+                aux_width = (sz_aux.cx + pad_aux).max((36.0 * scale).round() as i32);
+                DeleteObject(segoe_font as _);
+            }
+
             SelectObject(hdc_screen, old_font);
             DeleteObject(font as _);
             ReleaseDC(0 as _, hdc_screen);
@@ -184,8 +208,9 @@ impl CandidateWindow {
         let (total_width, height) = if horizontal {
             let sum_w: i32 = item_widths.iter().sum();
             let spacing = (count.saturating_sub(1) as i32) * (5.0 * scale).round() as i32;
+            let aux_extra = if aux_width > 0 { aux_width + (9.0 * scale).round() as i32 } else { 0 };
             (
-                sum_w + spacing + (14.0 * scale).round() as i32,
+                sum_w + spacing + aux_extra + (14.0 * scale).round() as i32,
                 (30.0 * scale).round() as i32,
             )
         } else {
@@ -196,11 +221,13 @@ impl CandidateWindow {
                 .cloned()
                 .max()
                 .unwrap_or(default_w)
-                .max(min_col_w);
+                .max(min_col_w)
+                .max(aux_width + (24.0 * scale).round() as i32);
             let pad = (14.0 * scale).round() as i32;
             let row_h = (26.0 * scale).round() as i32;
+            let header_h = if aux_width > 0 { (24.0 * scale).round() as i32 } else { 0 };
             let margin = (10.0 * scale).round() as i32;
-            (max_w + pad, (count as i32 * row_h) + margin)
+            (max_w + pad, (count as i32 * row_h) + header_h + margin)
         };
 
         unsafe {
@@ -280,6 +307,8 @@ impl CandidateWindow {
             {
                 let mut data = CANDIDATE_DATA.lock().unwrap();
                 *data = Some(CandidateData {
+                    aux_text: aux_text.to_string(),
+                    aux_width,
                     candidates: display_cands,
                     item_widths,
                     selected_index,
@@ -341,7 +370,12 @@ fn hit_test_data(data: &CandidateData, screen_x: i32, screen_y: i32) -> Option<u
     }
 
     if data.horizontal {
-        let mut cur_x = (6.0 * scale).round() as i32;
+        let aux_offset = if data.aux_width > 0 {
+            data.aux_width + (9.0 * scale).round() as i32
+        } else {
+            0
+        };
+        let mut cur_x = (6.0 * scale).round() as i32 + aux_offset;
         let pad_x = (5.0 * scale).round() as i32;
         for (i, &w) in data.item_widths.iter().take(count).enumerate() {
             if rel_x >= cur_x && rel_x <= cur_x + w + pad_x {
@@ -349,13 +383,18 @@ fn hit_test_data(data: &CandidateData, screen_x: i32, screen_y: i32) -> Option<u
             }
             cur_x += w + pad_x;
         }
-        if rel_x < (6.0 * scale).round() as i32 {
+        if rel_x < (6.0 * scale).round() as i32 + aux_offset {
             return Some(0);
         }
         Some(count - 1)
     } else {
+        let header_h = if data.aux_width > 0 {
+            (24.0 * scale).round() as i32
+        } else {
+            0
+        };
         let item_h = (26.0 * scale).round() as i32;
-        let pad_top = (4.0 * scale).round() as i32;
+        let pad_top = (4.0 * scale).round() as i32 + header_h;
         for i in 0..count {
             let top = pad_top + (i as i32 * item_h);
             if rel_y >= top && rel_y <= top + item_h {
@@ -502,7 +541,26 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
         0,
         font_name.as_ptr(),
     );
-    let old_font = SelectObject(hdc, font as _);
+
+    // Segoe UI font for English phonetic input badge
+    let segoe_name: Vec<u16> = "Segoe UI\0".encode_utf16().collect();
+    let segoe_size = (-12.0 * scale).round() as i32;
+    let segoe_font = CreateFontW(
+        segoe_size,
+        0,
+        0,
+        0,
+        700,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        segoe_name.as_ptr(),
+    );
 
     let count = data.candidates.len().min(5);
     let mut cur_x = (6.0 * scale).round() as i32;
@@ -511,6 +569,102 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
     let pad_x = (5.0 * scale).round() as i32;
     let radius = (6.0 * scale).round() as i32;
     let row_h = (26.0 * scale).round() as i32;
+
+    // English phonetic input badge theme colors:
+    let aux_bg_color = if dark { 0x00262114 } else { 0x00E8EDF2 };
+    let aux_border_color = if dark { 0x004A3C20 } else { 0x00CBD5E1 };
+    let aux_text_color = if dark { 0x00F8BD38 } else { 0x000284C7 };
+    let sep_color = if dark { 0x003B442F } else { 0x00CBD5E1 };
+
+    // 1. Paint English Phonetic Input Badge (if non-empty)
+    if data.horizontal && data.aux_width > 0 && !data.aux_text.is_empty() {
+        let aux_rect = RECT {
+            left: cur_x,
+            top: pad_y,
+            right: cur_x + data.aux_width,
+            bottom: pad_y + item_height,
+        };
+
+        let aux_brush = CreateSolidBrush(aux_bg_color);
+        let old_brush = SelectObject(hdc, aux_brush as _);
+        let aux_pen = CreatePen(PS_SOLID as _, 1, aux_border_color);
+        let old_pen = SelectObject(hdc, aux_pen as _);
+        RoundRect(
+            hdc,
+            aux_rect.left,
+            aux_rect.top,
+            aux_rect.right,
+            aux_rect.bottom,
+            radius,
+            radius,
+        );
+        SelectObject(hdc, old_pen);
+        DeleteObject(aux_pen as _);
+        SelectObject(hdc, old_brush);
+        DeleteObject(aux_brush as _);
+
+        let old_f = SelectObject(hdc, segoe_font as _);
+        SetTextColor(hdc, aux_text_color);
+        let mut aux_utf16: Vec<u16> = data.aux_text.encode_utf16().collect();
+        let mut draw_rect = aux_rect;
+        DrawTextW(
+            hdc,
+            aux_utf16.as_mut_ptr(),
+            aux_utf16.len() as i32,
+            &mut draw_rect,
+            DT_CENTER | DT_VCENTER | DT_SINGLELINE,
+        );
+        SelectObject(hdc, old_f);
+
+        cur_x += data.aux_width + (4.0 * scale).round() as i32;
+
+        let sep_pen = CreatePen(PS_SOLID as _, 1, sep_color);
+        let old_pen = SelectObject(hdc, sep_pen as _);
+        MoveToEx(hdc, cur_x, pad_y + (2.0 * scale).round() as i32, std::ptr::null_mut());
+        LineTo(hdc, cur_x, pad_y + item_height - (2.0 * scale).round() as i32);
+        SelectObject(hdc, old_pen);
+        DeleteObject(sep_pen as _);
+
+        cur_x += (5.0 * scale).round() as i32;
+    }
+
+    let mut header_offset = 0;
+    if !data.horizontal && data.aux_width > 0 && !data.aux_text.is_empty() {
+        let header_h = (22.0 * scale).round() as i32;
+        let header_rect = RECT {
+            left: (8.0 * scale).round() as i32,
+            top: (4.0 * scale).round() as i32,
+            right: client_rect.right - (8.0 * scale).round() as i32,
+            bottom: (4.0 * scale).round() as i32 + header_h,
+        };
+
+        let old_f = SelectObject(hdc, segoe_font as _);
+        SetTextColor(hdc, aux_text_color);
+        let header_str = format!("{}  ›", data.aux_text);
+        let mut header_utf16: Vec<u16> = header_str.encode_utf16().collect();
+        let mut draw_rect = header_rect;
+        DrawTextW(
+            hdc,
+            header_utf16.as_mut_ptr(),
+            header_utf16.len() as i32,
+            &mut draw_rect,
+            DT_LEFT | DT_VCENTER | DT_SINGLELINE,
+        );
+        SelectObject(hdc, old_f);
+
+        let sep_y = (4.0 * scale).round() as i32 + header_h + (2.0 * scale).round() as i32;
+        let sep_pen = CreatePen(PS_SOLID as _, 1, sep_color);
+        let old_pen = SelectObject(hdc, sep_pen as _);
+        MoveToEx(hdc, (6.0 * scale).round() as i32, sep_y, std::ptr::null_mut());
+        LineTo(hdc, client_rect.right - (6.0 * scale).round() as i32, sep_y);
+        SelectObject(hdc, old_pen);
+        DeleteObject(sep_pen as _);
+
+        header_offset = header_h + (4.0 * scale).round() as i32;
+    }
+
+    // 2. Paint Bengali candidates with Nirmala UI
+    let old_font = SelectObject(hdc, font as _);
 
     for i in 0..count {
         let item_w = data
@@ -530,9 +684,9 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
         } else {
             RECT {
                 left: (6.0 * scale).round() as i32,
-                top: pad_y + (i as i32 * row_h),
+                top: pad_y + header_offset + (i as i32 * row_h),
                 right: client_rect.right - (6.0 * scale).round() as i32,
-                bottom: pad_y + (i as i32 * row_h) + item_height,
+                bottom: pad_y + header_offset + (i as i32 * row_h) + item_height,
             }
         };
 
@@ -577,4 +731,5 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
 
     SelectObject(hdc, old_font);
     DeleteObject(font as _);
+    DeleteObject(segoe_font as _);
 }

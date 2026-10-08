@@ -94,7 +94,7 @@ impl HookState {
 
     fn on_commit(&mut self) {
         self.commit_counter += 1;
-        if self.commit_counter % 60 == 0 {
+        if self.commit_counter.is_multiple_of(60) {
             self.flush_learned();
         }
     }
@@ -115,9 +115,10 @@ impl HookState {
         }
     }
 
-    fn update_candidate_window(&self, candidates: &[String], selected_index: usize) {
+    fn update_candidate_window(&self, aux_text: &str, candidates: &[String], selected_index: usize) {
         if let Some(ref win) = self.candidate_win {
             win.update(
+                aux_text,
                 candidates,
                 selected_index,
                 self.config_mgr.config.ui.horizontal_candidates,
@@ -238,7 +239,7 @@ pub fn commit_candidate_by_index(idx: usize) {
                     {
                         if state.session.populate_predictions() {
                             let preds = state.session.get_candidates();
-                            state.update_candidate_window(preds, 0);
+                            state.update_candidate_window("", preds, 0);
                         } else if let Some(ref win) = state.candidate_win {
                             win.hide();
                         }
@@ -426,23 +427,21 @@ unsafe extern "system" fn low_level_keyboard_proc(
     }
 
     // Optional instant candidate selection via Ctrl+1..Ctrl+5
-    if real_ctrl_down && !real_alt_down && !shift_down && !win_down {
-        if (0x31..=0x35).contains(&vk) {
-            let target_idx = (vk - 0x31) as usize;
-            let mut committed_candidate = false;
-            if let Ok(guard) = HOOK_STATE.lock() {
-                if let Some(ref s) = *guard {
-                    let candidates = s.session.get_candidates();
-                    let visible_count = candidates.len().min(5);
-                    if target_idx < visible_count {
-                        committed_candidate = true;
-                    }
+    if real_ctrl_down && !real_alt_down && !shift_down && !win_down && (0x31..=0x35).contains(&vk) {
+        let target_idx = (vk - 0x31) as usize;
+        let mut committed_candidate = false;
+        if let Ok(guard) = HOOK_STATE.lock() {
+            if let Some(ref s) = *guard {
+                let candidates = s.session.get_candidates();
+                let visible_count = candidates.len().min(5);
+                if target_idx < visible_count {
+                    committed_candidate = true;
                 }
             }
-            if committed_candidate {
-                commit_candidate_by_index(target_idx);
-                return 1;
-            }
+        }
+        if committed_candidate {
+            commit_candidate_by_index(target_idx);
+            return 1;
         }
     }
 
@@ -507,7 +506,9 @@ unsafe extern "system" fn low_level_keyboard_proc(
                     inject_backspaces(state.uncommitted_units);
                     state.uncommitted_units = inject_unicode_str(&candidate);
                 }
+                let aux = state.session.get_auxiliary_text();
                 state.update_candidate_window(
+                    &aux,
                     state.session.get_candidates(),
                     state.session.get_selected_index(),
                 );
@@ -525,7 +526,9 @@ unsafe extern "system" fn low_level_keyboard_proc(
                     inject_backspaces(state.uncommitted_units);
                     state.uncommitted_units = inject_unicode_str(&candidate);
                 }
+                let aux = state.session.get_auxiliary_text();
                 state.update_candidate_window(
+                    &aux,
                     state.session.get_candidates(),
                     state.session.get_selected_index(),
                 );
@@ -570,7 +573,9 @@ unsafe extern "system" fn low_level_keyboard_proc(
                         }
                     }
                 }
+                let aux = state.session.get_auxiliary_text();
                 state.update_candidate_window(
+                    &aux,
                     state.session.get_candidates(),
                     state.session.get_selected_index(),
                 );
@@ -583,7 +588,9 @@ unsafe extern "system" fn low_level_keyboard_proc(
                 while state.session.get_selected_index() >= visible_count {
                     state.session.select_prev();
                 }
+                let aux = state.session.get_auxiliary_text();
                 state.update_candidate_window(
+                    &aux,
                     state.session.get_candidates(),
                     state.session.get_selected_index(),
                 );
@@ -601,7 +608,9 @@ unsafe extern "system" fn low_level_keyboard_proc(
             if !candidate.is_empty() {
                 state.uncommitted_units = inject_unicode_str(&candidate);
                 if state.session.active_layout_type == ActiveLayoutType::Phonetic {
+                    let aux = state.session.get_auxiliary_text();
                     state.update_candidate_window(
+                        &aux,
                         state.session.get_candidates(),
                         state.session.get_selected_index(),
                     );
@@ -637,7 +646,7 @@ unsafe extern "system" fn low_level_keyboard_proc(
             {
                 if state.session.populate_predictions() {
                     let preds = state.session.get_candidates();
-                    state.update_candidate_window(preds, 0);
+                    state.update_candidate_window("", preds, 0);
                 } else if let Some(ref win) = state.candidate_win {
                     win.hide();
                 }
@@ -660,7 +669,7 @@ unsafe extern "system" fn low_level_keyboard_proc(
                     {
                         if state.session.populate_predictions() {
                             let preds = state.session.get_candidates();
-                            state.update_candidate_window(preds, 0);
+                            state.update_candidate_window("", preds, 0);
                         } else if let Some(ref win) = state.candidate_win {
                             win.hide();
                         }
@@ -753,7 +762,9 @@ unsafe extern "system" fn low_level_keyboard_proc(
                 inject_backspaces(state.uncommitted_units);
                 state.uncommitted_units = inject_unicode_str(&candidate);
                 if state.session.active_layout_type == ActiveLayoutType::Phonetic {
+                    let aux = state.session.get_auxiliary_text();
                     state.update_candidate_window(
+                        &aux,
                         state.session.get_candidates(),
                         state.session.get_selected_index(),
                     );
