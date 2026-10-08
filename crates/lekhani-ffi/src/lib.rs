@@ -95,6 +95,7 @@ pub struct LekhaniEngineContext {
     last_preedit: Option<CString>,
     last_aux: Option<CString>,
     last_candidates: Vec<CString>,
+    last_retro_correction: Option<CString>,
     pub commit_count: u64,
 }
 
@@ -128,6 +129,7 @@ impl LekhaniEngineContext {
             last_preedit: None,
             last_aux: None,
             last_candidates: Vec::new(),
+            last_retro_correction: None,
             commit_count: 0,
         }
     }
@@ -721,6 +723,42 @@ pub extern "C" fn lekhani_engine_is_prediction_navigated(ctx: *mut LekhaniEngine
     engine.session.is_prediction_navigated()
 }
 
+/// Project "পশ্চাৎ-শোধন" (Retro-Correction)
+/// Evaluates surrounding text and returns a JSON string representing RetroCorrection if available:
+/// {"original_word": "...", "replacement_word": "...", "reason": "...", "chip_label": "...", "chars_to_backspace": ..., "text_to_commit": "..."}
+///
+/// # Safety
+///
+/// `ctx` must point to a valid, live `LekhaniEngineContext`.
+/// `surrounding_context` must be a valid null-terminated C string.
+#[no_mangle]
+pub unsafe extern "C" fn lekhani_engine_get_retro_correction(
+    ctx: *mut LekhaniEngineContext,
+    surrounding_context: *const c_char,
+) -> *const c_char {
+    if ctx.is_null() || surrounding_context.is_null() {
+        return ptr::null();
+    }
+    let engine = &mut *ctx;
+    let context_str = match CStr::from_ptr(surrounding_context).to_str() {
+        Ok(s) => s,
+        Err(_) => return ptr::null(),
+    };
+
+    if let Some(corr) = engine.session.get_retro_correction(context_str) {
+        if let Ok(json) = serde_json::to_string(&corr) {
+            engine.last_retro_correction = CString::new(json).ok();
+            return engine
+                .last_retro_correction
+                .as_ref()
+                .map(|s| s.as_ptr())
+                .unwrap_or(ptr::null());
+        }
+    }
+    engine.last_retro_correction = None;
+    ptr::null()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -925,6 +963,24 @@ mod tests {
         assert!(!preedit_ptr2.is_null());
         let preedit2 = unsafe { CStr::from_ptr(preedit_ptr2).to_str().unwrap() };
         assert_eq!(preedit2, "ক");
+
+        // Clean up
+        lekhani_engine_free(engine_ptr);
+    }
+
+    #[test]
+    fn test_engine_retro_correction() {
+        let _guard = TEST_MUTEX.lock().unwrap();
+        let engine_ptr = lekhani_engine_new();
+        assert!(!engine_ptr.is_null());
+
+        let ctx = CString::new("আপনি কেমন আছো").unwrap();
+        let retro_ptr = unsafe { lekhani_engine_get_retro_correction(engine_ptr, ctx.as_ptr()) };
+        assert!(!retro_ptr.is_null());
+
+        let json_str = unsafe { CStr::from_ptr(retro_ptr).to_str().unwrap() };
+        assert!(json_str.contains("আছেন"));
+        assert!(json_str.contains("আছো"));
 
         // Clean up
         lekhani_engine_free(engine_ptr);
