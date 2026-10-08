@@ -372,15 +372,16 @@ export component ModernButton inherits Rectangle {
 
 export component EmojiCell inherits Rectangle {
     in property <string> text;
+    in property <color> glyph-color: #facc15;
     out property <bool> has-hover: ta.has-hover;
     callback clicked(string);
 
     width: 42px;
     height: 42px;
     border-radius: 8px;
-    background: ta.has-hover ? #10b98124 : #14152288;
+    background: ta.has-hover ? (root.glyph-color == #38bdf8 ? #0284c72a : #f59e0b2a) : #14152288;
     border-width: 1px;
-    border-color: ta.has-hover ? #10b98166 : #24263855;
+    border-color: ta.has-hover ? (root.glyph-color == #38bdf8 ? #38bdf888 : #f59e0b77) : #24263855;
     animate background, border-color { duration: 100ms; }
 
     ta := TouchArea {
@@ -390,8 +391,9 @@ export component EmojiCell inherits Rectangle {
 
     Text {
         text: root.text;
-        font-family: "Noto Color Emoji, Noto Emoji, Symbola, sans-serif";
-        font-size: 20px;
+        font-family: "Noto Emoji, Symbola, sans-serif";
+        font-size: 21px;
+        color: ta.has-hover ? #ffffff : root.glyph-color;
         horizontal-alignment: center;
         vertical-alignment: center;
     }

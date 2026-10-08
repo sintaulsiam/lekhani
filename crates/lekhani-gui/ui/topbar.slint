@@ -1,3 +1,5 @@
+import "./NotoEmoji-Regular.ttf";
+
 import {
     Button,
     LineEdit,
@@ -2317,6 +2319,7 @@ export component TopBarWindow inherits Window {
                                     spacing: 4px;
                                     for em in row.items: EmojiCell {
                                         text: em;
+                                        glyph-color: root.emoji-tab == 1 ? #38bdf8 : #facc15;
                                         clicked(glyph) => {
                                             root.copy-to-clipboard(glyph);
                                         }
@@ -3763,6 +3766,7 @@ export component StandaloneDialogWindow inherits Window {
                                     spacing: 6px;
                                     for em in row.items: EmojiCell {
                                         text: em;
+                                        glyph-color: root.emoji-tab == 1 ? #38bdf8 : #facc15;
                                         clicked(glyph) => {
                                             root.copy-to-clipboard(glyph);
                                         }
