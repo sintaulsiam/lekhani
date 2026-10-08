@@ -419,8 +419,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             win_hook::set_bengali_mode(true);
         }
         #[cfg(unix)]
-        if let Some(ref th) = tray_handle_layout {
-            th.update_layout(&name);
+        {
+            if let Some(ref th) = tray_handle_layout {
+                th.update_layout(&name);
+            }
+            let _ = std::process::Command::new("fcitx5-remote")
+                .arg("-s")
+                .arg("lekhani")
+                .spawn();
         }
         if let Some(app) = app_weak_layout.upgrade() {
             app.set_is_bengali_mode(true);
@@ -1061,7 +1067,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let stats_poll_timer = Rc::new(std::cell::RefCell::new(slint::Timer::default()));
     stats_poll_timer.borrow_mut().start(
         slint::TimerMode::Repeated,
-        std::time::Duration::from_millis(1000),
+        std::time::Duration::from_millis(250),
         move || {
             if let Some(app) = app_weak_stats_timer.upgrade() {
                 let cm = cm_stats_timer.borrow();
