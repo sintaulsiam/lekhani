@@ -261,27 +261,25 @@ impl LekhaniIBusEngine {
         // Special handling for navigation and triggers
         match keyval {
             IBUS_KEY_BACKSPACE => {
+                let handled = st.session.process_backspace();
                 if st.session.is_active() {
-                    let handled = st.session.process_backspace();
-                    if st.session.is_active() {
-                        let preedit = st.session.get_preedit_text();
-                        let cands = st.session.get_candidates();
-                        let sel = st.session.get_selected_index() as u32;
-                        let _ = Self::update_preedit_text(
-                            &emitter,
-                            &preedit,
-                            preedit.chars().count() as u32,
-                            true,
-                        )
-                        .await;
-                        let _ = Self::update_lookup_table(&emitter, cands, sel, true).await;
-                    } else {
-                        let _ = Self::hide_preedit_text(&emitter).await;
-                        let _ = Self::hide_lookup_table(&emitter).await;
-                    }
+                    let preedit = st.session.get_preedit_text();
+                    let cands = st.session.get_candidates();
+                    let sel = st.session.get_selected_index() as u32;
+                    let _ = Self::update_preedit_text(
+                        &emitter,
+                        &preedit,
+                        preedit.chars().count() as u32,
+                        true,
+                    )
+                    .await;
+                    let _ = Self::update_lookup_table(&emitter, cands, sel, true).await;
+                    return Ok(handled);
+                } else {
+                    let _ = Self::hide_preedit_text(&emitter).await;
+                    let _ = Self::hide_lookup_table(&emitter).await;
                     return Ok(handled);
                 }
-                return Ok(false);
             }
             IBUS_KEY_ESCAPE => {
                 if st.session.is_active() || st.session.is_prediction_mode() {
