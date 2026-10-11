@@ -40,6 +40,10 @@ bool lekhani_engine_is_active(LekhaniEngineContext *ctx);
 bool lekhani_engine_is_prediction_mode(LekhaniEngineContext *ctx);
 bool lekhani_engine_is_prediction_navigated(LekhaniEngineContext *ctx);
 
+const char *lekhani_engine_get_retro_correction(LekhaniEngineContext *ctx, const char *surrounding_context);
+const char *lekhani_engine_get_retro_replacement(LekhaniEngineContext *ctx);
+uint32_t lekhani_engine_get_retro_chars_to_backspace(LekhaniEngineContext *ctx);
+
 #ifdef __cplusplus
 }
 #endif

@@ -25,6 +25,30 @@ private:
     LekhaniState *state_;
 };
 
+class LekhaniRetroCandidateWord : public CandidateWord {
+public:
+    LekhaniRetroCandidateWord(Text text, std::string replacement, uint32_t backspaceCount, LekhaniState *state)
+        : CandidateWord(std::move(text)), replacement_(std::move(replacement)), backspaceCount_(backspaceCount), state_(state) {}
+
+    void select(InputContext *ic) const override {
+        if (!ic) return;
+        if (backspaceCount_ > 0) {
+            ic->deleteSurroundingText(-static_cast<int>(backspaceCount_), static_cast<int>(backspaceCount_));
+        }
+        if (!replacement_.empty()) {
+            ic->commitString(replacement_);
+        }
+        if (state_) {
+            state_->updateUI();
+        }
+    }
+
+private:
+    std::string replacement_;
+    uint32_t backspaceCount_;
+    LekhaniState *state_;
+};
+
 class LekhaniCandidateList : public CommonCandidateList {
 public:
     LekhaniCandidateList() {
@@ -104,7 +128,33 @@ void LekhaniState::updateUI() {
         }
         ic_->inputPanel().setCandidateList(std::move(candidateList));
     } else {
-        ic_->inputPanel().setCandidateList(nullptr);
+        // Project "পশ্চাৎ-শোধন": Check for retroactive correction if idle and surrounding text is available
+        bool hasRetro = false;
+        if (!lekhani_engine_is_active(engine_) && ic_->surroundingText().isValid()) {
+            const auto &surr = ic_->surroundingText();
+            size_t cursor = surr.cursor();
+            if (cursor > 0 && cursor <= surr.text().size()) {
+                std::string ctxBefore = surr.text().substr(0, cursor);
+                const char *retroJson = lekhani_engine_get_retro_correction(engine_, ctxBefore.c_str());
+                if (retroJson && retroJson[0] != '\0') {
+                    const char *replacement = lekhani_engine_get_retro_replacement(engine_);
+                    uint32_t backspaceCount = lekhani_engine_get_retro_chars_to_backspace(engine_);
+                    if (replacement && replacement[0] != '\0') {
+                        auto candidateList = std::make_unique<LekhaniCandidateList>();
+                        std::string label = std::string("পশ্চাৎ-শোধন: ") + replacement;
+                        candidateList->append(std::make_unique<LekhaniRetroCandidateWord>(
+                            Text(label), replacement, backspaceCount, this
+                        ));
+                        candidateList->setGlobalCursorIndex(0);
+                        ic_->inputPanel().setCandidateList(std::move(candidateList));
+                        hasRetro = true;
+                    }
+                }
+            }
+        }
+        if (!hasRetro) {
+            ic_->inputPanel().setCandidateList(nullptr);
+        }
     }
 
     ic_->updateUserInterface(UserInterfaceComponent::InputPanel);

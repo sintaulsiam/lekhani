@@ -96,6 +96,8 @@ pub struct LekhaniEngineContext {
     last_aux: Option<CString>,
     last_candidates: Vec<CString>,
     last_retro_correction: Option<CString>,
+    last_retro_replacement: Option<CString>,
+    last_retro_chars_to_backspace: u32,
     pub commit_count: u64,
 }
 
@@ -130,6 +132,8 @@ impl LekhaniEngineContext {
             last_aux: None,
             last_candidates: Vec::new(),
             last_retro_correction: None,
+            last_retro_replacement: None,
+            last_retro_chars_to_backspace: 0,
             commit_count: 0,
         }
     }
@@ -746,6 +750,8 @@ pub unsafe extern "C" fn lekhani_engine_get_retro_correction(
     };
 
     if let Some(corr) = engine.session.get_retro_correction(context_str) {
+        engine.last_retro_chars_to_backspace = corr.chars_to_backspace;
+        engine.last_retro_replacement = CString::new(corr.text_to_commit.clone()).ok();
         if let Ok(json) = serde_json::to_string(&corr) {
             engine.last_retro_correction = CString::new(json).ok();
             return engine
@@ -755,8 +761,44 @@ pub unsafe extern "C" fn lekhani_engine_get_retro_correction(
                 .unwrap_or(ptr::null());
         }
     }
+    engine.last_retro_chars_to_backspace = 0;
+    engine.last_retro_replacement = None;
     engine.last_retro_correction = None;
     ptr::null()
+}
+
+/// Retrieve the replacement text for the active retro-correction.
+///
+/// # Safety
+/// `ctx` must point to a valid, live `LekhaniEngineContext`.
+#[no_mangle]
+pub unsafe extern "C" fn lekhani_engine_get_retro_replacement(
+    ctx: *mut LekhaniEngineContext,
+) -> *const c_char {
+    if ctx.is_null() {
+        return ptr::null();
+    }
+    let engine = &*ctx;
+    engine
+        .last_retro_replacement
+        .as_ref()
+        .map(|s| s.as_ptr())
+        .unwrap_or(ptr::null())
+}
+
+/// Retrieve the number of characters to backspace/delete for the active retro-correction.
+///
+/// # Safety
+/// `ctx` must point to a valid, live `LekhaniEngineContext`.
+#[no_mangle]
+pub unsafe extern "C" fn lekhani_engine_get_retro_chars_to_backspace(
+    ctx: *mut LekhaniEngineContext,
+) -> u32 {
+    if ctx.is_null() {
+        return 0;
+    }
+    let engine = &*ctx;
+    engine.last_retro_chars_to_backspace
 }
 
 #[cfg(test)]
@@ -981,6 +1023,14 @@ mod tests {
         let json_str = unsafe { CStr::from_ptr(retro_ptr).to_str().unwrap() };
         assert!(json_str.contains("আছেন"));
         assert!(json_str.contains("আছো"));
+
+        let repl_ptr = unsafe { lekhani_engine_get_retro_replacement(engine_ptr) };
+        assert!(!repl_ptr.is_null());
+        let repl_str = unsafe { CStr::from_ptr(repl_ptr).to_str().unwrap() };
+        assert_eq!(repl_str, "আছেন");
+
+        let backspace_count = unsafe { lekhani_engine_get_retro_chars_to_backspace(engine_ptr) };
+        assert!(backspace_count > 0);
 
         // Clean up
         lekhani_engine_free(engine_ptr);
