@@ -21,3 +21,4 @@ thiserror.workspace = true
 anyhow.workspace = true
 hashbrown.workspace = true
 lekhani-ai.workspace = true
+lekhani-parser.workspace = true

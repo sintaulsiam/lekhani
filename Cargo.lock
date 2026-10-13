@@ -2846,6 +2846,7 @@ dependencies = [
  "hashbrown 0.14.5",
  "lekhani-ai",
  "lekhani-core",
+ "lekhani-parser",
  "lekhani-settings",
  "quick-xml 0.31.0",
  "serde",
