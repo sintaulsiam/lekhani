@@ -191,6 +191,7 @@ impl LekhaniEngineContext {
             };
             self.session.set_layout(layout_type, &json);
             self.active_layout_name = layout_name.to_string();
+            self.config_mgr.config.general.active_layout = layout_name.to_string();
             self.update_cached_strings();
             true
         } else {
