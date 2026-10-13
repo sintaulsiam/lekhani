@@ -895,6 +895,10 @@ mod tests {
         assert_eq!(pred_commit_str, expected_cand_1);
 
         // Test Tab navigation followed by Enter committing navigated candidate
+        unsafe {
+            (*engine_ptr).session.populate_predictions();
+            (*engine_ptr).update_cached_strings();
+        }
         let tab_handled = lekhani_engine_process_key(engine_ptr, KEY_TAB, 0, 0, false);
         assert!(tab_handled, "Tab should navigate prediction candidates");
         let enter_nav_handled = lekhani_engine_process_key(engine_ptr, KEY_RETURN, 0, 0, false);
