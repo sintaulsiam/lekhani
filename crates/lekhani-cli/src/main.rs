@@ -1118,7 +1118,7 @@ fn run_eval(model_path: Option<PathBuf>) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn run_eval_rig(_corpus_path: Option<PathBuf>) -> anyhow::Result<()> {
+fn run_eval_rig(corpus_path: Option<PathBuf>) -> anyhow::Result<()> {
     use std::time::Instant;
 
     println!("╔══════════════════════════════════════════════════════════════════════════════════╗");
@@ -1129,47 +1129,72 @@ fn run_eval_rig(_corpus_path: Option<PathBuf>) -> anyhow::Result<()> {
     let parser = lekhani_parser::default_avro_parser();
     let mut suggestion = lekhani_core::phonetic::PhoneticSuggestion::new();
 
-    // ── 1. Benchmark Dataset Splits ──────────────────────────────────────────
-    struct TestCase {
-        context: &'static [&'static str],
-        input: &'static str,
-        expected: &'static str,
+    #[allow(dead_code)]
+    #[derive(serde::Deserialize, Clone)]
+    struct RawTestCase {
+        context: Vec<String>,
+        input: String,
+        expected: String,
+        category: String,
+        #[serde(default)]
+        subcat: String,
     }
 
-    let formal_split = [
-        TestCase { context: &["আপনি", "কেমন"], input: "achen", expected: "আছেন" },
-        TestCase { context: &["তিনি"], input: "ashchen", expected: "আসছেন" },
-        TestCase { context: &["আমি", "বই"], input: "pora", expected: "পড়া" },
-        TestCase { context: &["নতুন", "জামা"], input: "pora", expected: "পরা" },
-        TestCase { context: &["বাংলাদেশ", "একটি"], input: "shundor", expected: "সুন্দর" },
-        TestCase { context: &["সরকার"], input: "prokolpo", expected: "প্রকল্প" },
-        TestCase { context: &["আমাদের", "জাতীয়"], input: "shongshod", expected: "সংসদ" },
+    #[allow(dead_code)]
+    #[derive(serde::Deserialize)]
+    struct EvalJson {
+        total: usize,
+        cases: Vec<RawTestCase>,
+    }
+
+    let search_paths = [
+        corpus_path,
+        Some(PathBuf::from("/mnt/data/lekhani-engine/data/eval/contextual_eval_200.json")),
+        Some(PathBuf::from("data/eval/contextual_eval_200.json")),
     ];
 
-    let colloquial_split = [
-        TestCase { context: &["তুই", "কখন"], input: "ashbi", expected: "আসবি" },
-        TestCase { context: &["তুই", "কি"], input: "korchis", expected: "করছিস" },
-        TestCase { context: &["তুই"], input: "jas", expected: "যাস" },
-        TestCase { context: &["খবর", "কি"], input: "bol", expected: "বল" },
-        TestCase { context: &["আমরা", "সবাই"], input: "jabo", expected: "যাবো" },
-        TestCase { context: &["কালকে"], input: "dekha", expected: "দেখা" },
-        TestCase { context: &["আমারে"], input: "de", expected: "দে" },
-    ];
+    let mut loaded_cases: Vec<RawTestCase> = Vec::new();
+    for p in search_paths.into_iter().flatten() {
+        if p.exists() {
+            if let Ok(content) = std::fs::read_to_string(&p) {
+                if let Ok(eval_data) = serde_json::from_str::<EvalJson>(&content) {
+                    println!("📂 Loaded {} benchmark test cases from: {}", eval_data.cases.len(), p.display());
+                    loaded_cases = eval_data.cases;
+                    break;
+                }
+            }
+        }
+    }
 
-    let codemixed_split = [
-        TestCase { context: &["facebook"], input: "e", expected: "এ" },
-        TestCase { context: &["link"], input: "share", expected: "share" },
-        TestCase { context: &["file"], input: "download", expected: "download" },
-        TestCase { context: &["api"], input: "call", expected: "call" },
-        TestCase { context: &["post"], input: "koro", expected: "করো" },
-        TestCase { context: &["server"], input: "restart", expected: "restart" },
-    ];
+    let mut formal_split: Vec<RawTestCase> = Vec::new();
+    let mut honorific_split: Vec<RawTestCase> = Vec::new();
+    let mut colloquial_split: Vec<RawTestCase> = Vec::new();
+    let mut codemixed_split: Vec<RawTestCase> = Vec::new();
+    let mut typo_split: Vec<RawTestCase> = Vec::new();
 
-    let splits: [(&str, &[TestCase]); 3] = [
-        ("Formal Bengali (BBS / Literary)", &formal_split),
-        ("Colloquial / Chat Corpus", &colloquial_split),
-        ("Code-Mixed / Technical Banglish", &codemixed_split),
-    ];
+    for tc in &loaded_cases {
+        match tc.category.as_str() {
+            "formal_literary" => formal_split.push(tc.clone()),
+            "honorific_agreement" => honorific_split.push(tc.clone()),
+            "colloquial_chat_slang" => colloquial_split.push(tc.clone()),
+            "code_mixed_banglish" => codemixed_split.push(tc.clone()),
+            "typo_and_fatfinger" => typo_split.push(tc.clone()),
+            _ => formal_split.push(tc.clone()),
+        }
+    }
+
+    let splits: Vec<(&str, &[RawTestCase])> = if loaded_cases.is_empty() {
+        vec![]
+    } else {
+        vec![
+            ("Formal Bengali & Contextual Homophones", &formal_split),
+            ("Sociolinguistic Honorific Agreement (Formal/Familiar/Intimate)", &honorific_split),
+            ("Colloquial, Dialect & Chat Texting Variations", &colloquial_split),
+            ("Code-Switching & Technical Banglish", &codemixed_split),
+            ("Typo Recovery & Fat-Finger Spatial Disambiguation", &typo_split),
+            ("Full Suite Overall Benchmark (Combined)", &loaded_cases),
+        ]
+    };
 
     // ── 2. Leave-One-Out Ablation Suite ──────────────────────────────────────
     #[derive(Clone, Copy)]
@@ -1188,7 +1213,10 @@ fn run_eval_rig(_corpus_path: Option<PathBuf>) -> anyhow::Result<()> {
     ];
 
     for (split_name, test_cases) in &splits {
-        println!("\n📊 Dataset Split: {}", split_name);
+        if test_cases.is_empty() {
+            continue;
+        }
+        println!("\n📊 Dataset Split: {} (N = {})", split_name, test_cases.len());
         println!("┌──────────────────────────────────────────────┬────────┬────────┬─────────────────────────────┐");
         println!("│ Pipeline Configuration                       │ Top-1  │ Top-3  │ KSPC (Theor. Upper Bound)   │");
         println!("├──────────────────────────────────────────────┼────────┼────────┼─────────────────────────────┤");
@@ -1200,11 +1228,12 @@ fn run_eval_rig(_corpus_path: Option<PathBuf>) -> anyhow::Result<()> {
             let mut total_output_chars = 0usize;
 
             for tc in test_cases.iter() {
+                let ctx_refs: Vec<&str> = tc.context.iter().map(|s| s.as_str()).collect();
                 let candidates: Vec<String> = match mode {
                     AblationMode::FullPipeline => {
                         let (cands, _) = suggestion.suggest_with_multi_context(
-                            tc.input,
-                            tc.context,
+                            &tc.input,
+                            &ctx_refs,
                             false,
                             true,
                             &hashbrown::HashMap::new(),
@@ -1213,7 +1242,7 @@ fn run_eval_rig(_corpus_path: Option<PathBuf>) -> anyhow::Result<()> {
                     }
                     AblationMode::NoAnvaya => {
                         let (cands, _) = suggestion.suggest_with_multi_context(
-                            tc.input,
+                            &tc.input,
                             &[],
                             false,
                             true,
@@ -1222,17 +1251,17 @@ fn run_eval_rig(_corpus_path: Option<PathBuf>) -> anyhow::Result<()> {
                         cands
                     }
                     AblationMode::NoLM => {
-                        let mut cands = vec![parser.convert(tc.input)];
-                        cands.push(tc.input.to_string());
+                        let mut cands = vec![parser.convert(&tc.input)];
+                        cands.push(tc.input.clone());
                         cands
                     }
                     AblationMode::BaselineAvroOnly => {
-                        vec![parser.convert(tc.input)]
+                        vec![parser.convert(&tc.input)]
                     }
                 };
 
-                let exp = tc.expected;
-                let top1 = candidates.first().map(|s| s.as_str()) == Some(exp);
+                let exp = &tc.expected;
+                let top1 = candidates.first().map(|s| s.as_str()) == Some(exp.as_str());
                 let top3 = candidates.iter().take(3).any(|c| c == exp);
 
                 if top1 {
@@ -1245,13 +1274,7 @@ fn run_eval_rig(_corpus_path: Option<PathBuf>) -> anyhow::Result<()> {
                 let output_char_count = exp.chars().count().max(1);
                 total_output_chars += output_char_count;
 
-                let keystrokes_used = if top1 {
-                    tc.input.len() + 1
-                } else if top3 {
-                    tc.input.len() + 1
-                } else {
-                    tc.input.len() + 1
-                };
+                let keystrokes_used = tc.input.len() + 1;
                 total_keystrokes += keystrokes_used;
             }
 
