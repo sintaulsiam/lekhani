@@ -193,6 +193,16 @@ enum DevCommands {
     },
     /// Pretrain or seed the user's personal model with rich baseline conversational phrases
     Pretrain,
+    /// Parse keystroke string using LPS v1.0 phonetic grammar
+    ParseLps {
+        /// Keystroke string (e.g. "k-l-m", "bari", "b-i")
+        input: String,
+    },
+    /// Generate exact canonical LPS phonetic form for Bengali text
+    Exact {
+        /// Bengali text (e.g. "কলম", "বাড়ি")
+        text: String,
+    },
     /// AI & Language Model Tools
     Ai {
         #[command(subcommand)]
@@ -708,6 +718,32 @@ fn handle_dev_command(dev_cmd: DevCommands, config_mgr: &ConfigManager) -> anyho
         }
         DevCommands::Pretrain => {
             handle_ai_subcommand(AiCommands::Pretrain, config_mgr)?;
+        }
+        DevCommands::ParseLps { input } => {
+            let engine = lekhani_parser::lps::LpsEngine::new();
+            let (cands, warnings) = engine.parse(&input);
+            println!("╔══════════════════════════════════════════════════════╗");
+            println!("║      LPS v1.0 Phonetic Parse Results                 ║");
+            println!("╠══════════════════════════════════════════════════════╣");
+            println!("║ Input: \"{}\"", input);
+            println!("║ Warnings: {:?}", warnings);
+            println!("║ Candidates:                                          ║");
+            for (i, c) in cands.iter().enumerate() {
+                println!("║   {}. {:<44} ║", i + 1, format!("{} (cost: {})", c.text, c.rule_cost));
+                for chip in &c.chips {
+                    println!("║      └─ chip @ {}: active '{}', siblings: {:?}", chip.char_index, chip.active, chip.siblings);
+                }
+            }
+            println!("╚══════════════════════════════════════════════════════╝");
+        }
+        DevCommands::Exact { text } => {
+            let exact_res = lekhani_parser::lps::exact(&text);
+            println!("╔══════════════════════════════════════════════════════╗");
+            println!("║      LPS v1.0 Exact Form Generator                   ║");
+            println!("╠══════════════════════════════════════════════════════╣");
+            println!("║ Bengali: \"{}\"", text);
+            println!("║ LPS Exact: \"{}\"", exact_res);
+            println!("╚══════════════════════════════════════════════════════╝");
         }
         DevCommands::Ai { subcommand } => {
             handle_ai_subcommand(subcommand, config_mgr)?;
