@@ -70,6 +70,10 @@ pub struct PhoneticConfig {
     pub enable_dynamic_macros: bool,
     #[serde(default = "default_false")]
     pub enable_bilingual_clitic: bool,
+    #[serde(default = "default_false")]
+    pub strict_avro_mode: bool,
+    #[serde(default = "default_true")]
+    pub enable_pragyan: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -117,6 +121,8 @@ impl Default for PhoneticConfig {
             enable_phrase_prediction: true,
             enable_dynamic_macros: true,
             enable_bilingual_clitic: false,
+            strict_avro_mode: false,
+            enable_pragyan: true,
         }
     }
 }
@@ -159,6 +165,8 @@ impl AppConfig {
             enable_dynamic_macros: self.phonetic.enable_dynamic_macros,
             auto_dari: self.general.auto_dari,
             enable_bilingual_clitic: self.phonetic.enable_bilingual_clitic,
+            strict_avro_mode: self.phonetic.strict_avro_mode,
+            enable_pragyan: self.phonetic.enable_pragyan,
         }
     }
 
