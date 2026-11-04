@@ -221,10 +221,10 @@ export component TopBarWindow inherits Window {
         Rectangle {
             horizontal-stretch: 0;
             height: 32px;
-            background: #0e131cf8;
+            background: #0d0f17fa;
             border-radius: 16px;
             border-width: 1px;
-            border-color: #283248;
+            border-color: #242938;
             drop-shadow-blur: 14px;
             drop-shadow-color: #000000bb;
 
@@ -376,10 +376,10 @@ export component TopBarWindow inherits Window {
             alignment: start;
             Rectangle {
                 width: 220px;
-                background: #0e131cfa;
+                background: #0f121dfa;
                 border-radius: 12px;
                 border-width: 1px;
-                border-color: #283248;
+                border-color: #242938;
                 drop-shadow-blur: 18px;
                 drop-shadow-color: #000000cc;
 
@@ -409,10 +409,9 @@ export component TopBarWindow inherits Window {
                     Rectangle {
                         height: 28px;
                         border-radius: 6px;
-                        border-width: 1px;
-                        border-color: !root.is-bengali-mode ? #38bdf855 : transparent;
-                        background: !root.is-bengali-mode ? #38bdf818 : (en_item_ta.has-hover ? #1e2638 : transparent);
-                        animate background { duration: 100ms; }
+                        border-width: 0px;
+                        background: !root.is-bengali-mode ? #38bdf820 : (en_item_ta.has-hover ? #ffffff0d : transparent);
+                        animate background { duration: 80ms; }
 
                         en_item_ta := TouchArea {
                             mouse-cursor: pointer;
@@ -449,16 +448,15 @@ export component TopBarWindow inherits Window {
 
                     Rectangle {
                         height: 1px;
-                        background: #283248;
+                        background: #1e2434;
                     }
 
                     for layout[idx] in root.available-layouts: Rectangle {
                         height: 28px;
                         border-radius: 6px;
-                        border-width: 1px;
-                        border-color: (root.is-bengali-mode && layout == root.active-layout-name) ? #38bdf855 : transparent;
-                        background: (root.is-bengali-mode && layout == root.active-layout-name) ? #38bdf818 : (layout_item_ta.has-hover ? #1e2638 : transparent);
-                        animate background { duration: 100ms; }
+                        border-width: 0px;
+                        background: (root.is-bengali-mode && layout == root.active-layout-name) ? #38bdf820 : (layout_item_ta.has-hover ? #ffffff0d : transparent);
+                        animate background { duration: 80ms; }
 
                         layout_item_ta := TouchArea {
                             mouse-cursor: pointer;
@@ -499,10 +497,10 @@ export component TopBarWindow inherits Window {
         // ---------------------------------------------------------------------
         if (root.active-dialog == 2): Rectangle {
             width: 480px;
-            background: #11121dfa;
-            border-radius: 18px;
-            border-width: 1.2px;
-            border-color: #50567a55;
+            background: #0f121dfa;
+            border-radius: 14px;
+            border-width: 1px;
+            border-color: #242938;
             drop-shadow-blur: 24px;
             drop-shadow-color: #000000cc;
 
@@ -547,10 +545,9 @@ export component TopBarWindow inherits Window {
                 // Mode Segmented Pill Control (Matching Mockup)
                 Rectangle {
                     height: 30px;
-                    background: #0c0d14;
+                    background: #141824;
                     border-radius: 8px;
-                    border-width: 1px;
-                    border-color: #242638;
+                    border-width: 0px;
                     HorizontalLayout {
                         padding: 3px;
                         spacing: 4px;
@@ -579,10 +576,9 @@ export component TopBarWindow inherits Window {
 
                 // Virtual Keyboard Representation
                 Rectangle {
-                    background: #0c0d14;
+                    background: #121520;
                     border-radius: 10px;
-                    border-width: 1px;
-                    border-color: #242638;
+                    border-width: 0px;
 
                     VerticalLayout {
                         padding: 10px;
@@ -634,10 +630,10 @@ export component TopBarWindow inherits Window {
         // ---------------------------------------------------------------------
         if (root.active-dialog == 3): Rectangle {
             width: 480px;
-            background: #11121dfa;
-            border-radius: 18px;
-            border-width: 1.2px;
-            border-color: #50567a55;
+            background: #0f121dfa;
+            border-radius: 14px;
+            border-width: 1px;
+            border-color: #242938;
             drop-shadow-blur: 24px;
             drop-shadow-color: #000000cc;
 
@@ -691,10 +687,9 @@ export component TopBarWindow inherits Window {
 
                 // Add New Entry Form
                 Rectangle {
-                    background: #0c0d14;
+                    background: #141824;
                     border-radius: 10px;
-                    border-width: 1px;
-                    border-color: #242638;
+                    border-width: 0px;
 
                     VerticalLayout {
                         padding: 10px;
@@ -756,10 +751,10 @@ export component TopBarWindow inherits Window {
         // ---------------------------------------------------------------------
         if (root.active-dialog == 4): Rectangle {
             width: 480px;
-            background: #11121dfa;
-            border-radius: 18px;
-            border-width: 1.2px;
-            border-color: #50567a55;
+            background: #0f121dfa;
+            border-radius: 14px;
+            border-width: 1px;
+            border-color: #242938;
             drop-shadow-blur: 24px;
             drop-shadow-color: #000000cc;
 
@@ -849,10 +844,9 @@ export component TopBarWindow inherits Window {
                     }
 
                     Rectangle {
-                        background: #0b0c14;
+                        background: #141824;
                         border-radius: 8px;
-                        border-width: 1px;
-                        border-color: #2a2d42;
+                        border-width: 0px;
 
                         VerticalLayout {
                             padding: 6px;
@@ -915,8 +909,7 @@ export component TopBarWindow inherits Window {
                             height: 18px;
                             border-radius: 4px;
                             background: #a6e3a120;
-                            border-width: 1px;
-                            border-color: #a6e3a144;
+                            border-width: 0px;
                             HorizontalLayout {
                                 padding-left: 6px;
                                 padding-right: 6px;
@@ -934,10 +927,9 @@ export component TopBarWindow inherits Window {
 
                     Rectangle {
                         min-height: 58px;
-                        background: #0b0c14;
+                        background: #141824;
                         border-radius: 8px;
-                        border-width: 1px;
-                        border-color: root.conv-output-text != "" ? #89b4fa44 : #2a2d42;
+                        border-width: 0px;
 
                         HorizontalLayout {
                             padding-left: 12px;
@@ -973,10 +965,10 @@ export component TopBarWindow inherits Window {
         // ---------------------------------------------------------------------
         if (root.active-dialog == 5): Rectangle {
             width: 480px;
-            background: #0e131cfa;
-            border-radius: 16px;
+            background: #0f121dfa;
+            border-radius: 14px;
             border-width: 1px;
-            border-color: #283248;
+            border-color: #242938;
             drop-shadow-blur: 24px;
             drop-shadow-color: #000000cc;
 
@@ -1030,10 +1022,9 @@ export component TopBarWindow inherits Window {
 
                         // Section 1: Phonetic & Basic Typing
                         Rectangle {
-                            background: #0c0d14;
+                            background: #141824;
                             border-radius: 10px;
-                            border-width: 1px;
-                            border-color: #242638;
+                            border-width: 0px;
 
                             VerticalLayout {
                                 padding: 12px;
@@ -1130,10 +1121,9 @@ export component TopBarWindow inherits Window {
 
                         // Section 2: Smart Assistance & Developer Tools
                         Rectangle {
-                            background: #0c0d14;
+                            background: #141824;
                             border-radius: 10px;
-                            border-width: 1px;
-                            border-color: #242638;
+                            border-width: 0px;
 
                             VerticalLayout {
                                 padding: 12px;
@@ -1174,10 +1164,9 @@ export component TopBarWindow inherits Window {
 
                         // Section 3: Word Suggestions & Predictions
                         Rectangle {
-                            background: #0c0d14;
+                            background: #141824;
                             border-radius: 10px;
-                            border-width: 1px;
-                            border-color: #242638;
+                            border-width: 0px;
 
                             VerticalLayout {
                                 padding: 12px;
@@ -1230,10 +1219,9 @@ export component TopBarWindow inherits Window {
 
                         // Section 4: Productivity Shortcuts
                         Rectangle {
-                            background: #0c0d14;
+                            background: #141824;
                             border-radius: 10px;
-                            border-width: 1px;
-                            border-color: #242638;
+                            border-width: 0px;
 
                             VerticalLayout {
                                 padding: 12px;
@@ -1256,10 +1244,9 @@ export component TopBarWindow inherits Window {
 
                         // Section 5: Fixed Layout Automations
                         Rectangle {
-                            background: #0c0d14;
+                            background: #141824;
                             border-radius: 10px;
-                            border-width: 1px;
-                            border-color: #242638;
+                            border-width: 0px;
 
                             VerticalLayout {
                                 padding: 12px;
@@ -1306,10 +1293,9 @@ export component TopBarWindow inherits Window {
 
                         // Section 6: System & Startup (Windows)
                         if root.is-windows: Rectangle {
-                            background: #0c0d14;
+                            background: #141824;
                             border-radius: 10px;
-                            border-width: 1px;
-                            border-color: #242638;
+                            border-width: 0px;
 
                             VerticalLayout {
                                 padding: 12px;
@@ -1331,10 +1317,9 @@ export component TopBarWindow inherits Window {
                         }
                         // Section 6: Data & Backup Management
                         Rectangle {
-                            background: #0c0d14;
+                            background: #141824;
                             border-radius: 10px;
-                            border-width: 1px;
-                            border-color: #242638;
+                            border-width: 0px;
 
                             VerticalLayout {
                                 padding: 14px;
@@ -1350,10 +1335,9 @@ export component TopBarWindow inherits Window {
 
                                 // Card 1: Full System Backup
                                 Rectangle {
-                                    background: #0f111a;
+                                    background: #1c2130;
                                     border-radius: 8px;
-                                    border-width: 1px;
-                                    border-color: #23273a;
+                                    border-width: 0px;
 
                                     VerticalLayout {
                                         padding: 12px;
@@ -1367,8 +1351,7 @@ export component TopBarWindow inherits Window {
                                                 height: 26px;
                                                 border-radius: 6px;
                                                 background: #89b4fa15;
-                                                border-width: 1px;
-                                                border-color: #89b4fa33;
+                                                border-width: 0px;
                                                 Image {
                                                     width: 14px;
                                                     height: 14px;
@@ -1413,10 +1396,9 @@ export component TopBarWindow inherits Window {
 
                                 // Card 2: Learned Words & Phrases
                                 Rectangle {
-                                    background: #0f111a;
+                                    background: #1c2130;
                                     border-radius: 8px;
-                                    border-width: 1px;
-                                    border-color: #23273a;
+                                    border-width: 0px;
 
                                     VerticalLayout {
                                         padding: 12px;
@@ -1430,8 +1412,7 @@ export component TopBarWindow inherits Window {
                                                 height: 26px;
                                                 border-radius: 6px;
                                                 background: #cba6f715;
-                                                border-width: 1px;
-                                                border-color: #cba6f733;
+                                                border-width: 0px;
                                                 Image {
                                                     width: 14px;
                                                     height: 14px;
@@ -1476,10 +1457,9 @@ export component TopBarWindow inherits Window {
 
                                 // Card 3: Danger Zone
                                 Rectangle {
-                                    background: #191016;
+                                    background: #201318;
                                     border-radius: 8px;
-                                    border-width: 1px;
-                                    border-color: #f38ba833;
+                                    border-width: 0px;
 
                                     VerticalLayout {
                                         padding: 12px;
@@ -1493,8 +1473,7 @@ export component TopBarWindow inherits Window {
                                                 height: 26px;
                                                 border-radius: 6px;
                                                 background: #f38ba818;
-                                                border-width: 1px;
-                                                border-color: #f38ba844;
+                                                border-width: 0px;
                                                 Image {
                                                     width: 14px;
                                                     height: 14px;
@@ -1577,9 +1556,9 @@ export component TopBarWindow inherits Window {
         if (root.active-dialog == 6): Rectangle {
             width: 480px;
             background: #0f1613fa;
-            border-radius: 18px;
-            border-width: 1.2px;
-            border-color: #10b98144;
+            border-radius: 14px;
+            border-width: 1px;
+            border-color: #1a3024;
             drop-shadow-blur: 24px;
             drop-shadow-color: #000000cc;
 
@@ -1591,12 +1570,9 @@ export component TopBarWindow inherits Window {
                 Rectangle {
                     width: 52px;
                     height: 52px;
-                    background: #081a14;
-                    border-radius: 14px;
-                    border-width: 1px;
-                    border-color: #10b98155;
-                    drop-shadow-blur: 14px;
-                    drop-shadow-color: #10b98133;
+                    background: #14231b;
+                    border-radius: 12px;
+                    border-width: 0px;
 
                     Image {
                         source: @image-url("../../../data/icons/128.png");
@@ -1627,10 +1603,9 @@ export component TopBarWindow inherits Window {
 
                 // Version Badge Pill
                 Rectangle {
-                    border-radius: 10px;
+                    border-radius: 8px;
                     background: #10b98118;
-                    border-width: 1px;
-                    border-color: #10b98144;
+                    border-width: 0px;
                     HorizontalLayout {
                         padding-left: 10px;
                         padding-right: 10px;
@@ -1647,10 +1622,9 @@ export component TopBarWindow inherits Window {
 
                 // Privacy Trust Assurance Card
                 Rectangle {
-                    background: #0a130e;
+                    background: #101c15;
                     border-radius: 10px;
-                    border-width: 1px;
-                    border-color: #10b98133;
+                    border-width: 0px;
 
                     VerticalLayout {
                         padding: 10px;
@@ -1708,10 +1682,10 @@ export component TopBarWindow inherits Window {
         // ---------------------------------------------------------------------
         if (root.active-dialog == 7): Rectangle {
             width: 480px;
-            background: #11121dfa;
-            border-radius: 18px;
-            border-width: 1.2px;
-            border-color: #50567a55;
+            background: #0f121dfa;
+            border-radius: 14px;
+            border-width: 1px;
+            border-color: #242938;
             drop-shadow-blur: 24px;
             drop-shadow-color: #000000cc;
 
@@ -1766,10 +1740,9 @@ export component TopBarWindow inherits Window {
                 // Scrollable Conjunct Grid/List
                 Rectangle {
                     height: 220px;
-                    background: #0c0d14;
+                    background: #121520;
                     border-radius: 10px;
-                    border-width: 1px;
-                    border-color: #242638;
+                    border-width: 0px;
                     clip: true;
 
                     ListView {
@@ -1791,9 +1764,8 @@ export component TopBarWindow inherits Window {
                                         width: 32px;
                                         height: 32px;
                                         border-radius: 7px;
-                                        background: #89b4fa20;
-                                        border-width: 1px;
-                                        border-color: #89b4fa44;
+                                        background: #1c2130;
+                                        border-width: 0px;
                                         Text {
                                             text: item.conjunct;
                                             color: #89b4fa;
@@ -1829,8 +1801,7 @@ export component TopBarWindow inherits Window {
                                     Rectangle {
                                         border-radius: 5px;
                                         background: #a6e3a120;
-                                        border-width: 1px;
-                                        border-color: #a6e3a144;
+                                        border-width: 0px;
                                         HorizontalLayout {
                                             padding-left: 6px;
                                             padding-right: 6px;
@@ -1863,10 +1834,10 @@ export component TopBarWindow inherits Window {
         // ---------------------------------------------------------------------
         if (root.active-dialog == 8): Rectangle {
             width: 480px;
-            background: #11121dfa;
-            border-radius: 18px;
-            border-width: 1.2px;
-            border-color: #50567a55;
+            background: #0f121dfa;
+            border-radius: 14px;
+            border-width: 1px;
+            border-color: #242938;
             drop-shadow-blur: 24px;
             drop-shadow-color: #000000cc;
 
@@ -1899,9 +1870,8 @@ export component TopBarWindow inherits Window {
                             width: 24px;
                             height: 24px;
                             border-radius: 6px;
-                            background: ta_ref.has-hover ? #31324488 : transparent;
-                            border-width: 1px;
-                            border-color: ta_ref.has-hover ? #45475a : transparent;
+                            background: ta_ref.has-hover ? #ffffff0d : transparent;
+                            border-width: 0px;
                             ta_ref := TouchArea {
                                 mouse-cursor: pointer;
                                 clicked => { root.refresh-stats(); }
@@ -1936,10 +1906,9 @@ export component TopBarWindow inherits Window {
 
                     // Card 1: Words Typed
                     Rectangle {
-                        background: #0c0d14;
+                        background: #141824;
                         border-radius: 10px;
-                        border-width: 1px;
-                        border-color: #89b4fa44;
+                        border-width: 0px;
                         height: 60px;
                         VerticalLayout {
                             alignment: center;
@@ -1965,10 +1934,9 @@ export component TopBarWindow inherits Window {
 
                     // Card 2: Keystrokes Saved
                     Rectangle {
-                        background: #0c0d14;
+                        background: #141824;
                         border-radius: 10px;
-                        border-width: 1px;
-                        border-color: #a6e3a144;
+                        border-width: 0px;
                         height: 60px;
                         VerticalLayout {
                             alignment: center;
@@ -1994,10 +1962,9 @@ export component TopBarWindow inherits Window {
 
                     // Card 3: Efficiency Gain
                     Rectangle {
-                        background: #0c0d14;
+                        background: #141824;
                         border-radius: 10px;
-                        border-width: 1px;
-                        border-color: #fab38744;
+                        border-width: 0px;
                         height: 60px;
                         VerticalLayout {
                             alignment: center;
@@ -2025,10 +1992,9 @@ export component TopBarWindow inherits Window {
                 // Character Frequency Table
                 Rectangle {
                     height: 140px;
-                    background: #0c0d14;
+                    background: #141824;
                     border-radius: 10px;
-                    border-width: 1px;
-                    border-color: #242638;
+                    border-width: 0px;
                     clip: true;
 
                     VerticalLayout {
@@ -2084,9 +2050,9 @@ export component TopBarWindow inherits Window {
             Rectangle {
                 width: 320px;
                 height: 48px;
-                background: #11121df4;
+                background: #0f121df4;
                 border-radius: 14px;
-                border-width: 1.5px;
+                border-width: 1px;
                 border-color: root.osd-badge-color;
                 drop-shadow-blur: 20px;
                 drop-shadow-color: #000000dd;
@@ -2102,8 +2068,7 @@ export component TopBarWindow inherits Window {
                         height: 32px;
                         border-radius: 8px;
                         background: root.osd-badge-bg;
-                        border-width: 1px;
-                        border-color: root.osd-badge-color;
+                        border-width: 0px;
 
                         Text {
                             text: root.osd-icon;
@@ -2134,13 +2099,14 @@ export component TopBarWindow inherits Window {
                     Rectangle {
                         width: 1px;
                         height: 20px;
-                        background: #313244;
+                        background: #252b3b;
                     }
 
                     Rectangle {
                         height: 22px;
                         border-radius: 5px;
-                        background: #24253a;
+                        background: #1c2130;
+                        border-width: 0px;
                         HorizontalLayout {
                             padding-left: 7px;
                             padding-right: 7px;
@@ -2354,10 +2320,9 @@ export component StandaloneDialogWindow inherits Window {
                 HorizontalLayout {
                     alignment: start;
                     Rectangle {
-                        background: #0d0f17;
+                        background: #141824;
                         border-radius: 8px;
-                        border-width: 1px;
-                        border-color: #1e2235;
+                        border-width: 0px;
 
                         HorizontalLayout {
                             padding: 3px;
@@ -2421,10 +2386,9 @@ export component StandaloneDialogWindow inherits Window {
                         }
 
                         Rectangle {
-                            background: #0b0c14;
+                            background: #121520;
                             border-radius: 8px;
-                            border-width: 1px;
-                            border-color: #2a2d42;
+                            border-width: 0px;
                             vertical-stretch: 1;
 
                             VerticalLayout {
@@ -2514,10 +2478,9 @@ export component StandaloneDialogWindow inherits Window {
                         }
 
                         Rectangle {
-                            background: #0b0c14;
+                            background: #121520;
                             border-radius: 8px;
-                            border-width: 1px;
-                            border-color: #2a2d42;
+                            border-width: 0px;
                             vertical-stretch: 1;
 
                             VerticalLayout {
@@ -2554,10 +2517,9 @@ export component StandaloneDialogWindow inherits Window {
 
                 // Add Entry Form
             Rectangle {
-                    background: #0c0d14;
+                    background: #141824;
                     border-radius: 10px;
-                    border-width: 1px;
-                    border-color: #242638;
+                    border-width: 0px;
 
                     VerticalLayout {
                         padding: 10px;
@@ -2607,10 +2569,9 @@ export component StandaloneDialogWindow inherits Window {
                 // Word List Table
                 // Word List Table
                 Rectangle {
-                    background: #0c0d14;
+                    background: #141824;
                     border-radius: 10px;
-                    border-width: 1px;
-                    border-color: #242638;
+                    border-width: 0px;
                     vertical-stretch: 1;
 
                     VerticalLayout {
@@ -2650,9 +2611,8 @@ export component StandaloneDialogWindow inherits Window {
                                 for entry in root.ac-entries: Rectangle {
                                     height: 32px;
                                     border-radius: 6px;
-                                    background: #13141f;
-                                    border-width: 1px;
-                                    border-color: #1e2030;
+                                    background: #181c28;
+                                    border-width: 0px;
 
                                     HorizontalLayout {
                                         padding-left: 12px;
@@ -2732,10 +2692,9 @@ export component StandaloneDialogWindow inherits Window {
                 // Left Navigation Sidebar (205px)
                 Rectangle {
                     width: 205px;
-                    background: #0d0f17;
-                    border-radius: 12px;
-                    border-width: 1px;
-                    border-color: #1e2235;
+                    background: #0e111a;
+                    border-radius: 10px;
+                    border-width: 0px;
 
                     VerticalLayout {
                         padding: 10px;
@@ -2882,9 +2841,8 @@ export component StandaloneDialogWindow inherits Window {
                             for lay in root.available-layouts: Rectangle {
                                 height: 28px;
                                 border-radius: 6px;
-                                background: root.viewer-selected-layout == lay ? #89b4fa28 : (lay_sa_ta.has-hover ? #25283d : #141522);
-                                border-width: 1px;
-                                border-color: root.viewer-selected-layout == lay ? #89b4fa : (lay_sa_ta.has-hover ? #454866 : #23253a);
+                                background: root.viewer-selected-layout == lay ? #38bdf825 : (lay_sa_ta.has-hover ? #ffffff0d : #141824);
+                                border-width: 0px;
                                 lay_sa_ta := TouchArea {
                                     mouse-cursor: pointer;
                                     clicked => {
@@ -2899,7 +2857,7 @@ export component StandaloneDialogWindow inherits Window {
                                     alignment: center;
                                     Text {
                                         text: lay;
-                                        color: root.viewer-selected-layout == lay ? #89b4fa : #cdd6f4;
+                                        color: root.viewer-selected-layout == lay ? #38bdf8 : #cdd6f4;
                                         font-size: 11px;
                                         font-weight: root.viewer-selected-layout == lay ? 700 : 500;
                                         vertical-alignment: center;
@@ -2912,10 +2870,9 @@ export component StandaloneDialogWindow inherits Window {
                     // Mode Selector
                 Rectangle {
                         height: 30px;
-                        background: #0c0d14;
+                        background: #141824;
                         border-radius: 8px;
-                        border-width: 1px;
-                        border-color: #242638;
+                        border-width: 0px;
                         HorizontalLayout {
                             padding: 2px;
                             spacing: 4px;
@@ -2945,10 +2902,9 @@ export component StandaloneDialogWindow inherits Window {
 
                 // Keycap Grid
             Rectangle {
-                    background: #0c0d14;
+                    background: #121520;
                     border-radius: 12px;
-                    border-width: 1.2px;
-                    border-color: #242638;
+                    border-width: 0px;
                     vertical-stretch: 1;
 
                     VerticalLayout {
@@ -3051,10 +3007,9 @@ export component StandaloneDialogWindow inherits Window {
                 }
 
                 Rectangle {
-                    background: #0d1017;
+                    background: #121520;
                     border-radius: 10px;
-                    border-width: 1px;
-                    border-color: #212636;
+                    border-width: 0px;
                     vertical-stretch: 1;
 
                     VerticalLayout {
@@ -3074,9 +3029,8 @@ export component StandaloneDialogWindow inherits Window {
                                 for c in root.conjunct-list: Rectangle {
                                     height: root.conjunct-zoom == 2 ? 72px : (root.conjunct-zoom == 1 ? 56px : 44px);
                                     border-radius: 8px;
-                                    background: #131722;
-                                    border-width: 1px;
-                                    border-color: #1f2536;
+                                    background: #161a26;
+                                    border-width: 0px;
 
                                     HorizontalLayout {
                                         padding-left: 14px;
@@ -3092,9 +3046,8 @@ export component StandaloneDialogWindow inherits Window {
                                                 width: root.conjunct-zoom == 2 ? 58px : (root.conjunct-zoom == 1 ? 46px : 36px);
                                                 height: root.conjunct-zoom == 2 ? 58px : (root.conjunct-zoom == 1 ? 46px : 36px);
                                                 border-radius: 8px;
-                                                background: #1a2030;
-                                                border-width: 1px;
-                                                border-color: #2c364e;
+                                                background: #202638;
+                                                border-width: 0px;
                                                 y: (parent.height - self.height) / 2;
 
                                                 Text {
@@ -3125,9 +3078,8 @@ export component StandaloneDialogWindow inherits Window {
                                                     alignment: start;
                                                     Rectangle {
                                                         border-radius: 4px;
-                                                        background: #19202f;
-                                                        border-width: 1px;
-                                                        border-color: #2b364e;
+                                                        background: #202638;
+                                                        border-width: 0px;
                                                         height: root.conjunct-zoom == 2 ? 22px : 18px;
                                                         HorizontalLayout {
                                                             padding-left: 6px;
@@ -3170,9 +3122,8 @@ export component StandaloneDialogWindow inherits Window {
                     Rectangle {
                         height: 70px;
                         border-radius: 8px;
-                        background: #181926bb;
-                        border-width: 1px;
-                        border-color: #89b4fa44;
+                        background: #141824;
+                        border-width: 0px;
                         vertical-stretch: 0;
 
                         VerticalLayout {
@@ -3198,9 +3149,8 @@ export component StandaloneDialogWindow inherits Window {
                     Rectangle {
                         height: 70px;
                         border-radius: 8px;
-                        background: #181926bb;
-                        border-width: 1px;
-                        border-color: #a6e3a144;
+                        background: #141824;
+                        border-width: 0px;
                         vertical-stretch: 0;
 
                         VerticalLayout {
@@ -3225,10 +3175,9 @@ export component StandaloneDialogWindow inherits Window {
                 }
 
                 Rectangle {
-                    background: #0c0d14;
+                    background: #141824;
                     border-radius: 10px;
-                    border-width: 1px;
-                    border-color: #242638;
+                    border-width: 0px;
                     vertical-stretch: 1;
 
                     VerticalLayout {
@@ -3255,7 +3204,8 @@ export component StandaloneDialogWindow inherits Window {
                                 for row in root.stats-top-characters: Rectangle {
                                     height: 28px;
                                     border-radius: 5px;
-                                    background: #13141f;
+                                    background: #181d2a;
+                                    border-width: 0px;
 
                                     HorizontalLayout {
                                         padding-left: 10px;

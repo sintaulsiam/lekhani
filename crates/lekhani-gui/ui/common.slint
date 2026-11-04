@@ -43,11 +43,10 @@ export component VectorIconButton inherits Rectangle {
 
     width: 24px;
     height: 24px;
-    border-radius: 12px;
-    border-width: 1px;
-    border-color: root.active ? root.active-border : (ta.has-hover ? #334155 : transparent);
-    background: root.active ? root.active-bg : (ta.has-hover ? #ffffff14 : transparent);
-    animate background, border-color { duration: 100ms; }
+    border-radius: 6px;
+    border-width: 0px;
+    background: root.active ? root.active-bg : (ta.has-hover ? #ffffff12 : transparent);
+    animate background { duration: 80ms; }
 
     ta := TouchArea {
         mouse-cursor: pointer;
@@ -68,10 +67,10 @@ export component VectorIconButton inherits Rectangle {
         y: parent.height + 6px;
         z: 100;
         height: 18px;
-        background: #0f172ae8;
+        background: #161b29;
         border-radius: 4px;
         border-width: 1px;
-        border-color: #38bdf844;
+        border-color: #2e374d;
         drop-shadow-blur: 4px;
         drop-shadow-color: #00000088;
 
@@ -94,11 +93,10 @@ export component CloseButton inherits Rectangle {
     callback clicked;
     width: 22px;
     height: 22px;
-    border-radius: 11px;
+    border-radius: 6px;
     background: ta.has-hover ? #ef444422 : transparent;
-    border-width: 1px;
-    border-color: ta.has-hover ? #ef444455 : transparent;
-    animate background, border-color { duration: 100ms; }
+    border-width: 0px;
+    animate background { duration: 80ms; }
 
     ta := TouchArea {
         mouse-cursor: pointer;
@@ -119,11 +117,10 @@ export component PopoutButton inherits Rectangle {
     callback clicked;
     width: 22px;
     height: 22px;
-    border-radius: 11px;
+    border-radius: 6px;
     background: ta.has-hover ? #38bdf822 : transparent;
-    border-width: 1px;
-    border-color: ta.has-hover ? #38bdf855 : transparent;
-    animate background, border-color { duration: 100ms; }
+    border-width: 0px;
+    animate background { duration: 80ms; }
 
     ta := TouchArea {
         mouse-cursor: pointer;
@@ -166,10 +163,9 @@ export component SegmentButton inherits Rectangle {
 
     height: 24px;
     border-radius: 6px;
-    background: root.active ? #1e293b : (ta.has-hover ? #151a24 : transparent);
-    border-width: 1px;
-    border-color: root.active ? #38bdf888 : (ta.has-hover ? #252e42 : transparent);
-    animate background, border-color { duration: 100ms; }
+    background: root.active ? #252c3e : (ta.has-hover ? #ffffff0d : transparent);
+    border-width: 0px;
+    animate background { duration: 80ms; }
 
     ta := TouchArea {
         mouse-cursor: pointer;
@@ -198,11 +194,10 @@ export component BrandLogo inherits Rectangle {
     callback clicked;
 
     height: 24px;
-    border-radius: 12px;
-    background: root.active ? #38bdf820 : (ta.has-hover ? #ffffff14 : transparent);
-    border-width: 1px;
-    border-color: root.active ? #38bdf866 : transparent;
-    animate background, border-color { duration: 100ms; }
+    border-radius: 6px;
+    background: root.active ? #38bdf820 : (ta.has-hover ? #ffffff0d : transparent);
+    border-width: 0px;
+    animate background { duration: 80ms; }
 
     ta := TouchArea {
         mouse-cursor: pointer;
@@ -243,11 +238,10 @@ export component LayoutSelectorPill inherits Rectangle {
     callback clicked;
 
     height: 24px;
-    background: root.active ? #1e2638 : (ta.has-hover ? #1e2638 : (root.is-bengali ? #131926 : #181d28));
-    border-radius: 12px;
-    border-width: 1px;
-    border-color: root.active ? (root.is-bengali ? #38bdf888 : #94a3b888) : (ta.has-hover ? (root.is-bengali ? #475569 : #475569) : (root.is-bengali ? #2c384e : #334155));
-    animate background, border-color { duration: 100ms; }
+    background: root.active ? #22293a : (ta.has-hover ? #1c2130 : #141824);
+    border-radius: 6px;
+    border-width: 0px;
+    animate background { duration: 80ms; }
 
     ta := TouchArea {
         mouse-cursor: pointer;
@@ -308,10 +302,10 @@ export component KeyCapButton inherits Rectangle {
     preferred-height: root.key-height;
     horizontal-stretch: root.flex-stretch;
     vertical-stretch: 1;
-    border-radius: 6px;
-    background: ta.has-hover ? #2a2d42 : #181926;
+    border-radius: 5px;
+    background: ta.has-hover ? #252b3c : #151822;
     border-width: 1px;
-    border-color: ta.has-hover ? #89b4fa88 : #2d3045;
+    border-color: ta.has-hover ? #363f54 : #1c202d;
     animate background, border-color { duration: 80ms; }
 
     ta := TouchArea {
@@ -350,16 +344,13 @@ export component ModernButton inherits Rectangle {
     out property <bool> has-hover: ta.has-hover;
     callback clicked;
 
-    height: 30px;
-    border-radius: 7px;
-    background: root.danger ? (ta.has-hover ? #dc2626 : #8a1919) :
-                root.primary ? (ta.has-hover ? #3b82f6 : #2563eb) :
-                (ta.has-hover ? #22293a : #151822);
-    border-width: 1px;
-    border-color: root.danger ? (ta.has-hover ? #f87171 : #ef4444aa) :
-                  root.primary ? #60a5fa88 :
-                  (ta.has-hover ? #3d4963 : #222838);
-    animate background, border-color { duration: 100ms; }
+    height: 28px;
+    border-radius: 6px;
+    background: root.danger ? (ta.has-hover ? #dc2626 : #b91c1c) :
+                root.primary ? (ta.has-hover ? #0284c7 : #0ea5e9) :
+                (ta.has-hover ? #252b3a : #181c28);
+    border-width: 0px;
+    animate background { duration: 80ms; }
 
     ta := TouchArea {
         mouse-cursor: pointer;
@@ -414,8 +405,8 @@ export component ConfirmModal inherits Rectangle {
         y: (parent.height - self.height) / 2;
         background: #0f111a;
         border-radius: 14px;
-        border-width: 1.2px;
-        border-color: root.is-danger ? #f38ba866 : #89b4fa66;
+        border-width: 1px;
+        border-color: #282f42;
         drop-shadow-blur: 36px;
         drop-shadow-color: #000000f0;
 
@@ -433,8 +424,7 @@ export component ConfirmModal inherits Rectangle {
                     height: 38px;
                     border-radius: 10px;
                     background: root.is-danger ? #f38ba818 : #89b4fa18;
-                    border-width: 1px;
-                    border-color: root.is-danger ? #f38ba844 : #89b4fa44;
+                    border-width: 0px;
 
                     Image {
                         width: 20px;
@@ -594,9 +584,8 @@ export component SidebarTabItem inherits Rectangle {
     height: 36px;
     border-radius: 8px;
     background: root.active ? #38bdf818 : (ta.has-hover ? #ffffff08 : transparent);
-    border-width: 1px;
-    border-color: root.active ? #38bdf833 : transparent;
-    animate background, border-color { duration: 100ms; }
+    border-width: 0px;
+    animate background { duration: 100ms; }
 
     ta := TouchArea {
         mouse-cursor: pointer;
@@ -750,10 +739,9 @@ export component SettingCard inherits Rectangle {
     in property <color> title-color: #10b981;
     in property <image> icon;
 
-    background: #0c1310;
+    background: #141722;
     border-radius: 12px;
-    border-width: 1px;
-    border-color: #10b98124;
+    border-width: 0px;
 
     VerticalLayout {
         padding: 14px;
@@ -895,8 +883,7 @@ export component SettingsContent inherits ScrollView {
             Rectangle {
                 background: #0d1b14;
                 border-radius: 10px;
-                border-width: 1px;
-                border-color: #10b98144;
+                border-width: 0px;
 
                 VerticalLayout {
                     padding: 12px;
@@ -1243,8 +1230,7 @@ export component SettingsContent inherits ScrollView {
                         horizontal-stretch: 1;
                         background: #0f1813;
                         border-radius: 9px;
-                        border-width: 1px;
-                        border-color: #1a3024;
+                        border-width: 0px;
 
                         VerticalLayout {
                             padding: 14px;
@@ -1261,8 +1247,7 @@ export component SettingsContent inherits ScrollView {
                                         height: 30px;
                                         border-radius: 7px;
                                         background: #10b98115;
-                                        border-width: 1px;
-                                        border-color: #10b98133;
+                                        border-width: 0px;
                                         Image {
                                             x: (parent.width - self.width) / 2;
                                             y: (parent.height - self.height) / 2;
@@ -1323,8 +1308,7 @@ export component SettingsContent inherits ScrollView {
                         horizontal-stretch: 1;
                         background: #0f1813;
                         border-radius: 9px;
-                        border-width: 1px;
-                        border-color: #1a3024;
+                        border-width: 0px;
 
                         VerticalLayout {
                             padding: 14px;
@@ -1341,8 +1325,7 @@ export component SettingsContent inherits ScrollView {
                                         height: 30px;
                                         border-radius: 7px;
                                         background: #10b98115;
-                                        border-width: 1px;
-                                        border-color: #10b98133;
+                                        border-width: 0px;
                                         Image {
                                             x: (parent.width - self.width) / 2;
                                             y: (parent.height - self.height) / 2;
@@ -1404,8 +1387,7 @@ export component SettingsContent inherits ScrollView {
             Rectangle {
                 background: #181014;
                 border-radius: 10px;
-                border-width: 1px;
-                border-color: #f38ba833;
+                border-width: 0px;
 
                 VerticalLayout {
                     padding: 14px;
@@ -1419,8 +1401,7 @@ export component SettingsContent inherits ScrollView {
                             height: 30px;
                             border-radius: 7px;
                             background: #f38ba818;
-                            border-width: 1px;
-                            border-color: #f38ba844;
+                            border-width: 0px;
                             Image {
                                 x: (parent.width - self.width) / 2;
                                 y: (parent.height - self.height) / 2;
