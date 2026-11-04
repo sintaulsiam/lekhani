@@ -297,9 +297,9 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                // 5. AutoCorrect Manager Button (Pen Vector Icon)
+                // 5. AutoCorrect Manager Button (Spellcheck Vector Icon)
                 btn_ac := VectorIconButton {
-                    icon: @image-url("../../../data/icons/ui/pen.svg");
+                    icon: @image-url("../../../data/icons/ui/spellcheck.svg");
                     active: root.active-dialog == 3;
                     tooltip: "AutoCorrect";
                     clicked => {
@@ -307,9 +307,9 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                // 6. Bijoy ⇄ Unicode Converter Button (Exchange Vector Icon)
+                // 6. Bijoy ⇄ Unicode Converter Button (Converter Vector Icon)
                 btn_conv := VectorIconButton {
-                    icon: @image-url("../../../data/icons/ui/exchange.svg");
+                    icon: @image-url("../../../data/icons/ui/converter.svg");
                     active: root.active-dialog == 4;
                     tooltip: "Bijoy Converter";
                     clicked => {
@@ -317,7 +317,7 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                // 7. Conjunct Assistant Button (Puzzle Vector Icon)
+                // 7. Conjunct Assistant Button (Interlocking Puzzle Vector Icon)
                 btn_conjunct := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/puzzle.svg");
                     active: root.active-dialog == 7;
@@ -327,9 +327,9 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                // 8. Personal Typing Telemetry & Speed (Chart Vector Icon)
+                // 8. Personal Typing Telemetry & Speed (Speedometer Vector Icon)
                 btn_stats := VectorIconButton {
-                    icon: @image-url("../../../data/icons/ui/chart.svg");
+                    icon: @image-url("../../../data/icons/ui/speedometer.svg");
                     active: root.active-dialog == 8;
                     tooltip: "Typing Metrics";
                     clicked => {
@@ -647,7 +647,7 @@ export component TopBarWindow inherits Window {
                     HorizontalLayout {
                         spacing: 8px;
                         HeaderIcon {
-                            source: @image-url("../../../data/icons/ui/pen.svg");
+                            source: @image-url("../../../data/icons/ui/spellcheck.svg");
                             colorize: #a6e3a1;
                         }
 
@@ -768,7 +768,7 @@ export component TopBarWindow inherits Window {
                     HorizontalLayout {
                         spacing: 8px;
                         HeaderIcon {
-                            source: @image-url("../../../data/icons/ui/exchange.svg");
+                            source: @image-url("../../../data/icons/ui/converter.svg");
                             colorize: #fab387;
                         }
 
@@ -1851,7 +1851,7 @@ export component TopBarWindow inherits Window {
                     HorizontalLayout {
                         spacing: 8px;
                         HeaderIcon {
-                            source: @image-url("../../../data/icons/ui/chart.svg");
+                            source: @image-url("../../../data/icons/ui/speedometer.svg");
                             colorize: #f9e2af;
                         }
 
@@ -2280,11 +2280,11 @@ export component StandaloneDialogWindow inherits Window {
                     spacing: 10px;
                     HeaderIcon {
                         source: root.dialog-type == 2 ? @image-url("../../../data/icons/ui/keyboard.svg") :
-                            root.dialog-type == 3 ? @image-url("../../../data/icons/ui/pen.svg") :
-                            root.dialog-type == 4 ? @image-url("../../../data/icons/ui/exchange.svg") :
+                            root.dialog-type == 3 ? @image-url("../../../data/icons/ui/spellcheck.svg") :
+                            root.dialog-type == 4 ? @image-url("../../../data/icons/ui/converter.svg") :
                             root.dialog-type == 5 ? @image-url("../../../data/icons/ui/settings.svg") :
                             root.dialog-type == 7 ? @image-url("../../../data/icons/ui/puzzle.svg") :
-                            root.dialog-type == 8 ? @image-url("../../../data/icons/ui/chart.svg") :
+                            root.dialog-type == 8 ? @image-url("../../../data/icons/ui/speedometer.svg") :
                             @image-url("../../../data/icons/ui/logo.svg");
                         icon-size: 18px;
                         colorize: root.dialog-type == 2 ? #89b4fa :
@@ -2599,7 +2599,7 @@ export component StandaloneDialogWindow inherits Window {
                         }
 
                         if (root.ac-entries.length == 0): EmptyStateView {
-                            icon: @image-url("../../../data/icons/ui/pen.svg");
+                            icon: @image-url("../../../data/icons/ui/spellcheck.svg");
                             title: "No AutoCorrect entries found";
                             subtitle: root.ac-search-query != "" ? "No entries match your search query" : "Add your first custom shorthand or spelling correction above";
                         }
@@ -2716,14 +2716,14 @@ export component StandaloneDialogWindow inherits Window {
                             clicked => { root.settings-tab = 1; }
                         }
                         SidebarTabItem {
-                            icon: @image-url("../../../data/icons/ui/puzzle.svg");
+                            icon: @image-url("../../../data/icons/ui/layout_grid.svg");
                             label: "Fixed Layouts";
                             active: root.settings-tab == 2;
                             active-color: #a6e3a1;
                             clicked => { root.settings-tab = 2; }
                         }
                         SidebarTabItem {
-                            icon: @image-url("../../../data/icons/ui/chart.svg");
+                            icon: @image-url("../../../data/icons/ui/sparkles.svg");
                             label: "Smart Assistance";
                             active: root.settings-tab == 3;
                             active-color: #f38ba8;
