@@ -1,5 +1,3 @@
-import "./NotoEmoji-Regular.ttf";
-
 import {
     Button,
     LineEdit,
@@ -29,19 +27,13 @@ import {
     SettingRow,
     SettingCard,
     SettingsContent,
-    EmptyStateView,
-    EmojiCell,
-    KaomojiCell,
-    EmojiGridRow,
-    CategoryChip,
-    PaletteTabButton
+    EmptyStateView
 } from "common.slint";
 
 export {
     AcEntry,
     ConjunctEntry,
-    HeatmapEntry,
-    EmojiGridRow
+    HeatmapEntry
 } from "common.slint";
 
 // -----------------------------------------------------------------------------
@@ -84,17 +76,6 @@ export component TopBarWindow inherits Window {
     in-out property <bool> show-about-dialog: root.active-dialog == 6;
     in-out property <bool> show-conjunct-dialog: root.active-dialog == 7;
     in-out property <bool> show-stats-dialog: root.active-dialog == 8;
-    in-out property <bool> show-emoji-dialog: root.active-dialog == 9;
-
-    // Emoji & Symbols Palette properties
-    in-out property <int> emoji-tab: 0; // 0: Emojis, 1: Symbols, 2: Kaomoji
-    in-out property <int> emoji-subcat: 0; // Sub-category filter
-    in-out property <string> emoji-search-query: "";
-    in-out property <string> emoji-copied-toast: "";
-    in-out property <[EmojiGridRow]> emoji-grid: [];
-    callback emoji-search-changed(string);
-    callback emoji-tab-changed(int);
-    callback emoji-subcat-changed(int);
 
     // Layout Viewer state
     in-out property <int> viewer-mode: 0; // 0: Normal, 1: Shift, 2: AltGr
@@ -342,16 +323,7 @@ export component TopBarWindow inherits Window {
                     }
                 }
 
-                // 8. Emoji, Kaomoji & Typographical Symbols Palette (Smile Vector Icon)
-                btn_emoji := VectorIconButton {
-                    icon: @image-url("../../../data/icons/ui/smile.svg");
-                    active: root.active-dialog == 9;
-                    clicked => {
-                        root.active-dialog = root.active-dialog == 9 ? 0 : 9;
-                    }
-                }
-
-                // 9. Personal Typing Telemetry & Speed (Chart Vector Icon)
+                // 8. Personal Typing Telemetry & Speed (Chart Vector Icon)
                 btn_stats := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/chart.svg");
                     active: root.active-dialog == 8;
@@ -2097,272 +2069,6 @@ export component TopBarWindow inherits Window {
         }
 
         // ---------------------------------------------------------------------
-        // 9. Emoji, Kaomoji & Typographical Symbols Palette
-        // ---------------------------------------------------------------------
-        if (root.active-dialog == 9): Rectangle {
-            width: 490px;
-            background: #11121dfa;
-            border-radius: 18px;
-            border-width: 1.2px;
-            border-color: #10b98144;
-            drop-shadow-blur: 24px;
-            drop-shadow-color: #000000cc;
-
-            VerticalLayout {
-                padding: 14px;
-                spacing: 10px;
-
-                // Header
-                HorizontalLayout {
-                    alignment: space-between;
-                    HorizontalLayout {
-                        spacing: 8px;
-                        HeaderIcon {
-                            source: @image-url("../../../data/icons/ui/smile.svg");
-                            colorize: #10b981;
-                        }
-
-                        VerticalLayout {
-                            alignment: center;
-                            Text {
-                                text: "ইমোজি ও প্রতীক";
-                                color: #f1f5f9;
-                                font-size: 14px;
-                                font-weight: 700;
-                            }
-                        }
-                    }
-
-                    HorizontalLayout {
-                        spacing: 6px;
-                        PopoutButton {
-                            clicked => {
-                                root.active-dialog = 0;
-                                root.detach-dialog(9);
-                            }
-                        }
-                        CloseButton {
-                            clicked => { root.active-dialog = 0; }
-                        }
-                    }
-                }
-
-                // Search Input Bar
-                emoji_search_input := LineEdit {
-                    text: root.emoji-search-query;
-                    placeholder-text: "খুঁজুন / Search (e.g. smile, টাকা, love, tick)...";
-                    edited(t) => {
-                        root.emoji-search-query = t;
-                        root.emoji-search-changed(t);
-                    }
-                }
-
-                // Main Tab Selector (Zero emojis in UI Chrome)
-                HorizontalLayout {
-                    spacing: 6px;
-                    PaletteTabButton {
-                        text: "Emojis";
-                        active: root.emoji-tab == 0;
-                        clicked => {
-                            root.emoji-tab = 0;
-                            root.emoji-subcat = 0;
-                            root.emoji-tab-changed(0);
-                        }
-                    }
-
-                    PaletteTabButton {
-                        text: "Symbols";
-                        active: root.emoji-tab == 1;
-                        clicked => {
-                            root.emoji-tab = 1;
-                            root.emoji-subcat = 0;
-                            root.emoji-tab-changed(1);
-                        }
-                    }
-
-                    PaletteTabButton {
-                        text: "Kaomoji";
-                        active: root.emoji-tab == 2;
-                        clicked => {
-                            root.emoji-tab = 2;
-                            root.emoji-subcat = 0;
-                            root.emoji-tab-changed(2);
-                        }
-                    }
-                }
-
-                // Sub-category Chips Bar (Visible when not actively searching)
-                if (root.emoji-search-query == ""): HorizontalLayout {
-                    spacing: 4px;
-                    alignment: start;
-
-                    // Tab 0 Subcategories
-                    if (root.emoji-tab == 0): HorizontalLayout {
-                        spacing: 4px;
-                        CategoryChip {
-                            text: "All";
-                            active: root.emoji-subcat == 0;
-                            clicked => { root.emoji-subcat = 0; root.emoji-subcat-changed(0); }
-                        }
-                        CategoryChip {
-                            text: "Smileys";
-                            active: root.emoji-subcat == 1;
-                            clicked => { root.emoji-subcat = 1; root.emoji-subcat-changed(1); }
-                        }
-                        CategoryChip {
-                            text: "Gestures";
-                            active: root.emoji-subcat == 2;
-                            clicked => { root.emoji-subcat = 2; root.emoji-subcat-changed(2); }
-                        }
-                        CategoryChip {
-                            text: "Hearts";
-                            active: root.emoji-subcat == 3;
-                            clicked => { root.emoji-subcat = 3; root.emoji-subcat-changed(3); }
-                        }
-                        CategoryChip {
-                            text: "Nature";
-                            active: root.emoji-subcat == 4;
-                            clicked => { root.emoji-subcat = 4; root.emoji-subcat-changed(4); }
-                        }
-                        CategoryChip {
-                            text: "Food & Objects";
-                            active: root.emoji-subcat == 5;
-                            clicked => { root.emoji-subcat = 5; root.emoji-subcat-changed(5); }
-                        }
-                    }
-
-                    // Tab 1 Subcategories
-                    if (root.emoji-tab == 1): HorizontalLayout {
-                        spacing: 4px;
-                        CategoryChip {
-                            text: "All";
-                            active: root.emoji-subcat == 0;
-                            clicked => { root.emoji-subcat = 0; root.emoji-subcat-changed(0); }
-                        }
-                        CategoryChip {
-                            text: "Bengali";
-                            active: root.emoji-subcat == 1;
-                            clicked => { root.emoji-subcat = 1; root.emoji-subcat-changed(1); }
-                        }
-                        CategoryChip {
-                            text: "Typography";
-                            active: root.emoji-subcat == 2;
-                            clicked => { root.emoji-subcat = 2; root.emoji-subcat-changed(2); }
-                        }
-                        CategoryChip {
-                            text: "Math";
-                            active: root.emoji-subcat == 3;
-                            clicked => { root.emoji-subcat = 3; root.emoji-subcat-changed(3); }
-                        }
-                        CategoryChip {
-                            text: "Arrows";
-                            active: root.emoji-subcat == 4;
-                            clicked => { root.emoji-subcat = 4; root.emoji-subcat-changed(4); }
-                        }
-                        CategoryChip {
-                            text: "Shapes";
-                            active: root.emoji-subcat == 5;
-                            clicked => { root.emoji-subcat = 5; root.emoji-subcat-changed(5); }
-                        }
-                    }
-
-                    // Tab 2 Subcategories
-                    if (root.emoji-tab == 2): HorizontalLayout {
-                        spacing: 4px;
-                        CategoryChip {
-                            text: "All";
-                            active: root.emoji-subcat == 0;
-                            clicked => { root.emoji-subcat = 0; root.emoji-subcat-changed(0); }
-                        }
-                        CategoryChip {
-                            text: "Happy";
-                            active: root.emoji-subcat == 1;
-                            clicked => { root.emoji-subcat = 1; root.emoji-subcat-changed(1); }
-                        }
-                        CategoryChip {
-                            text: "Playful";
-                            active: root.emoji-subcat == 2;
-                            clicked => { root.emoji-subcat = 2; root.emoji-subcat-changed(2); }
-                        }
-                        CategoryChip {
-                            text: "Sad / Angry";
-                            active: root.emoji-subcat == 3;
-                            clicked => { root.emoji-subcat = 3; root.emoji-subcat-changed(3); }
-                        }
-                    }
-                }
-
-                // Scrollable Grid Container
-                Rectangle {
-                    background: #0c0d14;
-                    border-radius: 10px;
-                    border-width: 1px;
-                    border-color: #242638;
-                    height: 250px;
-
-                    ScrollView {
-                        VerticalLayout {
-                            padding: 8px;
-                            spacing: 6px;
-
-                            if (root.emoji-grid.length == 0): EmptyStateView {
-                                icon: @image-url("../../../data/icons/ui/smile.svg");
-                                title: "কোনো আইটেম পাওয়া যায়নি";
-                                subtitle: root.emoji-search-query != "" ? "ভিন্ন কিওয়ার্ড দিয়ে অনুসন্ধান করে দেখুন" : "এই ক্যাটাগরিতে কোনো আইটেম নেই";
-                            }
-
-                            for row in root.emoji-grid: HorizontalLayout {
-                                spacing: 4px;
-                                alignment: start;
-
-                                if (root.emoji-tab != 2): HorizontalLayout {
-                                    spacing: 4px;
-                                    for em in row.items: EmojiCell {
-                                        text: em;
-                                        glyph-color: root.emoji-tab == 1 ? #38bdf8 : #facc15;
-                                        clicked(glyph) => {
-                                            root.copy-to-clipboard(glyph);
-                                        }
-                                    }
-                                }
-
-                                if (root.emoji-tab == 2): HorizontalLayout {
-                                    spacing: 6px;
-                                    for km in row.items: KaomojiCell {
-                                        text: km;
-                                        clicked(glyph) => {
-                                            root.copy-to-clipboard(glyph);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Discreet Floating Feedback Pill (Auto-dismisses; no verbose static text)
-                if (root.emoji-copied-toast != ""): Rectangle {
-                    height: 26px;
-                    border-radius: 6px;
-                    background: #10b98124;
-                    border-width: 1px;
-                    border-color: #10b98166;
-                    HorizontalLayout {
-                        alignment: center;
-                        spacing: 6px;
-                        Text {
-                            text: root.emoji-copied-toast;
-                            color: #34d399;
-                            font-size: 11px;
-                            font-weight: 700;
-                            vertical-alignment: center;
-                        }
-                    }
-                }
-            }
-        }
-
-        // ---------------------------------------------------------------------
         // 10. Mode-Switch OSD HUD Overlay (Activated on F12 / Layout Toggle)
         // ---------------------------------------------------------------------
         if (root.show-osd): HorizontalLayout {
@@ -2538,23 +2244,13 @@ export component StandaloneDialogWindow inherits Window {
     property <[string]> latin-row-3: ["A", "S", "D", "F", "G", "H", "J", "K", "L", ";", "'"];
     property <[string]> latin-row-4: ["Z", "X", "C", "V", "B", "N", "M", ",", ".", "/"];
 
-    // Emoji & Symbols Palette properties
-    in-out property <int> emoji-tab: 0; // 0: Emojis, 1: Symbols, 2: Kaomoji
-    in-out property <int> emoji-subcat: 0; // Sub-category filter
-    in-out property <string> emoji-search-query: "";
-    in-out property <string> emoji-copied-toast: "";
-    in-out property <[EmojiGridRow]> emoji-grid: [];
-    callback emoji-search-changed(string);
-    callback emoji-tab-changed(int);
-    callback emoji-subcat-changed(int);
 
     property <string> dialog-title: root.dialog-type == 2 ? "Lekhani - Keyboard Layout Viewer (" + root.viewer-selected-layout + ")" :
         root.dialog-type == 3 ? "Lekhani - AutoCorrect Manager" :
         root.dialog-type == 4 ? "Lekhani - Bijoy ⇄ Unicode Converter" :
         root.dialog-type == 5 ? "Lekhani - Settings" :
         root.dialog-type == 7 ? "Lekhani - যুক্তবর্ণ সহায়িকা (Conjunct Assistant)" :
-        root.dialog-type == 8 ? "Lekhani - Typing Telemetry & Speed" :
-        root.dialog-type == 9 ? "Lekhani - ইমোজি ও প্রতীক" : "Lekhani Desktop Suite";
+        root.dialog-type == 8 ? "Lekhani - Typing Telemetry & Speed" : "Lekhani Desktop Suite";
 
     // Callbacks
     callback close-window();
@@ -2615,7 +2311,6 @@ export component StandaloneDialogWindow inherits Window {
                             root.dialog-type == 5 ? @image-url("../../../data/icons/ui/settings.svg") :
                             root.dialog-type == 7 ? @image-url("../../../data/icons/ui/puzzle.svg") :
                             root.dialog-type == 8 ? @image-url("../../../data/icons/ui/chart.svg") :
-                            root.dialog-type == 9 ? @image-url("../../../data/icons/ui/smile.svg") :
                             @image-url("../../../data/icons/ui/logo.svg");
                         icon-size: 18px;
                         colorize: root.dialog-type == 2 ? #89b4fa :
@@ -2623,8 +2318,7 @@ export component StandaloneDialogWindow inherits Window {
                             root.dialog-type == 4 ? #fab387 :
                             root.dialog-type == 5 ? #10b981 :
                             root.dialog-type == 7 ? #89dceb :
-                            root.dialog-type == 8 ? #f9e2af :
-                            root.dialog-type == 9 ? #10b981 : #89b4fa;
+                            root.dialog-type == 8 ? #f9e2af : #89b4fa;
                     }
 
                     Text {
@@ -3584,227 +3278,6 @@ export component StandaloneDialogWindow inherits Window {
                 ModernButton {
                     text: "Refresh Stats";
                     clicked => { root.refresh-stats(); }
-                }
-            }
-
-            // ---------------------------------------------------------------------
-            // 9. EMOJI, KAOMOJI & SYMBOLS PALETTE (Standalone Resizable)
-            // ---------------------------------------------------------------------
-            if root.dialog-type == 9: VerticalLayout {
-                spacing: 12px;
-                vertical-stretch: 1;
-
-                // Search Input Bar
-                standalone_emoji_search_input := LineEdit {
-                    text: root.emoji-search-query;
-                    placeholder-text: "খুঁজুন / Search (e.g. smile, টাকা, love, tick)...";
-                    edited(t) => {
-                        root.emoji-search-query = t;
-                        root.emoji-search-changed(t);
-                    }
-                }
-
-                // Main Tab Selector (Zero emojis in UI Chrome)
-                HorizontalLayout {
-                    spacing: 8px;
-                    PaletteTabButton {
-                        text: "Emojis";
-                        active: root.emoji-tab == 0;
-                        clicked => {
-                            root.emoji-tab = 0;
-                            root.emoji-subcat = 0;
-                            root.emoji-tab-changed(0);
-                        }
-                    }
-
-                    PaletteTabButton {
-                        text: "Symbols";
-                        active: root.emoji-tab == 1;
-                        clicked => {
-                            root.emoji-tab = 1;
-                            root.emoji-subcat = 0;
-                            root.emoji-tab-changed(1);
-                        }
-                    }
-
-                    PaletteTabButton {
-                        text: "Kaomoji";
-                        active: root.emoji-tab == 2;
-                        clicked => {
-                            root.emoji-tab = 2;
-                            root.emoji-subcat = 0;
-                            root.emoji-tab-changed(2);
-                        }
-                    }
-                }
-
-                // Sub-category Chips Bar (Visible when not actively searching)
-                if (root.emoji-search-query == ""): HorizontalLayout {
-                    spacing: 6px;
-                    alignment: start;
-
-                    // Tab 0 Subcategories
-                    if (root.emoji-tab == 0): HorizontalLayout {
-                        spacing: 6px;
-                        CategoryChip {
-                            text: "All";
-                            active: root.emoji-subcat == 0;
-                            clicked => { root.emoji-subcat = 0; root.emoji-subcat-changed(0); }
-                        }
-                        CategoryChip {
-                            text: "Smileys";
-                            active: root.emoji-subcat == 1;
-                            clicked => { root.emoji-subcat = 1; root.emoji-subcat-changed(1); }
-                        }
-                        CategoryChip {
-                            text: "Gestures";
-                            active: root.emoji-subcat == 2;
-                            clicked => { root.emoji-subcat = 2; root.emoji-subcat-changed(2); }
-                        }
-                        CategoryChip {
-                            text: "Hearts";
-                            active: root.emoji-subcat == 3;
-                            clicked => { root.emoji-subcat = 3; root.emoji-subcat-changed(3); }
-                        }
-                        CategoryChip {
-                            text: "Nature";
-                            active: root.emoji-subcat == 4;
-                            clicked => { root.emoji-subcat = 4; root.emoji-subcat-changed(4); }
-                        }
-                        CategoryChip {
-                            text: "Food & Objects";
-                            active: root.emoji-subcat == 5;
-                            clicked => { root.emoji-subcat = 5; root.emoji-subcat-changed(5); }
-                        }
-                    }
-
-                    // Tab 1 Subcategories
-                    if (root.emoji-tab == 1): HorizontalLayout {
-                        spacing: 6px;
-                        CategoryChip {
-                            text: "All";
-                            active: root.emoji-subcat == 0;
-                            clicked => { root.emoji-subcat = 0; root.emoji-subcat-changed(0); }
-                        }
-                        CategoryChip {
-                            text: "Bengali";
-                            active: root.emoji-subcat == 1;
-                            clicked => { root.emoji-subcat = 1; root.emoji-subcat-changed(1); }
-                        }
-                        CategoryChip {
-                            text: "Typography";
-                            active: root.emoji-subcat == 2;
-                            clicked => { root.emoji-subcat = 2; root.emoji-subcat-changed(2); }
-                        }
-                        CategoryChip {
-                            text: "Math";
-                            active: root.emoji-subcat == 3;
-                            clicked => { root.emoji-subcat = 3; root.emoji-subcat-changed(3); }
-                        }
-                        CategoryChip {
-                            text: "Arrows";
-                            active: root.emoji-subcat == 4;
-                            clicked => { root.emoji-subcat = 4; root.emoji-subcat-changed(4); }
-                        }
-                        CategoryChip {
-                            text: "Shapes";
-                            active: root.emoji-subcat == 5;
-                            clicked => { root.emoji-subcat = 5; root.emoji-subcat-changed(5); }
-                        }
-                    }
-
-                    // Tab 2 Subcategories
-                    if (root.emoji-tab == 2): HorizontalLayout {
-                        spacing: 6px;
-                        CategoryChip {
-                            text: "All";
-                            active: root.emoji-subcat == 0;
-                            clicked => { root.emoji-subcat = 0; root.emoji-subcat-changed(0); }
-                        }
-                        CategoryChip {
-                            text: "Happy";
-                            active: root.emoji-subcat == 1;
-                            clicked => { root.emoji-subcat = 1; root.emoji-subcat-changed(1); }
-                        }
-                        CategoryChip {
-                            text: "Playful";
-                            active: root.emoji-subcat == 2;
-                            clicked => { root.emoji-subcat = 2; root.emoji-subcat-changed(2); }
-                        }
-                        CategoryChip {
-                            text: "Sad / Angry";
-                            active: root.emoji-subcat == 3;
-                            clicked => { root.emoji-subcat = 3; root.emoji-subcat-changed(3); }
-                        }
-                    }
-                }
-
-                // Resizable Scrollable Grid Container
-                Rectangle {
-                    background: #0c0d14;
-                    border-radius: 12px;
-                    border-width: 1px;
-                    border-color: #242638;
-                    vertical-stretch: 1;
-
-                    ScrollView {
-                        VerticalLayout {
-                            padding: 12px;
-                            spacing: 8px;
-
-                            if (root.emoji-grid.length == 0): EmptyStateView {
-                                icon: @image-url("../../../data/icons/ui/smile.svg");
-                                title: "কোনো আইটেম পাওয়া যায়নি";
-                                subtitle: root.emoji-search-query != "" ? "ভিন্ন কিওয়ার্ড দিয়ে অনুসন্ধান করে দেখুন" : "এই ক্যাটাগরিতে কোনো আইটেম নেই";
-                            }
-
-                            for row in root.emoji-grid: HorizontalLayout {
-                                spacing: 6px;
-                                alignment: start;
-
-                                if (root.emoji-tab != 2): HorizontalLayout {
-                                    spacing: 6px;
-                                    for em in row.items: EmojiCell {
-                                        text: em;
-                                        glyph-color: root.emoji-tab == 1 ? #38bdf8 : #facc15;
-                                        clicked(glyph) => {
-                                            root.copy-to-clipboard(glyph);
-                                        }
-                                    }
-                                }
-
-                                if (root.emoji-tab == 2): HorizontalLayout {
-                                    spacing: 8px;
-                                    for km in row.items: KaomojiCell {
-                                        text: km;
-                                        clicked(glyph) => {
-                                            root.copy-to-clipboard(glyph);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Floating Toast Feedback Pill (No verbose footer)
-                if (root.emoji-copied-toast != ""): Rectangle {
-                    height: 28px;
-                    border-radius: 6px;
-                    background: #10b98124;
-                    border-width: 1px;
-                    border-color: #10b98166;
-                    HorizontalLayout {
-                        alignment: center;
-                        spacing: 6px;
-                        Text {
-                            text: root.emoji-copied-toast;
-                            color: #34d399;
-                            font-size: 11.5px;
-                            font-weight: 700;
-                            vertical-alignment: center;
-                        }
-                    }
                 }
             }
         }

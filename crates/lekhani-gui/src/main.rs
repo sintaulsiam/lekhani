@@ -19,7 +19,6 @@ mod win_tray;
 
 mod autocorrect;
 mod backup;
-mod emoji;
 mod settings_sync;
 mod stats;
 mod viewer;
@@ -66,19 +65,6 @@ unsafe fn ensure_single_instance() -> bool {
     }
 }
 
-fn update_emoji_grid(app: &TopBarWindow, tab: i32, subcat: i32, query: &str) {
-    let cols = if tab == 2 { 3 } else { 10 };
-    let glyphs = emoji::search(query, tab, subcat);
-    let rows = emoji::to_grid_rows(&glyphs, cols);
-    app.set_emoji_grid(Rc::new(slint::VecModel::from(rows)).into());
-}
-
-fn update_standalone_emoji_grid(standalone: &StandaloneDialogWindow, tab: i32, subcat: i32, query: &str) {
-    let cols = if tab == 2 { 4 } else { 16 };
-    let glyphs = emoji::search(query, tab, subcat);
-    let rows = emoji::to_grid_rows(&glyphs, cols);
-    standalone.set_emoji_grid(Rc::new(slint::VecModel::from(rows)).into());
-}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
@@ -225,13 +211,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             app.set_active_dialog(8);
         }
-    } else if args.contains(&"--emoji".to_string()) || args.contains(&"--symbols".to_string()) {
-        if is_standalone {
-            standalone.set_dialog_type(9);
-            let _ = standalone.show();
-        } else {
-            app.set_active_dialog(9);
-        }
+
     } else if args.contains(&"--layout-menu".to_string()) {
         app.set_active_dialog(1);
     }
@@ -261,9 +241,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     app.set_conjunct_list(conjunct_model.clone().into());
     standalone.set_conjunct_list(conjunct_model.into());
 
-    // Initialize Emoji & Symbol Catalog state
-    update_emoji_grid(&app, 0, 0, "");
-    update_standalone_emoji_grid(&standalone, 0, 0, "");
 
     // Initialize Typing Telemetry & Analytics state
     refresh_stats_ui(&app, &config_mgr);
@@ -616,36 +593,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         copy_fn2(text.as_str());
         if let Some(app) = app_weak_copy.upgrade() {
             app.set_conv_copied(true);
-            app.set_emoji_copied_toast(format!("কপি হয়েছে: {}", text).into());
             let weak = app_weak_copy.clone();
             slint::Timer::single_shot(std::time::Duration::from_millis(2000), move || {
                 if let Some(app) = weak.upgrade() {
-                    app.set_emoji_copied_toast("".into());
+                    app.set_conv_copied(false);
                 }
             });
         }
     });
 
-    let app_weak_em_search = app_weak.clone();
-    app.on_emoji_search_changed(move |q| {
-        if let Some(app) = app_weak_em_search.upgrade() {
-            update_emoji_grid(&app, app.get_emoji_tab(), app.get_emoji_subcat(), q.as_str());
-        }
-    });
-
-    let app_weak_em_tab = app_weak.clone();
-    app.on_emoji_tab_changed(move |tab| {
-        if let Some(app) = app_weak_em_tab.upgrade() {
-            update_emoji_grid(&app, tab, 0, app.get_emoji_search_query().as_str());
-        }
-    });
-
-    let app_weak_em_sub = app_weak.clone();
-    app.on_emoji_subcat_changed(move |subcat| {
-        if let Some(app) = app_weak_em_sub.upgrade() {
-            update_emoji_grid(&app, app.get_emoji_tab(), subcat, app.get_emoji_search_query().as_str());
-        }
-    });
 
     // Detach Dialog Callback on TopBarWindow
     let standalone_weak_detach = standalone_weak.clone();
@@ -688,16 +644,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else if dialog_id == 8 {
                 let cm = cm_detach.borrow();
                 refresh_standalone_stats_ui(&standalone, &cm);
-            } else if dialog_id == 9 {
-                if let Some(app) = app_weak_detach.upgrade() {
-                    let tab = app.get_emoji_tab();
-                    let subcat = app.get_emoji_subcat();
-                    let q = app.get_emoji_search_query();
-                    standalone.set_emoji_tab(tab);
-                    standalone.set_emoji_subcat(subcat);
-                    standalone.set_emoji_search_query(q.clone());
-                    update_standalone_emoji_grid(&standalone, tab, subcat, q.as_str());
-                }
+
             }
             let _ = standalone.show();
         }
@@ -783,36 +730,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         copy_fn_sa(text.as_str());
         if let Some(s) = s_weak_copy.upgrade() {
             s.set_conv_copied(true);
-            s.set_emoji_copied_toast(format!("কপি হয়েছে: {}", text).into());
             let weak = s_weak_copy.clone();
             slint::Timer::single_shot(std::time::Duration::from_millis(2000), move || {
                 if let Some(s) = weak.upgrade() {
-                    s.set_emoji_copied_toast("".into());
+                    s.set_conv_copied(false);
                 }
             });
         }
     });
 
-    let sa_weak_em_search = standalone_weak.clone();
-    standalone.on_emoji_search_changed(move |q| {
-        if let Some(s) = sa_weak_em_search.upgrade() {
-            update_standalone_emoji_grid(&s, s.get_emoji_tab(), s.get_emoji_subcat(), q.as_str());
-        }
-    });
-
-    let sa_weak_em_tab = standalone_weak.clone();
-    standalone.on_emoji_tab_changed(move |tab| {
-        if let Some(s) = sa_weak_em_tab.upgrade() {
-            update_standalone_emoji_grid(&s, tab, 0, s.get_emoji_search_query().as_str());
-        }
-    });
-
-    let sa_weak_em_sub = standalone_weak.clone();
-    standalone.on_emoji_subcat_changed(move |subcat| {
-        if let Some(s) = sa_weak_em_sub.upgrade() {
-            update_standalone_emoji_grid(&s, s.get_emoji_tab(), subcat, s.get_emoji_search_query().as_str());
-        }
-    });
 
     let copy_fn_sa_conj = copy_text.clone();
     standalone.on_copy_conjunct(move |conjunct| {
