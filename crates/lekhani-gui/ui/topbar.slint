@@ -211,7 +211,7 @@ export component TopBarWindow inherits Window {
         alignment: start;
         spacing: 6px;
         padding-top: 6px;
-        padding-bottom: 6px;
+        padding-bottom: 26px;
         padding-left: 6px;
         padding-right: 6px;
 
@@ -288,6 +288,7 @@ export component TopBarWindow inherits Window {
                 btn_viewer := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/keyboard.svg");
                     active: root.active-dialog == 2;
+                    tooltip: "Layout Viewer";
                     clicked => {
                         root.active-dialog = root.active-dialog == 2 ? 0 : 2;
                         if (root.active-dialog == 2) {
@@ -300,6 +301,7 @@ export component TopBarWindow inherits Window {
                 btn_ac := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/pen.svg");
                     active: root.active-dialog == 3;
+                    tooltip: "AutoCorrect";
                     clicked => {
                         root.active-dialog = root.active-dialog == 3 ? 0 : 3;
                     }
@@ -309,6 +311,7 @@ export component TopBarWindow inherits Window {
                 btn_conv := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/exchange.svg");
                     active: root.active-dialog == 4;
+                    tooltip: "Bijoy Converter";
                     clicked => {
                         root.active-dialog = root.active-dialog == 4 ? 0 : 4;
                     }
@@ -318,6 +321,7 @@ export component TopBarWindow inherits Window {
                 btn_conjunct := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/puzzle.svg");
                     active: root.active-dialog == 7;
+                    tooltip: "Conjunct Assistant";
                     clicked => {
                         root.active-dialog = root.active-dialog == 7 ? 0 : 7;
                     }
@@ -327,6 +331,7 @@ export component TopBarWindow inherits Window {
                 btn_stats := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/chart.svg");
                     active: root.active-dialog == 8;
+                    tooltip: "Typing Metrics";
                     clicked => {
                         root.active-dialog = root.active-dialog == 8 ? 0 : 8;
                         if (root.active-dialog == 8) {
@@ -339,6 +344,7 @@ export component TopBarWindow inherits Window {
                 btn_settings := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/settings.svg");
                     active: root.active-dialog == 5;
+                    tooltip: "Settings";
                     clicked => {
                         root.active-dialog = root.active-dialog == 5 ? 0 : 5;
                     }
@@ -348,6 +354,7 @@ export component TopBarWindow inherits Window {
                 if root.is-windows: btn_minimize := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/minimize.svg");
                     active: false;
+                    tooltip: "Minimize to Tray";
                     clicked => { root.trigger-minimize(); }
                 }
 
@@ -355,6 +362,7 @@ export component TopBarWindow inherits Window {
                 btn_close := VectorIconButton {
                     icon: @image-url("../../../data/icons/ui/close.svg");
                     active: false;
+                    tooltip: "Close TopBar";
                     clicked => { root.trigger-quit(); }
                 }
             }

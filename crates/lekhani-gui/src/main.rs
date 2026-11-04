@@ -291,10 +291,26 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let cm = config_mgr_rc.borrow();
             (cm.config.ui.topbar_x, cm.config.ui.topbar_y)
         };
-        if saved_x > 0 || saved_y > 0 {
+        if saved_x != 0 || saved_y != 0 {
             let _ = app.window().with_winit_window(move |winit_window| {
+                // Multi-monitor safety: ensure saved position intersects an active monitor
+                let is_on_any_monitor = winit_window.available_monitors().any(|m| {
+                    let mp = m.position();
+                    let ms = m.size();
+                    saved_x >= mp.x - 50 && saved_x < mp.x + ms.width as i32
+                        && saved_y >= mp.y - 50 && saved_y < mp.y + ms.height as i32
+                });
+                let (target_x, target_y) = if is_on_any_monitor {
+                    (saved_x, saved_y)
+                } else if let Some(primary) = winit_window.primary_monitor() {
+                    let mp = primary.position();
+                    let ms = primary.size();
+                    (mp.x + (ms.width as i32 - 400) / 2, mp.y + 40)
+                } else {
+                    (saved_x, saved_y)
+                };
                 winit_window.set_outer_position(
-                    i_slint_backend_winit::winit::dpi::PhysicalPosition::new(saved_x, saved_y),
+                    i_slint_backend_winit::winit::dpi::PhysicalPosition::new(target_x, target_y),
                 );
             });
         }
@@ -331,21 +347,39 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if let Some(app) = app_weak_end.upgrade() {
             let _ = app.window().with_winit_window(|winit_window| {
                 if let Ok(mut pos) = winit_window.outer_position() {
-                    // Magnetic snapping: snap if within 24px of screen edges
                     let snap_threshold = 24;
-                    if pos.y >= 0 && pos.y < snap_threshold {
-                        pos.y = 8;
-                    }
-                    if pos.x >= 0 && pos.x < snap_threshold {
-                        pos.x = 8;
-                    }
                     if let Some(monitor) = winit_window.current_monitor() {
-                        let screen_w = monitor.size().width as i32;
+                        let m_pos = monitor.position();
+                        let m_size = monitor.size();
+                        let min_x = m_pos.x;
+                        let max_x = m_pos.x + m_size.width as i32;
+                        let min_y = m_pos.y;
+                        let max_y = m_pos.y + m_size.height as i32;
                         let win_w = winit_window.outer_size().width as i32;
-                        if (pos.x + win_w) > (screen_w - snap_threshold)
-                            && (pos.x + win_w) <= screen_w + 50
-                        {
-                            pos.x = (screen_w - win_w - 8).max(8);
+                        let win_h = winit_window.outer_size().height as i32;
+
+                        // Magnetic snap to current monitor edges
+                        if pos.y >= min_y && pos.y < min_y + snap_threshold {
+                            pos.y = min_y + 8;
+                        } else if pos.y + win_h > max_y - snap_threshold && pos.y + win_h <= max_y + 50 {
+                            pos.y = (max_y - win_h - 8).max(min_y + 8);
+                        }
+
+                        if pos.x >= min_x && pos.x < min_x + snap_threshold {
+                            pos.x = min_x + 8;
+                        } else if pos.x + win_w > max_x - snap_threshold && pos.x + win_w <= max_x + 50 {
+                            pos.x = (max_x - win_w - 8).max(min_x + 8);
+                        }
+
+                        // Hard clamp within visible screen bounds so window never gets lost off-screen
+                        pos.x = pos.x.clamp(min_x, (max_x - win_w).max(min_x));
+                        pos.y = pos.y.clamp(min_y, (max_y - win_h).max(min_y));
+                    } else {
+                        if pos.y >= 0 && pos.y < snap_threshold {
+                            pos.y = 8;
+                        }
+                        if pos.x >= 0 && pos.x < snap_threshold {
+                            pos.x = 8;
                         }
                     }
                     winit_window.set_outer_position(pos);
@@ -493,10 +527,80 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
+    fn convert_smart_text(text: &str, to_unicode: bool) -> String {
+        let trimmed = text.trim();
+        let lines: Vec<&str> = trimmed
+            .lines()
+            .map(|l| l.trim())
+            .filter(|l| !l.is_empty())
+            .collect();
+
+        let is_file_like = |s: &str| -> Option<std::path::PathBuf> {
+            let clean = if s.starts_with("file://") {
+                s.strip_prefix("file://").unwrap_or(s)
+            } else {
+                s
+            };
+            let p = std::path::PathBuf::from(clean);
+            if p.is_file() {
+                Some(p)
+            } else {
+                None
+            }
+        };
+
+        if !lines.is_empty() && lines.iter().all(|l| is_file_like(l).is_some()) {
+            if lines.len() == 1 {
+                let path = is_file_like(lines[0]).unwrap();
+                if let Ok(bytes) = std::fs::read(&path) {
+                    let file_str = String::from_utf8_lossy(&bytes);
+                    let converted = if to_unicode {
+                        bijoy_to_unicode(&file_str)
+                    } else {
+                        unicode_to_bijoy(&file_str)
+                    };
+                    let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
+                    let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("txt");
+                    let suffix = if to_unicode { "_unicode." } else { "_bijoy." };
+                    let out_path = path.with_file_name(format!("{}{}{}", stem, suffix, ext));
+                    let _ = std::fs::write(&out_path, &converted);
+                    return format!("/* Saved: {} */\n\n{}", out_path.display(), converted);
+                }
+            } else {
+                let mut summary = Vec::new();
+                for l in lines {
+                    if let Some(path) = is_file_like(l) {
+                        if let Ok(bytes) = std::fs::read(&path) {
+                            let file_str = String::from_utf8_lossy(&bytes);
+                            let converted = if to_unicode {
+                                bijoy_to_unicode(&file_str)
+                            } else {
+                                unicode_to_bijoy(&file_str)
+                            };
+                            let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
+                            let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("txt");
+                            let suffix = if to_unicode { "_unicode." } else { "_bijoy." };
+                            let out_path = path.with_file_name(format!("{}{}{}", stem, suffix, ext));
+                            let _ = std::fs::write(&out_path, &converted);
+                            summary.push(format!("✓ {} -> {}", path.display(), out_path.display()));
+                        }
+                    }
+                }
+                return format!("Batch converted {} file(s):\n\n{}", summary.len(), summary.join("\n"));
+            }
+        }
+
+        if to_unicode {
+            bijoy_to_unicode(text)
+        } else {
+            unicode_to_bijoy(text)
+        }
+    }
+
     // Callbacks: Bijoy Converter
     let app_weak_conv = app_weak.clone();
     app.on_convert_bijoy_to_unicode(move |text| {
-        let converted = bijoy_to_unicode(&text);
+        let converted = convert_smart_text(&text, true);
         if let Some(app) = app_weak_conv.upgrade() {
             app.set_conv_output_text(converted.into());
         }
@@ -504,7 +608,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app_weak_conv_rev = app_weak.clone();
     app.on_convert_unicode_to_bijoy(move |text| {
-        let converted = unicode_to_bijoy(&text);
+        let converted = convert_smart_text(&text, false);
         if let Some(app) = app_weak_conv_rev.upgrade() {
             app.set_conv_output_text(converted.into());
         }
@@ -710,7 +814,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Standalone Converter Callbacks
     let s_weak_c1 = standalone_weak.clone();
     standalone.on_convert_bijoy_to_unicode(move |text| {
-        let converted = bijoy_to_unicode(&text);
+        let converted = convert_smart_text(&text, true);
         if let Some(s) = s_weak_c1.upgrade() {
             s.set_conv_output_text(converted.into());
         }
@@ -718,7 +822,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let s_weak_c2 = standalone_weak.clone();
     standalone.on_convert_unicode_to_bijoy(move |text| {
-        let converted = unicode_to_bijoy(&text);
+        let converted = convert_smart_text(&text, false);
         if let Some(s) = s_weak_c2.upgrade() {
             s.set_conv_output_text(converted.into());
         }
