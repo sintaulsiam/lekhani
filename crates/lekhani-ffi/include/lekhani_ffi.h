@@ -37,6 +37,7 @@ size_t lekhani_engine_get_selected_candidate_index(LekhaniEngineContext *ctx);
 
 bool lekhani_engine_select_candidate(LekhaniEngineContext *ctx, size_t index);
 bool lekhani_engine_is_active(LekhaniEngineContext *ctx);
+bool lekhani_engine_is_horizontal_candidates(LekhaniEngineContext *ctx);
 bool lekhani_engine_is_prediction_mode(LekhaniEngineContext *ctx);
 bool lekhani_engine_is_prediction_navigated(LekhaniEngineContext *ctx);
 

@@ -711,6 +711,15 @@ pub extern "C" fn lekhani_engine_is_active(ctx: *mut LekhaniEngineContext) -> bo
 }
 
 #[no_mangle]
+pub extern "C" fn lekhani_engine_is_horizontal_candidates(ctx: *mut LekhaniEngineContext) -> bool {
+    if ctx.is_null() {
+        return true;
+    }
+    let engine = unsafe { &*ctx };
+    engine.config_mgr.config.ui.horizontal_candidates
+}
+
+#[no_mangle]
 pub extern "C" fn lekhani_engine_is_prediction_mode(ctx: *mut LekhaniEngineContext) -> bool {
     if ctx.is_null() {
         return false;

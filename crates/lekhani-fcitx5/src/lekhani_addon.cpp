@@ -91,7 +91,7 @@ void LekhaniState::updateUI() {
     const char *aux = lekhani_engine_get_auxiliary_text(engine_);
 
     if (preedit && preedit[0] != '\0') {
-        Text preeditText(preedit);
+        Text preeditText(preedit, TextFormatFlag::Underline);
         preeditText.setCursor(preeditText.textLength());
         ic_->inputPanel().setClientPreedit(preeditText);
     } else {
@@ -121,6 +121,11 @@ void LekhaniState::updateUI() {
                 ));
             }
         }
+        if (lekhani_engine_is_horizontal_candidates(engine_)) {
+            candidateList->setLayoutHint(CandidateLayoutHint::Horizontal);
+        } else {
+            candidateList->setLayoutHint(CandidateLayoutHint::Vertical);
+        }
         if (isPrediction && !isNavigated) {
             candidateList->setGlobalCursorIndex(-1);
         } else {
@@ -145,6 +150,11 @@ void LekhaniState::updateUI() {
                         candidateList->append(std::make_unique<LekhaniRetroCandidateWord>(
                             Text(label), replacement, backspaceCount, this
                         ));
+                        if (lekhani_engine_is_horizontal_candidates(engine_)) {
+                            candidateList->setLayoutHint(CandidateLayoutHint::Horizontal);
+                        } else {
+                            candidateList->setLayoutHint(CandidateLayoutHint::Vertical);
+                        }
                         candidateList->setGlobalCursorIndex(0);
                         ic_->inputPanel().setCandidateList(std::move(candidateList));
                         hasRetro = true;
