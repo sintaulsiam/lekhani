@@ -1,6 +1,7 @@
 //! Lekhani CLI Tool
 
 mod converter;
+mod doctor;
 
 use clap::{Parser, Subcommand};
 use lekhani_core::{
@@ -119,6 +120,8 @@ enum Commands {
     Ai(AiCommands),
     /// Show version, author, and special acknowledgments
     About,
+    /// Diagnose system environment, IME frameworks, Bengali fonts, and configuration
+    Doctor,
 }
 
 #[derive(Subcommand)]
@@ -310,14 +313,24 @@ enum DictCommands {
         /// Trigger string to delete
         trigger: String,
     },
-    /// Export custom dictionary to a JSON file
+    /// Export custom dictionary to a JSON or CSV file
     Export {
-        /// Destination JSON path
+        /// Destination path (.json or .csv)
         path: PathBuf,
     },
-    /// Import custom dictionary from a JSON file
+    /// Import custom dictionary from a JSON or CSV file
     Import {
-        /// Source JSON path
+        /// Source path (.json or .csv)
+        path: PathBuf,
+    },
+    /// Export custom dictionary to a CSV file (trigger,replacement)
+    ExportCsv {
+        /// Destination CSV path
+        path: PathBuf,
+    },
+    /// Import custom dictionary from a CSV file (trigger,replacement)
+    ImportCsv {
+        /// Source CSV path
         path: PathBuf,
     },
 }
@@ -410,31 +423,58 @@ fn main() -> anyhow::Result<()> {
             output,
             reverse,
         } => {
-            let input_content = if input.to_str() == Some("-") {
-                use std::io::Read;
-                let mut buffer = String::new();
-                std::io::stdin().read_to_string(&mut buffer)?;
-                buffer
+            if input.is_dir() {
+                let out_dir = output.unwrap_or_else(|| input.clone());
+                let _ = std::fs::create_dir_all(&out_dir);
+                let mut count = 0;
+                for entry in std::fs::read_dir(&input)?.flatten() {
+                    let path = entry.path();
+                    if path.is_file() {
+                        if let Ok(content) = std::fs::read_to_string(&path) {
+                            let converted = if reverse {
+                                unicode_to_bijoy(&content)
+                            } else {
+                                bijoy_to_unicode(&content)
+                            };
+                            let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
+                            let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("txt");
+                            let suffix = if reverse { "_bijoy." } else { "_unicode." };
+                            let target_name = format!("{}{}{}", stem, suffix, ext);
+                            let target = out_dir.join(target_name);
+                            std::fs::write(&target, &converted)?;
+                            println!("✓ Converted {} -> {} ({} bytes)", path.display(), target.display(), converted.len());
+                            count += 1;
+                        }
+                    }
+                }
+                println!("Batch directory conversion complete: {} file(s) converted.", count);
             } else {
-                std::fs::read_to_string(&input)?
-            };
+                let input_content = if input.to_str() == Some("-") {
+                    use std::io::Read;
+                    let mut buffer = String::new();
+                    std::io::stdin().read_to_string(&mut buffer)?;
+                    buffer
+                } else {
+                    std::fs::read_to_string(&input)?
+                };
 
-            let converted = if reverse {
-                unicode_to_bijoy(&input_content)
-            } else {
-                bijoy_to_unicode(&input_content)
-            };
+                let converted = if reverse {
+                    unicode_to_bijoy(&input_content)
+                } else {
+                    bijoy_to_unicode(&input_content)
+                };
 
-            if let Some(out_path) = output {
-                std::fs::write(&out_path, &converted)?;
-                println!(
-                    "Converted {:?} -> {:?} ({} bytes)",
-                    input,
-                    out_path,
-                    converted.len()
-                );
-            } else {
-                print!("{}", converted);
+                if let Some(out_path) = output {
+                    std::fs::write(&out_path, &converted)?;
+                    println!(
+                        "Converted {:?} -> {:?} ({} bytes)",
+                        input,
+                        out_path,
+                        converted.len()
+                    );
+                } else {
+                    print!("{}", converted);
+                }
             }
         }
         Commands::Sync { export, import } => {
@@ -495,17 +535,27 @@ fn main() -> anyhow::Result<()> {
                     }
                 }
                 DictCommands::Export { path } => {
-                    let json = serde_json::to_string_pretty(&map)?;
-                    if let Some(p) = path.parent() {
-                        let _ = std::fs::create_dir_all(p);
+                    let is_csv = path.extension().and_then(|s| s.to_str()).map(|s| s.eq_ignore_ascii_case("csv")).unwrap_or(false);
+                    if is_csv {
+                        export_autocorrect_csv(&map, &path)?;
+                        println!("Exported {} entries (CSV) to {:?}", map.len(), path);
+                    } else {
+                        let json = serde_json::to_string_pretty(&map)?;
+                        if let Some(p) = path.parent() {
+                            let _ = std::fs::create_dir_all(p);
+                        }
+                        std::fs::write(&path, json)?;
+                        println!("Exported {} entries (JSON) to {:?}", map.len(), path);
                     }
-                    std::fs::write(&path, json)?;
-                    println!("Exported {} entries to {:?}", map.len(), path);
                 }
                 DictCommands::Import { path } => {
-                    let content = std::fs::read_to_string(&path)?;
-                    let imported: std::collections::BTreeMap<String, String> =
-                        serde_json::from_str(&content)?;
+                    let is_csv = path.extension().and_then(|s| s.to_str()).map(|s| s.eq_ignore_ascii_case("csv")).unwrap_or(false);
+                    let imported = if is_csv {
+                        import_autocorrect_csv(&path)?
+                    } else {
+                        let content = std::fs::read_to_string(&path)?;
+                        serde_json::from_str::<std::collections::BTreeMap<String, String>>(&content)?
+                    };
                     let count = imported.len();
                     for (k, v) in imported {
                         map.insert(k, v);
@@ -517,6 +567,28 @@ fn main() -> anyhow::Result<()> {
                     std::fs::write(&ac_path, json)?;
                     println!(
                         "Imported {} entries from {:?}. Total active: {}",
+                        count,
+                        path,
+                        map.len()
+                    );
+                }
+                DictCommands::ExportCsv { path } => {
+                    export_autocorrect_csv(&map, &path)?;
+                    println!("Exported {} entries to CSV at {:?}", map.len(), path);
+                }
+                DictCommands::ImportCsv { path } => {
+                    let imported = import_autocorrect_csv(&path)?;
+                    let count = imported.len();
+                    for (k, v) in imported {
+                        map.insert(k, v);
+                    }
+                    let json = serde_json::to_string_pretty(&map)?;
+                    if let Some(p) = ac_path.parent() {
+                        let _ = std::fs::create_dir_all(p);
+                    }
+                    std::fs::write(&ac_path, json)?;
+                    println!(
+                        "Imported {} entries from CSV {:?}. Total active: {}",
                         count,
                         path,
                         map.len()
@@ -652,9 +724,96 @@ fn main() -> anyhow::Result<()> {
             println!("║     and laying foundational open-source architecture.            ║");
             println!("╚══════════════════════════════════════════════════════════════════╝");
         }
+        Commands::Doctor => {
+            doctor::run_doctor()?;
+        }
     }
 
     Ok(())
+}
+
+fn parse_csv_line(line: &str) -> Vec<String> {
+    let mut fields = Vec::new();
+    let mut current = String::new();
+    let mut in_quotes = false;
+    let mut chars = line.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        match c {
+            '"' if in_quotes => {
+                if chars.peek() == Some(&'"') {
+                    chars.next();
+                    current.push('"');
+                } else {
+                    in_quotes = false;
+                }
+            }
+            '"' => {
+                in_quotes = true;
+            }
+            ',' if !in_quotes => {
+                fields.push(current.trim().to_string());
+                current.clear();
+            }
+            _ => {
+                current.push(c);
+            }
+        }
+    }
+    fields.push(current.trim().to_string());
+    fields
+}
+
+fn export_autocorrect_csv(
+    map: &std::collections::BTreeMap<String, String>,
+    path: &std::path::Path,
+) -> std::io::Result<()> {
+    let mut out = String::from("trigger,replacement\n");
+    for (k, v) in map {
+        let clean_k = if k.contains(',') || k.contains('"') || k.contains('\n') {
+            format!("\"{}\"", k.replace('"', "\"\""))
+        } else {
+            k.clone()
+        };
+        let clean_v = if v.contains(',') || v.contains('"') || v.contains('\n') {
+            format!("\"{}\"", v.replace('"', "\"\""))
+        } else {
+            v.clone()
+        };
+        out.push_str(&format!("{},{}\n", clean_k, clean_v));
+    }
+    if let Some(p) = path.parent() {
+        let _ = std::fs::create_dir_all(p);
+    }
+    std::fs::write(path, out)
+}
+
+fn import_autocorrect_csv(
+    path: &std::path::Path,
+) -> anyhow::Result<std::collections::BTreeMap<String, String>> {
+    let content = std::fs::read_to_string(path)?;
+    let mut map = std::collections::BTreeMap::new();
+    for (idx, line) in content.lines().enumerate() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        if idx == 0
+            && (trimmed.eq_ignore_ascii_case("trigger,replacement")
+                || trimmed.eq_ignore_ascii_case("shortcut,replacement"))
+        {
+            continue;
+        }
+        let parts = parse_csv_line(trimmed);
+        if parts.len() >= 2 {
+            let k = parts[0].clone();
+            let v = parts[1].clone();
+            if !k.is_empty() && !v.is_empty() {
+                map.insert(k, v);
+            }
+        }
+    }
+    Ok(map)
 }
 
 fn handle_dev_command(dev_cmd: DevCommands, config_mgr: &ConfigManager) -> anyhow::Result<()> {
