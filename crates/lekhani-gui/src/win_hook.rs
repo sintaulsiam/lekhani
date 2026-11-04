@@ -335,6 +335,11 @@ unsafe extern "system" fn low_level_mouse_proc(
             return 1; // Consume stray click on candidate window padding/border so it does not dismiss
         }
 
+        // Record click position to provide high-precision caret anchoring for modern apps
+        if msg == WM_LBUTTONDOWN {
+            crate::win_candidate::record_mouse_click(pt);
+        }
+
         // Click outside candidate window:
         // Safely commit uncommitted preedit and hide candidate window so subsequent typing
         // in the newly clicked window does not send backspaces or corrupted preedit!

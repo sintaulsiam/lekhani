@@ -37,8 +37,32 @@ pub struct CandidateData {
 
 static CANDIDATE_DATA: Mutex<Option<CandidateData>> = Mutex::new(None);
 static CANDIDATE_HWND: Mutex<Option<usize>> = Mutex::new(None);
+pub static LAST_CLICK_POS: Mutex<Option<(usize, POINT)>> = Mutex::new(None);
+
+pub fn record_mouse_click(pt: POINT) {
+    unsafe {
+        let fg_hwnd = GetForegroundWindow();
+        if fg_hwnd != 0 as _ {
+            let mut rect: RECT = std::mem::zeroed();
+            if GetWindowRect(fg_hwnd, &mut rect) != 0 {
+                // Record mouse click if it was within the active foreground window
+                if pt.x >= rect.left && pt.x <= rect.right && pt.y >= rect.top && pt.y <= rect.bottom {
+                    if let Ok(mut guard) = LAST_CLICK_POS.lock() {
+                        *guard = Some((fg_hwnd as usize, pt));
+                    }
+                }
+            }
+        }
+    }
+}
 
 unsafe fn get_window_dpi(hwnd: HWND) -> u32 {
+    use windows_sys::Win32::UI::HiDpi::GetDpiForWindow;
+    let dpi = GetDpiForWindow(hwnd);
+    if dpi > 0 {
+        return dpi;
+    }
+
     use windows_sys::Win32::Graphics::Gdi::{GetDC, GetDeviceCaps, ReleaseDC, LOGPIXELSY};
     let hdc = GetDC(hwnd);
     if hdc != 0 as _ {
@@ -241,43 +265,127 @@ impl CandidateWindow {
 
         unsafe {
             let mut pt = POINT { x: 0, y: 0 };
-            let mut gui_info: GUITHREADINFO = std::mem::zeroed();
-            gui_info.cbSize = std::mem::size_of::<GUITHREADINFO>() as u32;
+            let fg_hwnd = GetForegroundWindow();
+            let mut fg_rect: RECT = std::mem::zeroed();
+            let fg_valid = fg_hwnd != 0 as _ && GetWindowRect(fg_hwnd, &mut fg_rect) != 0;
 
-            let has_caret = GetGUIThreadInfo(0, &mut gui_info) != 0
-                && gui_info.hwndCaret != 0 as _
-                && (gui_info.rcCaret.left != 0
-                    || gui_info.rcCaret.top != 0
-                    || gui_info.rcCaret.right != 0
-                    || gui_info.rcCaret.bottom != 0);
+            let mut caret_found = false;
+            let mut caret_h = (20.0 * scale).round() as i32;
 
-            if has_caret {
-                pt.x = gui_info.rcCaret.left;
-                pt.y = gui_info.rcCaret.bottom + 4;
-                ClientToScreen(gui_info.hwndCaret, &mut pt);
-            } else {
-                GetCursorPos(&mut pt);
-                // Sanity check against foreground window boundaries
-                let fg_hwnd = GetForegroundWindow();
-                if fg_hwnd != 0 as _ {
-                    let mut fg_rect: RECT = std::mem::zeroed();
-                    if GetWindowRect(fg_hwnd, &mut fg_rect) != 0 {
-                        let inside_fg = pt.x >= fg_rect.left - 100
-                            && pt.x <= fg_rect.right + 100
-                            && pt.y >= fg_rect.top - 100
-                            && pt.y <= fg_rect.bottom + 100;
-                        if !inside_fg {
-                            // Mouse is on another monitor or far away; anchor near bottom-left of target window
-                            pt.x = fg_rect.left + 30;
-                            pt.y = fg_rect.bottom - height - 40;
-                        } else {
-                            pt.y += 24;
-                        }
+            // 1. First-class Win32 Foreground Caret Resolution
+            if fg_hwnd != 0 as _ {
+                let mut thread_id = 0;
+                let fg_thread = windows_sys::Win32::UI::WindowsAndMessaging::GetWindowThreadProcessId(
+                    fg_hwnd,
+                    &mut thread_id,
+                );
+
+                let mut gui_info: GUITHREADINFO = std::mem::zeroed();
+                gui_info.cbSize = std::mem::size_of::<GUITHREADINFO>() as u32;
+
+                let gui_ok = if fg_thread != 0 {
+                    GetGUIThreadInfo(fg_thread, &mut gui_info) != 0
+                } else {
+                    GetGUIThreadInfo(0, &mut gui_info) != 0
+                };
+
+                if gui_ok {
+                    let rc = gui_info.rcCaret;
+                    let has_valid_rc = (rc.right > rc.left || rc.bottom > rc.top)
+                        && (rc.bottom - rc.top > 2)
+                        && (rc.bottom - rc.top < 300);
+
+                    // Support both hwndCaret and hwndFocus
+                    let target_hwnd = if gui_info.hwndCaret != 0 as _ {
+                        gui_info.hwndCaret
+                    } else if gui_info.hwndFocus != 0 as _ {
+                        gui_info.hwndFocus
                     } else {
-                        pt.y += 24;
+                        fg_hwnd
+                    };
+
+                    if has_valid_rc && target_hwnd != 0 as _ {
+                        let mut test_pt = POINT {
+                            x: rc.left,
+                            y: rc.bottom + 4,
+                        };
+                        ClientToScreen(target_hwnd, &mut test_pt);
+
+                        // Verify test_pt is within or close to foreground window boundaries
+                        let is_plausible = if fg_valid {
+                            test_pt.x >= fg_rect.left - 50
+                                && test_pt.x <= fg_rect.right + 50
+                                && test_pt.y >= fg_rect.top - 50
+                                && test_pt.y <= fg_rect.bottom + 50
+                        } else {
+                            true
+                        };
+
+                        if is_plausible {
+                            pt = test_pt;
+                            caret_h = (rc.bottom - rc.top).max((16.0 * scale).round() as i32);
+                            caret_found = true;
+                        }
+                    }
+                }
+            }
+
+            // 2. High-precision Last Click Hint for modern apps (Chrome, Edge, VS Code, Slack, Word)
+            if !caret_found && fg_valid {
+                if let Ok(guard) = LAST_CLICK_POS.lock() {
+                    if let Some((hint_hwnd, hint_pt)) = *guard {
+                        if hint_hwnd == fg_hwnd as usize {
+                            let inside_fg = hint_pt.x >= fg_rect.left
+                                && hint_pt.x <= fg_rect.right
+                                && hint_pt.y >= fg_rect.top
+                                && hint_pt.y <= fg_rect.bottom;
+                            if inside_fg {
+                                // User clicked right here in the foreground window to start typing!
+                                pt.x = hint_pt.x;
+                                pt.y = hint_pt.y + (22.0 * scale).round() as i32;
+                                caret_h = (20.0 * scale).round() as i32;
+                                caret_found = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. Fallback: Focused Child Control bounds (e.g. Search Box, Input Field)
+            if !caret_found && fg_hwnd != 0 as _ {
+                let mut gui_info: GUITHREADINFO = std::mem::zeroed();
+                gui_info.cbSize = std::mem::size_of::<GUITHREADINFO>() as u32;
+                if GetGUIThreadInfo(0, &mut gui_info) != 0 && gui_info.hwndFocus != 0 as _ && gui_info.hwndFocus != fg_hwnd {
+                    let mut focus_rect: RECT = std::mem::zeroed();
+                    if GetWindowRect(gui_info.hwndFocus, &mut focus_rect) != 0 {
+                        let w = focus_rect.right - focus_rect.left;
+                        let h = focus_rect.bottom - focus_rect.top;
+                        if w > 20 && h > 10 && h < 200 {
+                            pt.x = focus_rect.left + 4;
+                            pt.y = focus_rect.bottom + 4;
+                            caret_found = true;
+                        }
+                    }
+                }
+            }
+
+            // 4. Fallback: Mouse cursor position if strictly inside foreground window
+            if !caret_found {
+                GetCursorPos(&mut pt);
+                if fg_valid {
+                    let inside_fg = pt.x >= fg_rect.left + 10
+                        && pt.x <= fg_rect.right - 10
+                        && pt.y >= fg_rect.top + 20
+                        && pt.y <= fg_rect.bottom - 20;
+                    if inside_fg {
+                        pt.y += (22.0 * scale).round() as i32;
+                    } else {
+                        // Position predictably near upper third of active document area
+                        pt.x = fg_rect.left + (40.0 * scale).round() as i32;
+                        pt.y = fg_rect.top + (80.0 * scale).round() as i32;
                     }
                 } else {
-                    pt.y += 24;
+                    pt.y += (22.0 * scale).round() as i32;
                 }
             }
 
@@ -307,7 +415,7 @@ impl CandidateWindow {
 
             if pt.y + height > work_bottom - 8 {
                 // If it overflows bottom of the screen, flip above the caret
-                pt.y = (pt.y - height - 32).max(work_top + 8);
+                pt.y = (pt.y - caret_h - height - 8).max(work_top + 8);
             }
             if pt.y < work_top + 8 {
                 pt.y = work_top + 8;
