@@ -81,7 +81,7 @@ export component VectorIconButton inherits Rectangle {
             Text {
                 text: root.tooltip;
                 color: #e2e8f0;
-                font-size: 9.5px;
+                font-size: 11px;
                 font-weight: 500;
                 vertical-alignment: center;
             }
@@ -181,7 +181,7 @@ export component SegmentButton inherits Rectangle {
             Text {
                 text: root.label;
                 color: root.active ? #ffffff : (ta.has-hover ? #f8fafc : #94a3b8);
-                font-size: 11.5px;
+                font-size: 12px;
                 font-weight: root.active ? 700 : 500;
             }
         }
@@ -268,7 +268,7 @@ export component LayoutSelectorPill inherits Rectangle {
             Text {
                 text: root.is-bengali ? root.layout-name : "English";
                 color: root.is-bengali ? (root.active ? #38bdf8 : #f8fafc) : (root.active ? #f8fafc : #cbd5e1);
-                font-size: 11.5px;
+                font-size: 12px;
                 font-weight: 600;
                 vertical-alignment: center;
             }
@@ -317,7 +317,7 @@ export component KeyCapButton inherits Rectangle {
         y: 2px;
         text: root.latin-char;
         color: #64748b;
-        font-size: 8.5px;
+        font-size: 10px;
         font-weight: 600;
     }
 
@@ -326,7 +326,7 @@ export component KeyCapButton inherits Rectangle {
         Text {
             text: root.key-char;
             color: root.text-color;
-            font-size: 13.5px;
+            font-size: 14px;
             font-weight: 600;
             horizontal-alignment: center;
             vertical-alignment: center;
@@ -376,7 +376,7 @@ export component ModernButton inherits Rectangle {
             Text {
                 text: root.text;
                 color: (root.primary || root.danger) ? #ffffff : (ta.has-hover ? #ffffff : #f1f5f9);
-                font-size: 11.5px;
+                font-size: 12px;
                 font-weight: (root.primary || root.danger) ? 700 : 600;
                 vertical-alignment: center;
             }
@@ -445,7 +445,7 @@ export component ConfirmModal inherits Rectangle {
                     Text {
                         text: root.is-danger ? "Irreversible Operation" : "Preference Change";
                         color: root.is-danger ? #f38ba8 : #89b4fa;
-                        font-size: 10.5px;
+                        font-size: 11px;
                         font-weight: 600;
                     }
                 }
@@ -654,7 +654,7 @@ export component SidebarTabItem inherits Rectangle {
                     padding-bottom: 2px;
                     Text {
                         text: root.badge;
-                        font-size: 9.5px;
+                        font-size: 10px;
                         font-weight: 700;
                         color: root.active ? #89b4fa : #a6adc8;
                     }
@@ -713,7 +713,7 @@ export component SettingRow inherits Rectangle {
                 if (root.subtitle != ""): Text {
                     text: root.subtitle;
                     color: #828ba2;
-                    font-size: 10.5px;
+                    font-size: 11px;
                     wrap: word-wrap;
                 }
             }
@@ -761,7 +761,7 @@ export component SettingCard inherits Rectangle {
             Text {
                 text: root.title;
                 color: root.title-color;
-                font-size: 10.5px;
+                font-size: 11px;
                 font-weight: 700;
                 letter-spacing: 0.5px;
                 vertical-alignment: center;
@@ -791,8 +791,7 @@ export component EmptyStateView inherits Rectangle {
                 height: 46px;
                 border-radius: 12px;
                 background: #89b4fa18;
-                border-width: 1px;
-                border-color: #89b4fa33;
+                border-width: 0px;
 
                 VerticalLayout {
                     alignment: center;
@@ -810,7 +809,7 @@ export component EmptyStateView inherits Rectangle {
         Text {
             text: root.title;
             color: #e2e8f0;
-            font-size: 13.5px;
+            font-size: 14px;
             font-weight: 700;
             horizontal-alignment: center;
         }
@@ -818,7 +817,7 @@ export component EmptyStateView inherits Rectangle {
         if (root.subtitle != "" || root.message != ""): Text {
             text: root.subtitle != "" ? root.subtitle : root.message;
             color: #94a3b8;
-            font-size: 11.5px;
+            font-size: 12px;
             horizontal-alignment: center;
             wrap: word-wrap;
             max-width: 320px;
@@ -901,7 +900,7 @@ export component SettingsContent inherits ScrollView {
                         Text {
                             text: "100% Offline & Private • ১০০% অফলাইন ও সম্পূর্ণ নিরাপদ";
                             color: #10b981;
-                            font-size: 11.5px;
+                            font-size: 12px;
                             font-weight: 700;
                             vertical-alignment: center;
                         }
@@ -909,7 +908,7 @@ export component SettingsContent inherits ScrollView {
                     Text {
                         text: "Lekhani requires zero network access. Keystrokes, personal vocabulary, and settings run 100% locally on your computer and never leave your machine.";
                         color: #94a3b8;
-                        font-size: 10.5px;
+                        font-size: 11px;
                         wrap: word-wrap;
                     }
                 }
@@ -986,7 +985,7 @@ export component SettingsContent inherits ScrollView {
                                 Text {
                                     text: "Global keyboard shortcut to switch between Bengali & English";
                                     color: #828ba2;
-                                    font-size: 10.5px;
+                                    font-size: 11px;
                                 }
                             }
 
@@ -1070,7 +1069,7 @@ export component SettingsContent inherits ScrollView {
                     Text {
                         text: "Learned Vocabulary (শেখা শব্দ):";
                         color: #94a3b8;
-                        font-size: 11.5px;
+                        font-size: 12px;
                         vertical-alignment: center;
                     }
                     Text {
@@ -1268,7 +1267,7 @@ export component SettingsContent inherits ScrollView {
                                         Text {
                                             text: "Complete system backup (.json)";
                                             color: #10b981;
-                                            font-size: 10.5px;
+                                            font-size: 11px;
                                             font-weight: 600;
                                         }
                                     }
@@ -1346,7 +1345,7 @@ export component SettingsContent inherits ScrollView {
                                         Text {
                                             text: "Personalized vocabulary list (.json)";
                                             color: #10b981;
-                                            font-size: 10.5px;
+                                            font-size: 11px;
                                             font-weight: 600;
                                         }
                                     }
@@ -1422,7 +1421,7 @@ export component SettingsContent inherits ScrollView {
                             Text {
                                 text: "Permanently erase learned models or restore all settings back to defaults";
                                 color: #fca5a5;
-                                font-size: 10.5px;
+                                font-size: 11px;
                             }
                         }
                     }

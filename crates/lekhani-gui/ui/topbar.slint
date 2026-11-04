@@ -45,7 +45,7 @@ export component TopBarWindow inherits Window {
     always-on-top: true;
     no-frame: true;
     background: transparent;
-    default-font-family: "Noto Sans, Noto Sans Bengali, Noto Color Emoji, Noto Emoji, Symbola, Inter, Roboto, sans-serif";
+    default-font-family: "Noto Sans, Noto Sans Bengali, Kalpurush, SolaimanLipi, Siyam Rupali, Vrinda, Inter, Roboto, Segoe UI, Noto Color Emoji, Noto Emoji, Symbola, sans-serif";
 
     in-out property <string> active-layout-name: "Avro Phonetic";
     in-out property <[string]> available-layouts: [
@@ -395,7 +395,7 @@ export component TopBarWindow inherits Window {
                         Text {
                             text: "KEYBOARD LAYOUT";
                             color: #94a3b8;
-                            font-size: 9.5px;
+                            font-size: 10px;
                             font-weight: 700;
                             vertical-alignment: center;
                         }
@@ -431,7 +431,7 @@ export component TopBarWindow inherits Window {
                             Text {
                                 text: "English (Standard)";
                                 color: !root.is-bengali-mode ? #38bdf8 : #cbd5e1;
-                                font-size: 11.5px;
+                                font-size: 12px;
                                 font-weight: !root.is-bengali-mode ? 700 : 500;
                                 vertical-alignment: center;
                             }
@@ -440,7 +440,7 @@ export component TopBarWindow inherits Window {
                                 text: "✓";
                                 color: #38bdf8;
                                 font-size: 12px;
-                                font-weight: 800;
+                                font-weight: 700;
                                 vertical-alignment: center;
                             }
                         }
@@ -474,7 +474,7 @@ export component TopBarWindow inherits Window {
                             Text {
                                 text: layout;
                                 color: (root.is-bengali-mode && layout == root.active-layout-name) ? #38bdf8 : #cbd5e1;
-                                font-size: 11.5px;
+                                font-size: 12px;
                                 font-weight: (root.is-bengali-mode && layout == root.active-layout-name) ? 700 : 500;
                                 vertical-alignment: center;
                             }
@@ -483,7 +483,7 @@ export component TopBarWindow inherits Window {
                                 text: "✓";
                                 color: #38bdf8;
                                 font-size: 12px;
-                                font-weight: 800;
+                                font-weight: 700;
                                 vertical-alignment: center;
                             }
                         }
@@ -521,7 +521,7 @@ export component TopBarWindow inherits Window {
                         Text {
                             text: "Keyboard Viewer — " + root.active-layout-name;
                             color: #f1f5f9;
-                            font-size: 13.5px;
+                            font-size: 14px;
                             font-weight: 700;
                             vertical-alignment: center;
                         }
@@ -654,7 +654,7 @@ export component TopBarWindow inherits Window {
                         Text {
                             text: "AutoCorrect";
                             color: #f1f5f9;
-                            font-size: 13.5px;
+                            font-size: 14px;
                             font-weight: 700;
                             vertical-alignment: center;
                         }
@@ -697,7 +697,7 @@ export component TopBarWindow inherits Window {
                         Text {
                             text: "ADD WORD";
                             color: #89b4fa;
-                            font-size: 9.5px;
+                            font-size: 10px;
                             font-weight: 700;
                         }
 
@@ -740,7 +740,7 @@ export component TopBarWindow inherits Window {
                     Text {
                         text: root.ac-status-text;
                         color: #585b70;
-                        font-size: 10.5px;
+                        font-size: 11px;
                     }
                 }
             }
@@ -775,7 +775,7 @@ export component TopBarWindow inherits Window {
                         Text {
                             text: "Bijoy ⇄ Unicode Converter";
                             color: #f1f5f9;
-                            font-size: 13.5px;
+                            font-size: 14px;
                             font-weight: 700;
                             vertical-alignment: center;
                         }
@@ -989,7 +989,7 @@ export component TopBarWindow inherits Window {
                         Text {
                             text: "Settings";
                             color: #f1f5f9;
-                            font-size: 13.5px;
+                            font-size: 14px;
                             font-weight: 700;
                             vertical-alignment: center;
                         }
@@ -1033,7 +1033,7 @@ export component TopBarWindow inherits Window {
                                 Text {
                                     text: "PHONETIC & BASIC TYPING";
                                     color: #89b4fa;
-                                    font-size: 9.5px;
+                                    font-size: 10px;
                                     font-weight: 700;
                                 }
 
@@ -1091,7 +1091,7 @@ export component TopBarWindow inherits Window {
                                     Text {
                                         text: "Mode Toggle Hotkey:";
                                         color: #cdd6f4;
-                                        font-size: 11.5px;
+                                        font-size: 12px;
                                         vertical-alignment: center;
                                     }
 
@@ -1132,7 +1132,7 @@ export component TopBarWindow inherits Window {
                                 Text {
                                     text: "SMART TYPING ASSISTANCE";
                                     color: #cba6f7;
-                                    font-size: 9.5px;
+                                    font-size: 10px;
                                     font-weight: 700;
                                 }
 
@@ -1175,7 +1175,7 @@ export component TopBarWindow inherits Window {
                                 Text {
                                     text: "WORD SUGGESTIONS & PREDICTIONS";
                                     color: #f38ba8;
-                                    font-size: 9.5px;
+                                    font-size: 10px;
                                     font-weight: 700;
                                 }
 
@@ -1230,7 +1230,7 @@ export component TopBarWindow inherits Window {
                                 Text {
                                     text: "PRODUCTIVITY SHORTCUTS";
                                     color: #fab387;
-                                    font-size: 9.5px;
+                                    font-size: 10px;
                                     font-weight: 700;
                                 }
 
@@ -1255,7 +1255,7 @@ export component TopBarWindow inherits Window {
                                 Text {
                                     text: "FIXED LAYOUT AUTOMATION";
                                     color: #a6e3a1;
-                                    font-size: 9.5px;
+                                    font-size: 10px;
                                     font-weight: 700;
                                 }
 
@@ -1304,7 +1304,7 @@ export component TopBarWindow inherits Window {
                                 Text {
                                     text: "SYSTEM";
                                     color: #f9e2af;
-                                    font-size: 9.5px;
+                                    font-size: 10px;
                                     font-weight: 700;
                                 }
 
@@ -1329,7 +1329,7 @@ export component TopBarWindow inherits Window {
                                 Text {
                                     text: "DATA & BACKUP MANAGEMENT";
                                     color: #38bdf8;
-                                    font-size: 9.5px;
+                                    font-size: 10px;
                                     font-weight: 700;
                                 }
 
@@ -1364,7 +1364,7 @@ export component TopBarWindow inherits Window {
                                                 Text {
                                                     text: "Full Workspace Archive";
                                                     color: #f1f5f9;
-                                                    font-size: 11.5px;
+                                                    font-size: 12px;
                                                     font-weight: 700;
                                                 }
                                                 Text {
@@ -1425,7 +1425,7 @@ export component TopBarWindow inherits Window {
                                                 Text {
                                                     text: "Learned Words & Phrases";
                                                     color: #f1f5f9;
-                                                    font-size: 11.5px;
+                                                    font-size: 12px;
                                                     font-weight: 700;
                                                 }
                                                 Text {
@@ -1486,7 +1486,7 @@ export component TopBarWindow inherits Window {
                                                 Text {
                                                     text: "Danger Zone";
                                                     color: #f38ba8;
-                                                    font-size: 11.5px;
+                                                    font-size: 12px;
                                                     font-weight: 700;
                                                 }
                                                 Text {
@@ -1525,7 +1525,7 @@ export component TopBarWindow inherits Window {
                         Text {
                             text: root.settings-status-text;
                             color: #94a3b8;
-                            font-size: 11.5px;
+                            font-size: 12px;
                             vertical-alignment: center;
                         }
                     }
@@ -1590,13 +1590,13 @@ export component TopBarWindow inherits Window {
                         text: "Lekhani (লেখনী)";
                         color: #f1f5f9;
                         font-size: 17px;
-                        font-weight: 800;
+                        font-weight: 700;
                         horizontal-alignment: center;
                     }
                     Text {
                         text: "Fast, Private Bengali Keyboard for Desktop • দ্রুত ও নিরাপদ বাংলা টাইপিং";
                         color: #94a3b8;
-                        font-size: 10.5px;
+                        font-size: 11px;
                         horizontal-alignment: center;
                     }
                 }
@@ -1642,7 +1642,7 @@ export component TopBarWindow inherits Window {
                             Text {
                                 text: "100% Offline & Private (সম্পূর্ণ অফলাইন ও নিরাপদ)";
                                 color: #10b981;
-                                font-size: 10.5px;
+                                font-size: 11px;
                                 font-weight: 700;
                                 vertical-alignment: center;
                             }
@@ -1651,7 +1651,7 @@ export component TopBarWindow inherits Window {
                         Text {
                             text: "• No Internet Access: Lekhani requires zero network access. Keystrokes never leave your PC.\n• On-Device Engine: Transliteration, spell checking, and n-grams run 100% locally on CPU.\n• Protected Local Storage: Learned words and settings remain strictly on your computer.";
                             color: #94a3b8;
-                            font-size: 9.5px;
+                            font-size: 11px;
                             wrap: word-wrap;
                         }
                     }
@@ -1665,7 +1665,7 @@ export component TopBarWindow inherits Window {
                 Text {
                     text: "Author: Sintaul Mahdi Siam • Syntenieum (2026)\nSpecial thanks to Avro Project (OmicronLab) & OpenBangla Keyboard.";
                     color: #64748b;
-                    font-size: 9.5px;
+                    font-size: 11px;
                     horizontal-alignment: center;
                     wrap: word-wrap;
                 }
@@ -1706,7 +1706,7 @@ export component TopBarWindow inherits Window {
                         Text {
                             text: "যুক্তবর্ণ সহায়িকা";
                             color: #f1f5f9;
-                            font-size: 13.5px;
+                            font-size: 14px;
                             font-weight: 700;
                             vertical-alignment: center;
                         }
@@ -1858,7 +1858,7 @@ export component TopBarWindow inherits Window {
                         Text {
                             text: "Typing Analytics";
                             color: #f1f5f9;
-                            font-size: 13.5px;
+                            font-size: 14px;
                             font-weight: 700;
                             vertical-alignment: center;
                         }
@@ -2003,7 +2003,7 @@ export component TopBarWindow inherits Window {
                         Text {
                             text: "FREQUENT CHARACTERS";
                             color: #f9e2af;
-                            font-size: 9.5px;
+                            font-size: 10px;
                             font-weight: 700;
                         }
 
@@ -2084,13 +2084,13 @@ export component TopBarWindow inherits Window {
                         Text {
                             text: root.osd-title;
                             font-size: 12px;
-                            font-weight: 800;
+                            font-weight: 700;
                             color: #cdd6f4;
                         }
 
                         Text {
                             text: root.osd-subtitle;
-                            font-size: 10.5px;
+                            font-size: 11px;
                             font-weight: 600;
                             color: root.osd-badge-color;
                         }
@@ -2147,7 +2147,7 @@ export component StandaloneDialogWindow inherits Window {
     preferred-width: 840px;
     preferred-height: 580px;
     background: #0a0c10;
-    default-font-family: "Noto Sans, Noto Sans Bengali, Noto Color Emoji, Noto Emoji, Symbola, Inter, Roboto, sans-serif";
+    default-font-family: "Noto Sans, Noto Sans Bengali, Kalpurush, SolaimanLipi, Siyam Rupali, Vrinda, Inter, Roboto, Segoe UI, Noto Color Emoji, Noto Emoji, Symbola, sans-serif";
 
     in-out property <int> dialog-type: 4; // 2=Viewer, 3=AutoCorrect, 4=Converter, 5=Settings, 7=Conjuncts, 8=Stats
     in property <string> active-layout-name: "Avro Phonetic";
@@ -2396,7 +2396,7 @@ export component StandaloneDialogWindow inherits Window {
                                 vertical-stretch: 1;
                                 TextEdit {
                                     text <=> root.conv-input-text;
-                                    font-size: 14.5px;
+                                    font-size: 14px;
                                     vertical-stretch: 1;
                                     edited => {
                                         root.conv-copied = false;
@@ -2488,7 +2488,7 @@ export component StandaloneDialogWindow inherits Window {
                                 vertical-stretch: 1;
                                 TextEdit {
                                     text: root.conv-output-text;
-                                    font-size: 14.5px;
+                                    font-size: 14px;
                                     read-only: true;
                                     vertical-stretch: 1;
                                 }
@@ -2527,7 +2527,7 @@ export component StandaloneDialogWindow inherits Window {
                         Text {
                             text: "ADD OR UPDATE WORD";
                             color: #89b4fa;
-                            font-size: 9.5px;
+                            font-size: 10px;
                             font-weight: 700;
                         }
 
@@ -2587,13 +2587,13 @@ export component StandaloneDialogWindow inherits Window {
                             Text {
                                 text: "TRIGGER / SHORTCUT";
                                 color: #64748b;
-                                font-size: 9.5px;
+                                font-size: 10px;
                                 font-weight: 700;
                             }
                             Text {
                                 text: "CORRECTED BENGALI WORD";
                                 color: #64748b;
-                                font-size: 9.5px;
+                                font-size: 10px;
                                 font-weight: 700;
                             }
                         }
@@ -2673,7 +2673,7 @@ export component StandaloneDialogWindow inherits Window {
             Text {
                     text: root.ac-status-text;
                     color: #6c7086;
-                    font-size: 10.5px;
+                    font-size: 11px;
                     horizontal-alignment: center;
                 }
             }
@@ -3131,7 +3131,7 @@ export component StandaloneDialogWindow inherits Window {
                             Text {
                                 text: "Total Words Typed";
                                 color: #89b4fa;
-                                font-size: 10.5px;
+                                font-size: 11px;
                                 font-weight: 700;
                                 horizontal-alignment: center;
                             }
@@ -3140,7 +3140,7 @@ export component StandaloneDialogWindow inherits Window {
                                 text: root.stats-total-words;
                                 color: #f1f5f9;
                                 font-size: 22px;
-                                font-weight: 800;
+                                font-weight: 700;
                                 horizontal-alignment: center;
                             }
                         }
@@ -3158,7 +3158,7 @@ export component StandaloneDialogWindow inherits Window {
                             Text {
                                 text: "Keystrokes Saved";
                                 color: #a6e3a1;
-                                font-size: 10.5px;
+                                font-size: 11px;
                                 font-weight: 700;
                                 horizontal-alignment: center;
                             }
@@ -3167,7 +3167,7 @@ export component StandaloneDialogWindow inherits Window {
                                 text: root.stats-keystrokes-saved;
                                 color: #a6e3a1;
                                 font-size: 22px;
-                                font-weight: 800;
+                                font-weight: 700;
                                 horizontal-alignment: center;
                             }
                         }
