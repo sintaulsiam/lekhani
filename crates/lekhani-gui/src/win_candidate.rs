@@ -190,7 +190,7 @@ impl CandidateWindow {
                 1,
                 0,
                 0,
-                0,
+                5, // CLEARTYPE_QUALITY
                 0,
                 font_name.as_ptr(),
             );
@@ -216,7 +216,7 @@ impl CandidateWindow {
                 let segoe_name: Vec<u16> = "Segoe UI\0".encode_utf16().collect();
                 let segoe_size = (-11.5 * scale).round() as i32;
                 let segoe_font = CreateFontW(
-                    segoe_size, 0, 0, 0, 700, 0, 0, 0, 1, 0, 0, 0, 0,
+                    segoe_size, 0, 0, 0, 700, 0, 0, 0, 1, 0, 0, 5, 0,
                     segoe_name.as_ptr(),
                 );
                 SelectObject(hdc_screen, segoe_font as _);
@@ -437,7 +437,7 @@ impl CandidateWindow {
                 });
             }
 
-            apply_dwm_modern_styling(self.hwnd, is_windows_dark_mode());
+            let has_dwm_corners = apply_dwm_modern_styling(self.hwnd, is_windows_dark_mode());
 
             SetWindowPos(
                 self.hwnd,
@@ -449,11 +449,16 @@ impl CandidateWindow {
                 SWP_NOACTIVATE | SWP_SHOWWINDOW,
             );
 
-            // Apply modern smooth rounded corners to the native Win32 window
-            let corner_r = (10.0 * scale).round() as i32;
-            let rgn = CreateRoundRectRgn(0, 0, total_width + 1, height + 1, corner_r, corner_r);
-            if rgn != 0 as _ {
-                SetWindowRgn(self.hwnd, rgn, 1);
+            // On Windows 11, DWM renders hardware anti-aliased corners and fluid drop shadows.
+            // Calling SetWindowRgn disables DWM window composition; only fall back to SetWindowRgn on Windows 10/7.
+            if !has_dwm_corners {
+                let corner_r = (10.0 * scale).round() as i32;
+                let rgn = CreateRoundRectRgn(0, 0, total_width + 1, height + 1, corner_r, corner_r);
+                if rgn != 0 as _ {
+                    SetWindowRgn(self.hwnd, rgn, 1);
+                }
+            } else {
+                SetWindowRgn(self.hwnd, 0 as _, 1);
             }
 
             InvalidateRect(self.hwnd, std::ptr::null(), 1);
@@ -603,7 +608,8 @@ unsafe fn is_windows_dark_mode() -> bool {
     true // default to dark mode
 }
 
-unsafe fn apply_dwm_modern_styling(hwnd: HWND, dark: bool) {
+unsafe fn apply_dwm_modern_styling(hwnd: HWND, dark: bool) -> bool {
+    let mut has_dwm_corners = false;
     use windows_sys::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryA};
     let lib = LoadLibraryA(c"dwmapi.dll".as_ptr() as *const u8);
     if lib != 0 as _ {
@@ -628,12 +634,15 @@ unsafe fn apply_dwm_modern_styling(hwnd: HWND, dark: bool) {
 
             // DWMWA_WINDOW_CORNER_PREFERENCE (33): DWMWCP_ROUND (2)
             let corner_pref: u32 = 2;
-            set_attr(
+            let res = set_attr(
                 hwnd,
                 33,
                 &corner_pref as *const _ as *const std::ffi::c_void,
                 std::mem::size_of::<u32>() as u32,
             );
+            if res == 0 {
+                has_dwm_corners = true;
+            }
 
             // DWMWA_BORDER_COLOR (34): Emerald/Slate border
             let border_color: u32 = if dark { 0x003B442F } else { 0x00CBD5E1 };
@@ -645,6 +654,7 @@ unsafe fn apply_dwm_modern_styling(hwnd: HWND, dark: bool) {
             );
         }
     }
+    has_dwm_corners
 }
 
 unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
@@ -717,7 +727,7 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
         1,
         0,
         0,
-        0,
+        5, // CLEARTYPE_QUALITY
         0,
         font_name.as_ptr(),
     );
@@ -737,7 +747,7 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
         1,
         0,
         0,
-        0,
+        5, // CLEARTYPE_QUALITY
         0,
         segoe_name.as_ptr(),
     );

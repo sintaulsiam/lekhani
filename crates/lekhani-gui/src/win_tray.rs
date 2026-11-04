@@ -337,7 +337,7 @@ unsafe fn create_badge_icon(
         1,
         0,
         0,
-        0,
+        5, // CLEARTYPE_QUALITY
         0,
         font_name.as_ptr(),
     );

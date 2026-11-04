@@ -4,17 +4,18 @@
 #![cfg(windows)]
 
 use std::sync::Mutex;
-use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, RECT, WPARAM};
+use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, WPARAM};
 use windows_sys::Win32::Graphics::Gdi::{
     BeginPaint, CreateFontW, CreateSolidBrush, DeleteObject, DrawTextW, EndPaint, FillRect,
-    InvalidateRect, RoundRect, SelectObject, SetBkMode, SetTextColor, DT_CENTER, DT_SINGLELINE,
-    DT_VCENTER, HDC, PAINTSTRUCT, TRANSPARENT,
+    GetMonitorInfoW, InvalidateRect, MonitorFromPoint, MonitorFromWindow, RoundRect, SelectObject,
+    SetBkMode, SetTextColor, DT_CENTER, DT_SINGLELINE, DT_VCENTER, HDC, MONITORINFO,
+    MONITOR_DEFAULTTONEAREST, MONITOR_DEFAULTTOPRIMARY, PAINTSTRUCT, TRANSPARENT,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CreateWindowExW, DefWindowProcW, GetSystemMetrics, KillTimer, RegisterClassW, SetTimer,
-    SetWindowPos, ShowWindow, CS_HREDRAW, CS_VREDRAW, HWND_TOPMOST, SM_CXSCREEN, SM_CYSCREEN,
-    SWP_NOACTIVATE, SWP_SHOWWINDOW, SW_HIDE, WM_ERASEBKGND, WM_PAINT, WM_TIMER, WNDCLASSW,
-    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
+    CreateWindowExW, DefWindowProcW, GetForegroundWindow, GetSystemMetrics, KillTimer,
+    RegisterClassW, SetTimer, SetWindowPos, ShowWindow, CS_HREDRAW, CS_VREDRAW, HWND_TOPMOST,
+    SM_CXSCREEN, SM_CYSCREEN, SWP_NOACTIVATE, SWP_SHOWWINDOW, SW_HIDE, WM_ERASEBKGND, WM_PAINT,
+    WM_TIMER, WNDCLASSW, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
 
 const OSD_TIMER_ID: usize = 0x105D;
@@ -38,6 +39,11 @@ unsafe impl Send for OsdWindow {}
 unsafe impl Sync for OsdWindow {}
 
 unsafe fn get_osd_dpi(hwnd: HWND) -> u32 {
+    use windows_sys::Win32::UI::HiDpi::GetDpiForWindow;
+    let dpi = GetDpiForWindow(hwnd);
+    if dpi > 0 {
+        return dpi;
+    }
     use windows_sys::Win32::Graphics::Gdi::{GetDC, GetDeviceCaps, ReleaseDC, LOGPIXELSY};
     let hdc = GetDC(hwnd);
     if hdc != 0 as _ {
@@ -48,6 +54,41 @@ unsafe fn get_osd_dpi(hwnd: HWND) -> u32 {
         }
     }
     96
+}
+
+unsafe fn apply_dwm_osd_styling(hwnd: HWND) {
+    use windows_sys::Win32::System::LibraryLoader::{GetProcAddress, LoadLibraryA};
+    let lib = LoadLibraryA(c"dwmapi.dll".as_ptr() as *const u8);
+    if lib != 0 as _ {
+        let fn_ptr = GetProcAddress(lib, c"DwmSetWindowAttribute".as_ptr() as *const u8);
+        if let Some(dwm_set_attr) = fn_ptr {
+            type DwmSetAttrFn = unsafe extern "system" fn(
+                HWND,
+                u32,
+                *const std::ffi::c_void,
+                u32,
+            ) -> i32;
+            let set_attr: DwmSetAttrFn = std::mem::transmute(dwm_set_attr);
+
+            // DWMWA_USE_IMMERSIVE_DARK_MODE (20)
+            let dark_val: u32 = 1;
+            set_attr(
+                hwnd,
+                20,
+                &dark_val as *const _ as *const std::ffi::c_void,
+                std::mem::size_of::<u32>() as u32,
+            );
+
+            // DWMWA_WINDOW_CORNER_PREFERENCE (33): DWMWCP_ROUND (2)
+            let corner_pref: u32 = 2;
+            set_attr(
+                hwnd,
+                33,
+                &corner_pref as *const _ as *const std::ffi::c_void,
+                std::mem::size_of::<u32>() as u32,
+            );
+        }
+    }
 }
 
 impl OsdWindow {
@@ -111,12 +152,39 @@ impl OsdWindow {
             let width = (240.0 * scale).round() as i32;
             let height = (54.0 * scale).round() as i32;
 
-            let screen_w = GetSystemMetrics(SM_CXSCREEN);
-            let screen_h = GetSystemMetrics(SM_CYSCREEN);
+            // Target the active monitor where the foreground window is located
+            let fg_hwnd = GetForegroundWindow();
+            let mut monitor_info: MONITORINFO = std::mem::zeroed();
+            monitor_info.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
 
-            // Centered horizontally, positioned ~15% from the bottom of the screen
-            let pos_x = (screen_w - width) / 2;
-            let pos_y = screen_h - (screen_h / 5) - height;
+            let h_monitor = if fg_hwnd != 0 as _ {
+                MonitorFromWindow(fg_hwnd, MONITOR_DEFAULTTONEAREST)
+            } else {
+                let pt = POINT { x: 0, y: 0 };
+                MonitorFromPoint(pt, MONITOR_DEFAULTTOPRIMARY)
+            };
+
+            let (work_left, work_top, work_right, work_bottom) = if h_monitor != 0 as _
+                && GetMonitorInfoW(h_monitor, &mut monitor_info) != 0
+            {
+                (
+                    monitor_info.rcWork.left,
+                    monitor_info.rcWork.top,
+                    monitor_info.rcWork.right,
+                    monitor_info.rcWork.bottom,
+                )
+            } else {
+                (0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN))
+            };
+
+            let work_w = work_right - work_left;
+            let work_h = work_bottom - work_top;
+
+            // Centered horizontally, positioned ~15% from the bottom of the active monitor
+            let pos_x = work_left + (work_w - width) / 2;
+            let pos_y = work_bottom - (work_h / 5) - height;
+
+            apply_dwm_osd_styling(self.hwnd);
 
             SetWindowPos(
                 self.hwnd,
@@ -248,7 +316,11 @@ unsafe fn paint_osd(hwnd: HWND, hdc: HDC) {
     SetBkMode(hdc, TRANSPARENT as _);
 
     // Primary Title (e.g. "বাংলা" or "English")
-    let font_name: Vec<u16> = "Segoe UI\0".encode_utf16().collect();
+    let font_name: Vec<u16> = if data.is_bengali {
+        "Nirmala UI\0".encode_utf16().collect()
+    } else {
+        "Segoe UI\0".encode_utf16().collect()
+    };
     let font_size_title = (-18.0 * scale).round() as i32;
     let title_font = CreateFontW(
         font_size_title,
@@ -262,7 +334,7 @@ unsafe fn paint_osd(hwnd: HWND, hdc: HDC) {
         1,
         0,
         0,
-        0,
+        5, // CLEARTYPE_QUALITY
         0,
         font_name.as_ptr(),
     );
@@ -293,6 +365,7 @@ unsafe fn paint_osd(hwnd: HWND, hdc: HDC) {
     );
 
     // Subtitle (e.g. "Avro Phonetic" or "Standard US")
+    let sub_name: Vec<u16> = "Segoe UI\0".encode_utf16().collect();
     let font_size_sub = (-11.0 * scale).round() as i32;
     let sub_font = CreateFontW(
         font_size_sub,
@@ -306,9 +379,9 @@ unsafe fn paint_osd(hwnd: HWND, hdc: HDC) {
         1,
         0,
         0,
+        5, // CLEARTYPE_QUALITY
         0,
-        0,
-        font_name.as_ptr(),
+        sub_name.as_ptr(),
     );
     SelectObject(hdc, sub_font as _);
     SetTextColor(hdc, 0x00A6ADC8); // Muted subtext
