@@ -158,7 +158,7 @@ impl WindowsTray {
                 }
             }
 
-            let info_msg = "Press F12 to toggle English / Bengali. Use Tab to cycle suggestions. Right-click for layouts.\0";
+            let info_msg = "Press F12 to toggle English / Bengali. Press Ctrl+F12 to cycle layouts. Right-click for options.\0";
             for (i, c) in info_msg.encode_utf16().enumerate() {
                 if i < 255 {
                     nid.szInfo[i] = c;
@@ -575,7 +575,7 @@ unsafe fn show_tray_menu(hwnd: HWND) {
         probhat_label.as_ptr(),
     );
 
-    let layout_sub_title: Vec<u16> = "Keyboard Layout\0".encode_utf16().collect();
+    let layout_sub_title: Vec<u16> = "Keyboard Layout (Ctrl+F12)\0".encode_utf16().collect();
     AppendMenuW(
         hmenu,
         MF_POPUP,

@@ -58,6 +58,27 @@ impl LayoutManager {
         list
     }
 
+    /// Get the next layout in cyclic order based on the current layout name
+    pub fn get_next_layout(&self, current: &str) -> Option<String> {
+        let list = self.get_layout_list();
+        if list.is_empty() {
+            return None;
+        }
+        let clean_target = normalize_layout_str(current);
+        let current_idx = list
+            .iter()
+            .position(|name| normalize_layout_str(name) == clean_target)
+            .or_else(|| {
+                list.iter().position(|name| {
+                    let clean = normalize_layout_str(name);
+                    clean.contains(&clean_target) || clean_target.contains(&clean)
+                })
+            })
+            .unwrap_or(0);
+        let next_idx = (current_idx + 1) % list.len();
+        Some(list[next_idx].clone())
+    }
+
     pub fn get_layout(&self, name: &str) -> Option<&LayoutInfo> {
         if let Some(info) = self.layouts.get(name) {
             return Some(info);

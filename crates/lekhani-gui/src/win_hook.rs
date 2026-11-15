@@ -30,6 +30,9 @@ use lekhani_settings::{ConfigManager, LayoutManager};
 
 static BENGALI_ACTIVE: AtomicBool = AtomicBool::new(false);
 
+/// Custom extra-info marker to distinguish Lekhani's synthetic keystrokes ('LEKH' in ASCII)
+pub const LEKHANI_EXTRA_INFO: usize = 0x4C454B48;
+
 pub type ModeChangeCallback = Arc<dyn Fn(bool, &str) + Send + Sync>;
 static MODE_CALLBACK: Mutex<Option<ModeChangeCallback>> = Mutex::new(None);
 
@@ -145,6 +148,26 @@ impl HookState {
             }
         }
     }
+
+    fn cycle_layout(&mut self) -> String {
+        // Automatically commit any in-flight composing word before cycling
+        if self.uncommitted_units > 0 {
+            if let Some(committed) = self.session.commit(self.session.get_selected_index()) {
+                self.on_commit();
+                inject_backspaces(self.uncommitted_units);
+                inject_unicode_str(&committed);
+                self.uncommitted_units = 0;
+            }
+        }
+        if let Some(next_name) = self.layout_mgr.get_next_layout(&self.active_layout_name) {
+            self.set_layout(&next_name);
+            self.config_mgr.config.general.active_layout = next_name.clone();
+            self.config_mgr.save();
+            next_name
+        } else {
+            self.active_layout_name.clone()
+        }
+    }
 }
 
 static HOOK_STATE: Mutex<Option<HookState>> = Mutex::new(None);
@@ -210,6 +233,36 @@ pub fn update_active_layout(name: &str) {
             }
         }
     }
+}
+
+/// Cycle to the next installed keyboard layout in sequence, activating Bengali mode if inactive.
+pub fn cycle_layout() -> Option<String> {
+    let mut next_layout = None;
+    if let Ok(mut guard) = HOOK_STATE.lock() {
+        if let Some(ref mut state) = *guard {
+            let next_name = state.cycle_layout();
+            next_layout = Some(next_name.clone());
+            BENGALI_ACTIVE.store(true, Ordering::SeqCst);
+            if let Some(ref tray) = state.tray {
+                tray.set_bengali_active(true, &next_name);
+            }
+            if state.config_mgr.config.general.show_osd {
+                if let Some(ref osd) = state.osd_win {
+                    osd.show("বাংলা", &format!("Lekhani • {}", next_name), true);
+                }
+            }
+        }
+    }
+
+    if let Some(ref layout) = next_layout {
+        if let Ok(guard) = MODE_CALLBACK.lock() {
+            if let Some(ref cb) = *guard {
+                cb(true, layout);
+            }
+        }
+    }
+
+    next_layout
 }
 
 pub fn reload_config() {
@@ -377,7 +430,7 @@ unsafe extern "system" fn low_level_keyboard_proc(
     let kbd = *(l_param as *const KBDLLHOOKSTRUCT);
 
     // Ignore synthetic/injected keystrokes to prevent recursive feedback loop
-    if (kbd.flags & 0x10) != 0 {
+    if (kbd.flags & 0x10) != 0 || kbd.dwExtraInfo == LEKHANI_EXTRA_INFO {
         return CallNextHookEx(0 as _, n_code, w_param, l_param);
     }
 
@@ -400,6 +453,14 @@ unsafe extern "system" fn low_level_keyboard_proc(
     let real_ctrl_down = r_ctrl_down || (l_ctrl_down && !is_alt_gr);
     let real_alt_down = l_alt_down;
 
+    // Layout cycling hotkey: Ctrl+F12 or Shift+F12 to cycle through installed Bengali layouts
+    let is_cycle_layout =
+        vk == VK_F12 && (real_ctrl_down || shift_down) && !real_alt_down && !win_down;
+    if is_cycle_layout {
+        cycle_layout();
+        return 1;
+    }
+
     // Check global toggle hotkeys based on user configuration with F12 safe fallback
     let configured_toggle = if let Ok(guard) = HOOK_STATE.lock() {
         guard
@@ -412,18 +473,18 @@ unsafe extern "system" fn low_level_keyboard_proc(
 
     let is_toggle = if configured_toggle.eq_ignore_ascii_case("Ctrl+Space") {
         (vk == VK_SPACE && real_ctrl_down && !real_alt_down && !win_down)
-            || (vk == VK_F12 && !real_ctrl_down && !real_alt_down && !win_down)
+            || (vk == VK_F12 && !real_ctrl_down && !shift_down && !real_alt_down && !win_down)
     } else if configured_toggle.eq_ignore_ascii_case("Shift+Space") {
         (vk == VK_SPACE && shift_down && !real_ctrl_down && !real_alt_down && !win_down)
-            || (vk == VK_F12 && !real_ctrl_down && !real_alt_down && !win_down)
+            || (vk == VK_F12 && !real_ctrl_down && !shift_down && !real_alt_down && !win_down)
     } else if configured_toggle.eq_ignore_ascii_case("Right Alt")
         || configured_toggle.eq_ignore_ascii_case("AltGr")
     {
         (vk == VK_RMENU && !real_ctrl_down && !win_down)
-            || (vk == VK_F12 && !real_ctrl_down && !real_alt_down && !win_down)
+            || (vk == VK_F12 && !real_ctrl_down && !shift_down && !real_alt_down && !win_down)
     } else {
         // Default F12, plus allow Ctrl+Space as standard convenience
-        (vk == VK_F12 && !real_ctrl_down && !real_alt_down && !win_down)
+        (vk == VK_F12 && !real_ctrl_down && !shift_down && !real_alt_down && !win_down)
             || (vk == VK_SPACE && real_ctrl_down && !real_alt_down && !win_down)
     };
 
@@ -911,7 +972,7 @@ fn inject_backspaces(count: usize) {
                     wScan: 0,
                     dwFlags: 0,
                     time: 0,
-                    dwExtraInfo: 0,
+                    dwExtraInfo: LEKHANI_EXTRA_INFO,
                 },
             },
         });
@@ -923,7 +984,7 @@ fn inject_backspaces(count: usize) {
                     wScan: 0,
                     dwFlags: KEYEVENTF_KEYUP,
                     time: 0,
-                    dwExtraInfo: 0,
+                    dwExtraInfo: LEKHANI_EXTRA_INFO,
                 },
             },
         });
@@ -955,7 +1016,7 @@ fn inject_unicode_str(text: &str) -> usize {
                     wScan: *unit,
                     dwFlags: KEYEVENTF_UNICODE,
                     time: 0,
-                    dwExtraInfo: 0,
+                    dwExtraInfo: LEKHANI_EXTRA_INFO,
                 },
             },
         });
@@ -967,7 +1028,7 @@ fn inject_unicode_str(text: &str) -> usize {
                     wScan: *unit,
                     dwFlags: KEYEVENTF_UNICODE | KEYEVENTF_KEYUP,
                     time: 0,
-                    dwExtraInfo: 0,
+                    dwExtraInfo: LEKHANI_EXTRA_INFO,
                 },
             },
         });

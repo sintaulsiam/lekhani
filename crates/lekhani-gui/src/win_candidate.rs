@@ -34,6 +34,7 @@ pub struct CandidateData {
     pub height: i32,
     pub screen_pos: (i32, i32),
     pub scale: f32,
+    pub is_prediction: bool,
 }
 
 static CANDIDATE_DATA: Mutex<Option<CandidateData>> = Mutex::new(None);
@@ -176,7 +177,7 @@ impl CandidateWindow {
 
         let is_prediction = aux_text.is_empty();
         let badge_text = if is_prediction {
-            "✨ প্রস্তাবনা".to_string()
+            "প্রস্তাবনা".to_string()
         } else {
             aux_text.to_string()
         };
@@ -473,6 +474,7 @@ impl CandidateWindow {
                     height,
                     screen_pos: (pt.x, pt.y),
                     scale,
+                    is_prediction,
                 });
             }
 
@@ -796,7 +798,7 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
     let row_h = (26.0 * scale).round() as i32;
 
     // Badge styling
-    let is_prediction = data.aux_text.starts_with("✨");
+    let is_prediction = data.is_prediction;
     let aux_bg_color = if is_prediction {
         if dark {
             0x00332211

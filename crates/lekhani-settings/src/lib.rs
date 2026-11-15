@@ -709,6 +709,27 @@ mod tests {
     }
 
     #[test]
+    fn test_layout_cycle_next() {
+        let mut layout_mgr = LayoutManager::new();
+        let system_dir = ConfigManager::get_system_layout_dir();
+        layout_mgr.discover_layouts(system_dir, std::path::PathBuf::from("/nonexistent"));
+        let layouts = layout_mgr.get_layout_list();
+        assert!(layouts.len() >= 2);
+
+        let first = &layouts[0];
+        let next = layout_mgr
+            .get_next_layout(first)
+            .expect("Next layout should exist");
+        assert_eq!(next, layouts[1]);
+
+        let last = &layouts[layouts.len() - 1];
+        let wrapped = layout_mgr
+            .get_next_layout(last)
+            .expect("Next layout should wrap");
+        assert_eq!(wrapped, layouts[0]);
+    }
+
+    #[test]
     fn test_backup_bundle_export_import() {
         let temp_dir = std::env::temp_dir().join(format!(
             "lekhani_test_{}",
