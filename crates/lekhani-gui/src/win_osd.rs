@@ -62,12 +62,8 @@ unsafe fn apply_dwm_osd_styling(hwnd: HWND) {
     if lib != 0 as _ {
         let fn_ptr = GetProcAddress(lib, c"DwmSetWindowAttribute".as_ptr() as *const u8);
         if let Some(dwm_set_attr) = fn_ptr {
-            type DwmSetAttrFn = unsafe extern "system" fn(
-                HWND,
-                u32,
-                *const std::ffi::c_void,
-                u32,
-            ) -> i32;
+            type DwmSetAttrFn =
+                unsafe extern "system" fn(HWND, u32, *const std::ffi::c_void, u32) -> i32;
             let set_attr: DwmSetAttrFn = std::mem::transmute(dwm_set_attr);
 
             // DWMWA_USE_IMMERSIVE_DARK_MODE (20)
@@ -164,18 +160,22 @@ impl OsdWindow {
                 MonitorFromPoint(pt, MONITOR_DEFAULTTOPRIMARY)
             };
 
-            let (work_left, work_top, work_right, work_bottom) = if h_monitor != 0 as _
-                && GetMonitorInfoW(h_monitor, &mut monitor_info) != 0
-            {
-                (
-                    monitor_info.rcWork.left,
-                    monitor_info.rcWork.top,
-                    monitor_info.rcWork.right,
-                    monitor_info.rcWork.bottom,
-                )
-            } else {
-                (0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN))
-            };
+            let (work_left, work_top, work_right, work_bottom) =
+                if h_monitor != 0 as _ && GetMonitorInfoW(h_monitor, &mut monitor_info) != 0 {
+                    (
+                        monitor_info.rcWork.left,
+                        monitor_info.rcWork.top,
+                        monitor_info.rcWork.right,
+                        monitor_info.rcWork.bottom,
+                    )
+                } else {
+                    (
+                        0,
+                        0,
+                        GetSystemMetrics(SM_CXSCREEN),
+                        GetSystemMetrics(SM_CYSCREEN),
+                    )
+                };
 
             let work_w = work_right - work_left;
             let work_h = work_bottom - work_top;

@@ -167,7 +167,9 @@ impl AppConfig {
             enable_bilingual_clitic: self.phonetic.enable_bilingual_clitic,
             strict_avro_mode: self.phonetic.strict_avro_mode,
             enable_pragyan: self.phonetic.enable_pragyan,
-            phonetic_grammar: if self.general.active_layout.contains("Lekhani") || self.general.active_layout.contains("LPS") {
+            phonetic_grammar: if self.general.active_layout.contains("Lekhani")
+                || self.general.active_layout.contains("LPS")
+            {
                 lekhani_core::PhoneticGrammar::Lps
             } else {
                 lekhani_core::PhoneticGrammar::AvroClassic

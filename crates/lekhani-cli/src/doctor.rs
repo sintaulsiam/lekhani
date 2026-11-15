@@ -36,7 +36,12 @@ impl CheckItem {
         }
     }
 
-    fn warn(category: &'static str, title: impl Into<String>, details: Vec<String>, fix: Option<String>) -> Self {
+    fn warn(
+        category: &'static str,
+        title: impl Into<String>,
+        details: Vec<String>,
+        fix: Option<String>,
+    ) -> Self {
         Self {
             status: Status::Warn,
             category,
@@ -46,7 +51,12 @@ impl CheckItem {
         }
     }
 
-    fn fail(category: &'static str, title: impl Into<String>, details: Vec<String>, fix: Option<String>) -> Self {
+    fn fail(
+        category: &'static str,
+        title: impl Into<String>,
+        details: Vec<String>,
+        fix: Option<String>,
+    ) -> Self {
         Self {
             status: Status::Fail,
             category,
@@ -133,7 +143,9 @@ pub fn run_doctor() -> anyhow::Result<()> {
     // Summary Banner
     println!("\x1b[1;36m---------------------------------------------------------------\x1b[0m");
     if fail_count == 0 && warn_count == 0 {
-        println!("\x1b[1;32m✓ All system checks passed! Lekhani is ready for optimal typing.\x1b[0m");
+        println!(
+            "\x1b[1;32m✓ All system checks passed! Lekhani is ready for optimal typing.\x1b[0m"
+        );
     } else if fail_count == 0 {
         println!(
             "\x1b[1;33m! System is functional with {} warning(s). Check hints above.\x1b[0m",
@@ -206,7 +218,10 @@ fn check_daemons(checks: &mut Vec<CheckItem>) {
         checks.push(CheckItem::warn(
             "IME Daemons & Processes",
             "No active IME daemon detected (neither Fcitx5 nor IBus)",
-            vec!["Lekhani requires Fcitx5 or IBus to inject keystrokes into desktop apps".to_string()],
+            vec![
+                "Lekhani requires Fcitx5 or IBus to inject keystrokes into desktop apps"
+                    .to_string(),
+            ],
             Some("Start Fcitx5 with `fcitx5 -d` or configure your desktop autostart".to_string()),
         ));
     }
@@ -221,7 +236,10 @@ fn check_daemons(checks: &mut Vec<CheckItem>) {
         checks.push(CheckItem::info(
             "IME Daemons & Processes",
             "Lekhani TopBar & GUI is not currently running",
-            vec!["Launch `lekhani-gui` to show floating topbar, layout switcher, and settings".to_string()],
+            vec![
+                "Launch `lekhani-gui` to show floating topbar, layout switcher, and settings"
+                    .to_string(),
+            ],
         ));
     }
 }
@@ -232,17 +250,26 @@ fn check_environment(checks: &mut Vec<CheckItem>) {
     let xmods = std::env::var("XMODIFIERS").ok();
 
     let mut details = Vec::new();
-    details.push(format!("GTK_IM_MODULE: {}", gtk_im.as_deref().unwrap_or("<unset>")));
-    details.push(format!("QT_IM_MODULE:  {}", qt_im.as_deref().unwrap_or("<unset>")));
-    details.push(format!("XMODIFIERS:    {}", xmods.as_deref().unwrap_or("<unset>")));
+    details.push(format!(
+        "GTK_IM_MODULE: {}",
+        gtk_im.as_deref().unwrap_or("<unset>")
+    ));
+    details.push(format!(
+        "QT_IM_MODULE:  {}",
+        qt_im.as_deref().unwrap_or("<unset>")
+    ));
+    details.push(format!(
+        "XMODIFIERS:    {}",
+        xmods.as_deref().unwrap_or("<unset>")
+    ));
 
     let fcitx_running = is_process_running("fcitx5");
     let ibus_running = is_process_running("ibus-daemon");
 
     let is_fcitx_ok = xmods.as_deref() == Some("@im=fcitx")
         || (fcitx_running && qt_im.as_deref() == Some("fcitx"));
-    let is_ibus_ok = xmods.as_deref() == Some("@im=ibus")
-        || (ibus_running && qt_im.as_deref() == Some("ibus"));
+    let is_ibus_ok =
+        xmods.as_deref() == Some("@im=ibus") || (ibus_running && qt_im.as_deref() == Some("ibus"));
 
     if is_fcitx_ok || is_ibus_ok {
         checks.push(CheckItem::ok(
@@ -314,8 +341,14 @@ fn check_ime_plugins(checks: &mut Vec<CheckItem>) {
         checks.push(CheckItem::warn(
             "Lekhani Addons & Integrations",
             "No installed Fcitx5 or IBus Lekhani addon detected in system paths",
-            vec!["Build and install lekhani-fcitx5 or lekhani-ibus to integrate with system IME".to_string()],
-            Some("Run `cmake -B build crates/lekhani-fcitx5 && sudo cmake --install build`".to_string()),
+            vec![
+                "Build and install lekhani-fcitx5 or lekhani-ibus to integrate with system IME"
+                    .to_string(),
+            ],
+            Some(
+                "Run `cmake -B build crates/lekhani-fcitx5 && sudo cmake --install build`"
+                    .to_string(),
+            ),
         ));
     }
 }
@@ -342,16 +375,35 @@ fn check_fonts(checks: &mut Vec<CheckItem>) {
                 checks.push(CheckItem::warn(
                     "Bengali Typography & Fonts",
                     "No Bengali fonts detected by fontconfig",
-                    vec!["Bengali conjuncts and text may not render cleanly in applications".to_string()],
-                    Some("Install Bengali fonts: `sudo apt install fonts-noto-core fonts-kalpurush`".to_string()),
+                    vec![
+                        "Bengali conjuncts and text may not render cleanly in applications"
+                            .to_string(),
+                    ],
+                    Some(
+                        "Install Bengali fonts: `sudo apt install fonts-noto-core fonts-kalpurush`"
+                            .to_string(),
+                    ),
                 ));
             } else {
-                let popular = ["Noto Sans Bengali", "Noto Serif Bengali", "Kalpurush", "SolaimanLipi", "Siyam Rupali"];
-                let recommended_found: Vec<_> = popular.iter().filter(|f| families.contains(**f)).copied().collect();
+                let popular = [
+                    "Noto Sans Bengali",
+                    "Noto Serif Bengali",
+                    "Kalpurush",
+                    "SolaimanLipi",
+                    "Siyam Rupali",
+                ];
+                let recommended_found: Vec<_> = popular
+                    .iter()
+                    .filter(|f| families.contains(**f))
+                    .copied()
+                    .collect();
 
                 let mut details = vec![format!("Total Bengali font families: {}", families.len())];
                 if !recommended_found.is_empty() {
-                    details.push(format!("Recommended fonts: {}", recommended_found.join(", ")));
+                    details.push(format!(
+                        "Recommended fonts: {}",
+                        recommended_found.join(", ")
+                    ));
                 } else {
                     let sample: Vec<_> = families.iter().take(3).cloned().collect();
                     details.push(format!("Installed fonts: {}", sample.join(", ")));
@@ -381,14 +433,17 @@ fn check_data_files(checks: &mut Vec<CheckItem>) {
     let user_layout = config_mgr.get_user_layout_dir();
 
     let mut layout_mgr = LayoutManager::new();
-    layout_mgr.discover_layouts(
-        &sys_layout,
-        &user_layout,
-    );
+    layout_mgr.discover_layouts(&sys_layout, &user_layout);
 
     let mut details = Vec::new();
-    details.push(format!("Discovered Layouts: {}", layout_mgr.get_layout_list().len()));
-    details.push(format!("Active Layout: {}", config_mgr.config.general.active_layout));
+    details.push(format!(
+        "Discovered Layouts: {}",
+        layout_mgr.get_layout_list().len()
+    ));
+    details.push(format!(
+        "Active Layout: {}",
+        config_mgr.config.general.active_layout
+    ));
 
     let lm_bin = sys_data.join("bengali_lm.bin");
     let avro_dict = sys_data.join("avro_dict.json");
@@ -453,7 +508,10 @@ fn check_autostart(checks: &mut Vec<CheckItem>) {
         checks.push(CheckItem::info(
             "Autostart & Launch",
             "Desktop autostart entry not present in ~/.config/autostart",
-            vec!["Lekhani TopBar can be started manually or configured in desktop settings".to_string()],
+            vec![
+                "Lekhani TopBar can be started manually or configured in desktop settings"
+                    .to_string(),
+            ],
         ));
     }
 }

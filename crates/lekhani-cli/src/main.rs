@@ -442,12 +442,20 @@ fn main() -> anyhow::Result<()> {
                             let target_name = format!("{}{}{}", stem, suffix, ext);
                             let target = out_dir.join(target_name);
                             std::fs::write(&target, &converted)?;
-                            println!("✓ Converted {} -> {} ({} bytes)", path.display(), target.display(), converted.len());
+                            println!(
+                                "✓ Converted {} -> {} ({} bytes)",
+                                path.display(),
+                                target.display(),
+                                converted.len()
+                            );
                             count += 1;
                         }
                     }
                 }
-                println!("Batch directory conversion complete: {} file(s) converted.", count);
+                println!(
+                    "Batch directory conversion complete: {} file(s) converted.",
+                    count
+                );
             } else {
                 let input_content = if input.to_str() == Some("-") {
                     use std::io::Read;
@@ -535,7 +543,11 @@ fn main() -> anyhow::Result<()> {
                     }
                 }
                 DictCommands::Export { path } => {
-                    let is_csv = path.extension().and_then(|s| s.to_str()).map(|s| s.eq_ignore_ascii_case("csv")).unwrap_or(false);
+                    let is_csv = path
+                        .extension()
+                        .and_then(|s| s.to_str())
+                        .map(|s| s.eq_ignore_ascii_case("csv"))
+                        .unwrap_or(false);
                     if is_csv {
                         export_autocorrect_csv(&map, &path)?;
                         println!("Exported {} entries (CSV) to {:?}", map.len(), path);
@@ -549,12 +561,18 @@ fn main() -> anyhow::Result<()> {
                     }
                 }
                 DictCommands::Import { path } => {
-                    let is_csv = path.extension().and_then(|s| s.to_str()).map(|s| s.eq_ignore_ascii_case("csv")).unwrap_or(false);
+                    let is_csv = path
+                        .extension()
+                        .and_then(|s| s.to_str())
+                        .map(|s| s.eq_ignore_ascii_case("csv"))
+                        .unwrap_or(false);
                     let imported = if is_csv {
                         import_autocorrect_csv(&path)?
                     } else {
                         let content = std::fs::read_to_string(&path)?;
-                        serde_json::from_str::<std::collections::BTreeMap<String, String>>(&content)?
+                        serde_json::from_str::<std::collections::BTreeMap<String, String>>(
+                            &content,
+                        )?
                     };
                     let count = imported.len();
                     for (k, v) in imported {
@@ -888,9 +906,16 @@ fn handle_dev_command(dev_cmd: DevCommands, config_mgr: &ConfigManager) -> anyho
             println!("║ Warnings: {:?}", warnings);
             println!("║ Candidates:                                          ║");
             for (i, c) in cands.iter().enumerate() {
-                println!("║   {}. {:<44} ║", i + 1, format!("{} (cost: {})", c.text, c.rule_cost));
+                println!(
+                    "║   {}. {:<44} ║",
+                    i + 1,
+                    format!("{} (cost: {})", c.text, c.rule_cost)
+                );
                 for chip in &c.chips {
-                    println!("║      └─ chip @ {}: active '{}', siblings: {:?}", chip.char_index, chip.active, chip.siblings);
+                    println!(
+                        "║      └─ chip @ {}: active '{}', siblings: {:?}",
+                        chip.char_index, chip.active, chip.siblings
+                    );
                 }
             }
             println!("╚══════════════════════════════════════════════════════╝");
@@ -1316,9 +1341,15 @@ fn run_eval(model_path: Option<PathBuf>) -> anyhow::Result<()> {
 fn run_eval_rig(corpus_path: Option<PathBuf>) -> anyhow::Result<()> {
     use std::time::Instant;
 
-    println!("╔══════════════════════════════════════════════════════════════════════════════════╗");
-    println!("║         🔬 Lekhani Rigorous Evaluation & Ablation Rig (v2.0)                     ║");
-    println!("╚══════════════════════════════════════════════════════════════════════════════════╝");
+    println!(
+        "╔══════════════════════════════════════════════════════════════════════════════════╗"
+    );
+    println!(
+        "║         🔬 Lekhani Rigorous Evaluation & Ablation Rig (v2.0)                     ║"
+    );
+    println!(
+        "╚══════════════════════════════════════════════════════════════════════════════════╝"
+    );
 
     let lm = lekhani_ai::LanguageModel::new();
     let parser = lekhani_parser::default_avro_parser();
@@ -1344,7 +1375,9 @@ fn run_eval_rig(corpus_path: Option<PathBuf>) -> anyhow::Result<()> {
 
     let search_paths = [
         corpus_path,
-        Some(PathBuf::from("/mnt/data/lekhani-engine/data/eval/contextual_eval_200.json")),
+        Some(PathBuf::from(
+            "/mnt/data/lekhani-engine/data/eval/contextual_eval_200.json",
+        )),
         Some(PathBuf::from("data/eval/contextual_eval_200.json")),
     ];
 
@@ -1353,7 +1386,11 @@ fn run_eval_rig(corpus_path: Option<PathBuf>) -> anyhow::Result<()> {
         if p.exists() {
             if let Ok(content) = std::fs::read_to_string(&p) {
                 if let Ok(eval_data) = serde_json::from_str::<EvalJson>(&content) {
-                    println!("📂 Loaded {} benchmark test cases from: {}", eval_data.cases.len(), p.display());
+                    println!(
+                        "📂 Loaded {} benchmark test cases from: {}",
+                        eval_data.cases.len(),
+                        p.display()
+                    );
                     loaded_cases = eval_data.cases;
                     break;
                 }
@@ -1383,10 +1420,19 @@ fn run_eval_rig(corpus_path: Option<PathBuf>) -> anyhow::Result<()> {
     } else {
         vec![
             ("Formal Bengali & Contextual Homophones", &formal_split),
-            ("Sociolinguistic Honorific Agreement (Formal/Familiar/Intimate)", &honorific_split),
-            ("Colloquial, Dialect & Chat Texting Variations", &colloquial_split),
+            (
+                "Sociolinguistic Honorific Agreement (Formal/Familiar/Intimate)",
+                &honorific_split,
+            ),
+            (
+                "Colloquial, Dialect & Chat Texting Variations",
+                &colloquial_split,
+            ),
             ("Code-Switching & Technical Banglish", &codemixed_split),
-            ("Typo Recovery & Fat-Finger Spatial Disambiguation", &typo_split),
+            (
+                "Typo Recovery & Fat-Finger Spatial Disambiguation",
+                &typo_split,
+            ),
             ("Full Suite Overall Benchmark (Combined)", &loaded_cases),
         ]
     };
@@ -1401,17 +1447,33 @@ fn run_eval_rig(corpus_path: Option<PathBuf>) -> anyhow::Result<()> {
     }
 
     let modes = [
-        ("Full Pipeline (Anvaya + 4-gram LM + Rules)", AblationMode::FullPipeline),
-        ("Ablation: -Anvaya (No Honorific Concordance)", AblationMode::NoAnvaya),
-        ("Ablation: -LM (No 4-gram Context Scorer)", AblationMode::NoLM),
-        ("Baseline: Pure Avro Rule-based Trie Only", AblationMode::BaselineAvroOnly),
+        (
+            "Full Pipeline (Anvaya + 4-gram LM + Rules)",
+            AblationMode::FullPipeline,
+        ),
+        (
+            "Ablation: -Anvaya (No Honorific Concordance)",
+            AblationMode::NoAnvaya,
+        ),
+        (
+            "Ablation: -LM (No 4-gram Context Scorer)",
+            AblationMode::NoLM,
+        ),
+        (
+            "Baseline: Pure Avro Rule-based Trie Only",
+            AblationMode::BaselineAvroOnly,
+        ),
     ];
 
     for (split_name, test_cases) in &splits {
         if test_cases.is_empty() {
             continue;
         }
-        println!("\n📊 Dataset Split: {} (N = {})", split_name, test_cases.len());
+        println!(
+            "\n📊 Dataset Split: {} (N = {})",
+            split_name,
+            test_cases.len()
+        );
         println!("┌──────────────────────────────────────────────┬────────┬────────┬─────────────────────────────┐");
         println!("│ Pipeline Configuration                       │ Top-1  │ Top-3  │ KSPC (Theor. Upper Bound)   │");
         println!("├──────────────────────────────────────────────┼────────┼────────┼─────────────────────────────┤");

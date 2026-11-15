@@ -65,7 +65,6 @@ unsafe fn ensure_single_instance() -> bool {
     }
 }
 
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt::init();
     info!("Starting Lekhani GUI Desktop Suite...");
@@ -211,7 +210,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         } else {
             app.set_active_dialog(8);
         }
-
     } else if args.contains(&"--layout-menu".to_string()) {
         app.set_active_dialog(1);
     }
@@ -240,7 +238,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let conjunct_model = Rc::new(slint::VecModel::from(slint_conjuncts));
     app.set_conjunct_list(conjunct_model.clone().into());
     standalone.set_conjunct_list(conjunct_model.into());
-
 
     // Initialize Typing Telemetry & Analytics state
     refresh_stats_ui(&app, &config_mgr);
@@ -297,8 +294,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let is_on_any_monitor = winit_window.available_monitors().any(|m| {
                     let mp = m.position();
                     let ms = m.size();
-                    saved_x >= mp.x - 50 && saved_x < mp.x + ms.width as i32
-                        && saved_y >= mp.y - 50 && saved_y < mp.y + ms.height as i32
+                    saved_x >= mp.x - 50
+                        && saved_x < mp.x + ms.width as i32
+                        && saved_y >= mp.y - 50
+                        && saved_y < mp.y + ms.height as i32
                 });
                 let (target_x, target_y) = if is_on_any_monitor {
                     (saved_x, saved_y)
@@ -361,13 +360,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         // Magnetic snap to current monitor edges
                         if pos.y >= min_y && pos.y < min_y + snap_threshold {
                             pos.y = min_y + 8;
-                        } else if pos.y + win_h > max_y - snap_threshold && pos.y + win_h <= max_y + 50 {
+                        } else if pos.y + win_h > max_y - snap_threshold
+                            && pos.y + win_h <= max_y + 50
+                        {
                             pos.y = (max_y - win_h - 8).max(min_y + 8);
                         }
 
                         if pos.x >= min_x && pos.x < min_x + snap_threshold {
                             pos.x = min_x + 8;
-                        } else if pos.x + win_w > max_x - snap_threshold && pos.x + win_w <= max_x + 50 {
+                        } else if pos.x + win_w > max_x - snap_threshold
+                            && pos.x + win_w <= max_x + 50
+                        {
                             pos.x = (max_x - win_w - 8).max(min_x + 8);
                         }
 
@@ -580,13 +583,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("file");
                             let ext = path.extension().and_then(|s| s.to_str()).unwrap_or("txt");
                             let suffix = if to_unicode { "_unicode." } else { "_bijoy." };
-                            let out_path = path.with_file_name(format!("{}{}{}", stem, suffix, ext));
+                            let out_path =
+                                path.with_file_name(format!("{}{}{}", stem, suffix, ext));
                             let _ = std::fs::write(&out_path, &converted);
                             summary.push(format!("✓ {} -> {}", path.display(), out_path.display()));
                         }
                     }
                 }
-                return format!("Batch converted {} file(s):\n\n{}", summary.len(), summary.join("\n"));
+                return format!(
+                    "Batch converted {} file(s):\n\n{}",
+                    summary.len(),
+                    summary.join("\n")
+                );
             }
         }
 
@@ -706,7 +714,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
     });
 
-
     // Detach Dialog Callback on TopBarWindow
     let standalone_weak_detach = standalone_weak.clone();
     let app_weak_detach = app_weak.clone();
@@ -748,7 +755,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else if dialog_id == 8 {
                 let cm = cm_detach.borrow();
                 refresh_standalone_stats_ui(&standalone, &cm);
-
             }
             let _ = standalone.show();
         }
@@ -842,7 +848,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             });
         }
     });
-
 
     let copy_fn_sa_conj = copy_text.clone();
     standalone.on_copy_conjunct(move |conjunct| {

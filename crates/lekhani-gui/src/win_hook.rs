@@ -115,7 +115,12 @@ impl HookState {
         }
     }
 
-    fn update_candidate_window(&self, aux_text: &str, candidates: &[String], selected_index: usize) {
+    fn update_candidate_window(
+        &self,
+        aux_text: &str,
+        candidates: &[String],
+        selected_index: usize,
+    ) {
         if let Some(ref win) = self.candidate_win {
             win.update(
                 aux_text,
@@ -554,7 +559,8 @@ unsafe extern "system" fn low_level_keyboard_proc(
             // Left / Right / Home / End / PageUp / PageDown in Prediction Mode:
             // Dismiss suggestions and pass through so the user moves their text cursor smoothly!
             if vk == VK_LEFT || vk == VK_RIGHT || vk == 0x24 /* VK_HOME */ || vk == 0x23 /* VK_END */
-                || vk == 0x21 /* VK_PRIOR */ || vk == 0x22 /* VK_NEXT */
+                || vk == 0x21 /* VK_PRIOR */ || vk == 0x22
+            /* VK_NEXT */
             {
                 state.session.reset();
                 if let Some(ref win) = state.candidate_win {

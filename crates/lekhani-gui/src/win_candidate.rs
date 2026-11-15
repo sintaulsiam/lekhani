@@ -7,18 +7,19 @@
 use std::sync::Mutex;
 use windows_sys::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, SIZE, WPARAM};
 use windows_sys::Win32::Graphics::Gdi::{
-    BeginPaint, BitBlt, ClientToScreen, CreateCompatibleBitmap, CreateCompatibleDC, CreateFontW, CreatePen,
-    CreateRoundRectRgn, CreateSolidBrush, DeleteDC, DeleteObject, DrawTextW, EndPaint, FillRect, GetDC,
-    GetMonitorInfoW, GetTextExtentPoint32W, InvalidateRect, LineTo, MonitorFromPoint, MoveToEx, ReleaseDC,
-    RoundRect, SelectObject, SetBkMode, SetTextColor, SetWindowRgn, DT_CENTER, DT_LEFT, DT_SINGLELINE,
-    DT_VCENTER, HDC, MONITORINFO, MONITOR_DEFAULTTONEAREST, PAINTSTRUCT, PS_SOLID, SRCCOPY, TRANSPARENT,
+    BeginPaint, BitBlt, ClientToScreen, CreateCompatibleBitmap, CreateCompatibleDC, CreateFontW,
+    CreatePen, CreateRoundRectRgn, CreateSolidBrush, DeleteDC, DeleteObject, DrawTextW, EndPaint,
+    FillRect, GetDC, GetMonitorInfoW, GetTextExtentPoint32W, InvalidateRect, LineTo,
+    MonitorFromPoint, MoveToEx, ReleaseDC, RoundRect, SelectObject, SetBkMode, SetTextColor,
+    SetWindowRgn, DT_CENTER, DT_LEFT, DT_SINGLELINE, DT_VCENTER, HDC, MONITORINFO,
+    MONITOR_DEFAULTTONEAREST, PAINTSTRUCT, PS_SOLID, SRCCOPY, TRANSPARENT,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, DefWindowProcW, GetCursorPos, GetForegroundWindow, GetGUIThreadInfo,
-    GetSystemMetrics, GetWindowRect, RegisterClassW, SetWindowPos, ShowWindow,
-    CS_DROPSHADOW, CS_HREDRAW, CS_VREDRAW, GUITHREADINFO, HWND_TOPMOST, SM_CXSCREEN, SM_CYSCREEN,
-    SWP_NOACTIVATE, SWP_SHOWWINDOW, SW_HIDE, WM_ERASEBKGND, WM_LBUTTONUP, WM_PAINT, WNDCLASSW,
-    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
+    GetSystemMetrics, GetWindowRect, RegisterClassW, SetWindowPos, ShowWindow, CS_DROPSHADOW,
+    CS_HREDRAW, CS_VREDRAW, GUITHREADINFO, HWND_TOPMOST, SM_CXSCREEN, SM_CYSCREEN, SWP_NOACTIVATE,
+    SWP_SHOWWINDOW, SW_HIDE, WM_ERASEBKGND, WM_LBUTTONUP, WM_PAINT, WNDCLASSW, WS_EX_NOACTIVATE,
+    WS_EX_TOOLWINDOW, WS_EX_TOPMOST, WS_POPUP,
 };
 
 #[derive(Clone, Default)]
@@ -46,7 +47,11 @@ pub fn record_mouse_click(pt: POINT) {
             let mut rect: RECT = std::mem::zeroed();
             if GetWindowRect(fg_hwnd, &mut rect) != 0 {
                 // Record mouse click if it was within the active foreground window
-                if pt.x >= rect.left && pt.x <= rect.right && pt.y >= rect.top && pt.y <= rect.bottom {
+                if pt.x >= rect.left
+                    && pt.x <= rect.right
+                    && pt.y >= rect.top
+                    && pt.y <= rect.bottom
+                {
                     if let Ok(mut guard) = LAST_CLICK_POS.lock() {
                         *guard = Some((fg_hwnd as usize, pt));
                     }
@@ -153,7 +158,13 @@ impl CandidateWindow {
         hit_test_data(data, screen_x, screen_y)
     }
 
-    pub fn update(&self, aux_text: &str, candidates: &[String], selected_index: usize, horizontal: bool) {
+    pub fn update(
+        &self,
+        aux_text: &str,
+        candidates: &[String],
+        selected_index: usize,
+        horizontal: bool,
+    ) {
         if candidates.is_empty() {
             self.hide();
             return;
@@ -216,7 +227,19 @@ impl CandidateWindow {
                 let segoe_name: Vec<u16> = "Segoe UI\0".encode_utf16().collect();
                 let segoe_size = (-11.5 * scale).round() as i32;
                 let segoe_font = CreateFontW(
-                    segoe_size, 0, 0, 0, 700, 0, 0, 0, 1, 0, 0, 5, 0,
+                    segoe_size,
+                    0,
+                    0,
+                    0,
+                    700,
+                    0,
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    5,
+                    0,
                     segoe_name.as_ptr(),
                 );
                 SelectObject(hdc_screen, segoe_font as _);
@@ -241,7 +264,11 @@ impl CandidateWindow {
         let (total_width, height) = if horizontal {
             let sum_w: i32 = item_widths.iter().sum();
             let spacing = (count.saturating_sub(1) as i32) * (5.0 * scale).round() as i32;
-            let aux_extra = if aux_width > 0 { aux_width + (9.0 * scale).round() as i32 } else { 0 };
+            let aux_extra = if aux_width > 0 {
+                aux_width + (9.0 * scale).round() as i32
+            } else {
+                0
+            };
             (
                 sum_w + spacing + aux_extra + (14.0 * scale).round() as i32,
                 (30.0 * scale).round() as i32,
@@ -258,7 +285,11 @@ impl CandidateWindow {
                 .max(aux_width + (24.0 * scale).round() as i32);
             let pad = (14.0 * scale).round() as i32;
             let row_h = (26.0 * scale).round() as i32;
-            let header_h = if aux_width > 0 { (24.0 * scale).round() as i32 } else { 0 };
+            let header_h = if aux_width > 0 {
+                (24.0 * scale).round() as i32
+            } else {
+                0
+            };
             let margin = (10.0 * scale).round() as i32;
             (max_w + pad, (count as i32 * row_h) + header_h + margin)
         };
@@ -275,10 +306,11 @@ impl CandidateWindow {
             // 1. First-class Win32 Foreground Caret Resolution
             if fg_hwnd != 0 as _ {
                 let mut thread_id = 0;
-                let fg_thread = windows_sys::Win32::UI::WindowsAndMessaging::GetWindowThreadProcessId(
-                    fg_hwnd,
-                    &mut thread_id,
-                );
+                let fg_thread =
+                    windows_sys::Win32::UI::WindowsAndMessaging::GetWindowThreadProcessId(
+                        fg_hwnd,
+                        &mut thread_id,
+                    );
 
                 let mut gui_info: GUITHREADINFO = std::mem::zeroed();
                 gui_info.cbSize = std::mem::size_of::<GUITHREADINFO>() as u32;
@@ -355,7 +387,10 @@ impl CandidateWindow {
             if !caret_found && fg_hwnd != 0 as _ {
                 let mut gui_info: GUITHREADINFO = std::mem::zeroed();
                 gui_info.cbSize = std::mem::size_of::<GUITHREADINFO>() as u32;
-                if GetGUIThreadInfo(0, &mut gui_info) != 0 && gui_info.hwndFocus != 0 as _ && gui_info.hwndFocus != fg_hwnd {
+                if GetGUIThreadInfo(0, &mut gui_info) != 0
+                    && gui_info.hwndFocus != 0 as _
+                    && gui_info.hwndFocus != fg_hwnd
+                {
                     let mut focus_rect: RECT = std::mem::zeroed();
                     if GetWindowRect(gui_info.hwndFocus, &mut focus_rect) != 0 {
                         let w = focus_rect.right - focus_rect.left;
@@ -393,18 +428,22 @@ impl CandidateWindow {
             let mut monitor_info: MONITORINFO = std::mem::zeroed();
             monitor_info.cbSize = std::mem::size_of::<MONITORINFO>() as u32;
             let h_monitor = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
-            let (work_left, work_top, work_right, work_bottom) = if h_monitor != 0 as _
-                && GetMonitorInfoW(h_monitor, &mut monitor_info) != 0
-            {
-                (
-                    monitor_info.rcWork.left,
-                    monitor_info.rcWork.top,
-                    monitor_info.rcWork.right,
-                    monitor_info.rcWork.bottom,
-                )
-            } else {
-                (0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN))
-            };
+            let (work_left, work_top, work_right, work_bottom) =
+                if h_monitor != 0 as _ && GetMonitorInfoW(h_monitor, &mut monitor_info) != 0 {
+                    (
+                        monitor_info.rcWork.left,
+                        monitor_info.rcWork.top,
+                        monitor_info.rcWork.right,
+                        monitor_info.rcWork.bottom,
+                    )
+                } else {
+                    (
+                        0,
+                        0,
+                        GetSystemMetrics(SM_CXSCREEN),
+                        GetSystemMetrics(SM_CYSCREEN),
+                    )
+                };
 
             if pt.x + total_width > work_right - 8 {
                 pt.x = (work_right - total_width - 8).max(work_left + 8);
@@ -615,12 +654,8 @@ unsafe fn apply_dwm_modern_styling(hwnd: HWND, dark: bool) -> bool {
     if lib != 0 as _ {
         let fn_ptr = GetProcAddress(lib, c"DwmSetWindowAttribute".as_ptr() as *const u8);
         if let Some(dwm_set_attr) = fn_ptr {
-            type DwmSetAttrFn = unsafe extern "system" fn(
-                HWND,
-                u32,
-                *const std::ffi::c_void,
-                u32,
-            ) -> i32;
+            type DwmSetAttrFn =
+                unsafe extern "system" fn(HWND, u32, *const std::ffi::c_void, u32) -> i32;
             let set_attr: DwmSetAttrFn = std::mem::transmute(dwm_set_attr);
 
             // DWMWA_USE_IMMERSIVE_DARK_MODE (20)
@@ -763,21 +798,33 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
     // Badge styling
     let is_prediction = data.aux_text.starts_with("✨");
     let aux_bg_color = if is_prediction {
-        if dark { 0x00332211 } else { 0x00F5EBE0 }
+        if dark {
+            0x00332211
+        } else {
+            0x00F5EBE0
+        }
     } else if dark {
         0x00262114
     } else {
         0x00E8EDF2
     };
     let aux_border_color = if is_prediction {
-        if dark { 0x00664422 } else { 0x00D0B89C }
+        if dark {
+            0x00664422
+        } else {
+            0x00D0B89C
+        }
     } else if dark {
         0x004A3C20
     } else {
         0x00CBD5E1
     };
     let aux_text_color = if is_prediction {
-        if dark { 0x00FAC878 } else { 0x008A4B1A }
+        if dark {
+            0x00FAC878
+        } else {
+            0x008A4B1A
+        }
     } else if dark {
         0x00F8BD38
     } else {
@@ -829,8 +876,17 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
 
         let sep_pen = CreatePen(PS_SOLID as _, 1, sep_color);
         let old_pen = SelectObject(mem_dc, sep_pen as _);
-        MoveToEx(mem_dc, cur_x, pad_y + (2.0 * scale).round() as i32, std::ptr::null_mut());
-        LineTo(mem_dc, cur_x, pad_y + item_height - (2.0 * scale).round() as i32);
+        MoveToEx(
+            mem_dc,
+            cur_x,
+            pad_y + (2.0 * scale).round() as i32,
+            std::ptr::null_mut(),
+        );
+        LineTo(
+            mem_dc,
+            cur_x,
+            pad_y + item_height - (2.0 * scale).round() as i32,
+        );
         SelectObject(mem_dc, old_pen);
         DeleteObject(sep_pen as _);
 
@@ -864,8 +920,17 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
         let sep_y = (4.0 * scale).round() as i32 + header_h + (2.0 * scale).round() as i32;
         let sep_pen = CreatePen(PS_SOLID as _, 1, sep_color);
         let old_pen = SelectObject(mem_dc, sep_pen as _);
-        MoveToEx(mem_dc, (6.0 * scale).round() as i32, sep_y, std::ptr::null_mut());
-        LineTo(mem_dc, client_rect.right - (6.0 * scale).round() as i32, sep_y);
+        MoveToEx(
+            mem_dc,
+            (6.0 * scale).round() as i32,
+            sep_y,
+            std::ptr::null_mut(),
+        );
+        LineTo(
+            mem_dc,
+            client_rect.right - (6.0 * scale).round() as i32,
+            sep_y,
+        );
         SelectObject(mem_dc, old_pen);
         DeleteObject(sep_pen as _);
 
@@ -943,17 +1008,7 @@ unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
     DeleteObject(segoe_font as _);
 
     // Blit from double-buffered memory DC to screen HDC in one atomic hardware operation
-    BitBlt(
-        hdc,
-        0,
-        0,
-        win_w,
-        win_h,
-        mem_dc,
-        0,
-        0,
-        SRCCOPY,
-    );
+    BitBlt(hdc, 0, 0, win_w, win_h, mem_dc, 0, 0, SRCCOPY);
 
     // Clean up memory DC and bitmap
     SelectObject(mem_dc, old_bmp);
