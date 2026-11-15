@@ -986,7 +986,8 @@ mod tests {
         let math_cand = unsafe { CStr::from_ptr(math_cand_ptr).to_str().unwrap() };
         assert_eq!(math_cand, "১,০০০");
 
-        // Clean up
+        // Reset and clean up
+        lekhani_engine_reset(engine_ptr);
         lekhani_engine_free(engine_ptr);
     }
 
@@ -1000,6 +1001,7 @@ mod tests {
         let probhat = CString::new("Probhat").unwrap();
         let switched = lekhani_engine_set_layout(engine_ptr, probhat.as_ptr());
         assert!(switched, "Should switch to Probhat layout");
+        lekhani_engine_reset(engine_ptr);
 
         // Probhat: 'k' -> 'ক'
         lekhani_engine_process_key(engine_ptr, 0x006b, 0, 0, false);
@@ -1020,7 +1022,8 @@ mod tests {
         let preedit2 = unsafe { CStr::from_ptr(preedit_ptr2).to_str().unwrap() };
         assert_eq!(preedit2, "ক");
 
-        // Clean up
+        // Reset and clean up
+        lekhani_engine_reset(engine_ptr);
         lekhani_engine_free(engine_ptr);
     }
 
