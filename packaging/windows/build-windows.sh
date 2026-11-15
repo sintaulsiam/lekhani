@@ -7,7 +7,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
 TARGET="x86_64-pc-windows-gnu"
-VERSION="1.0.0"
+VERSION="1.1.0"
 
 echo "=========================================================="
 echo "    Lekhani Windows Release Build Pipeline (v$VERSION)    "

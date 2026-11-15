@@ -1,8 +1,8 @@
 ; Lekhani Bengali Input Method - Inno Setup Script
-; Generates Lekhani-v1.0.0-Setup.exe for Windows 10/11 (x64)
+; Generates Lekhani-v1.1.0-Setup.exe for Windows 10/11 (x64)
 
 #define MyAppName "Lekhani"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "Syntenieum"
 #define MyAppURL "https://github.com/sintaulsiam/lekhani"
 #define MyAppExeName "lekhani-gui.exe"
