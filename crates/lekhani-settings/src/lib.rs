@@ -263,6 +263,9 @@ impl ConfigManager {
             }
         } else {
             self.save();
+            if let Ok(metadata) = self.config_path.metadata() {
+                self.last_config_mtime = metadata.modified().ok();
+            }
         }
 
         let ac_path = self.get_user_autocorrect_path();
@@ -293,8 +296,12 @@ impl ConfigManager {
 
         if let Ok(meta) = self.config_path.metadata() {
             if let Ok(mtime) = meta.modified() {
-                if self.last_config_mtime.is_none_or(|last| mtime > last) {
-                    changed = true;
+                if let Some(last) = self.last_config_mtime {
+                    if mtime > last {
+                        changed = true;
+                    }
+                } else {
+                    self.last_config_mtime = Some(mtime);
                 }
             }
         }
@@ -302,8 +309,12 @@ impl ConfigManager {
         let ac_path = self.get_user_autocorrect_path();
         if let Ok(meta) = ac_path.metadata() {
             if let Ok(mtime) = meta.modified() {
-                if self.last_autocorrect_mtime.is_none_or(|last| mtime > last) {
-                    changed = true;
+                if let Some(last) = self.last_autocorrect_mtime {
+                    if mtime > last {
+                        changed = true;
+                    }
+                } else {
+                    self.last_autocorrect_mtime = Some(mtime);
                 }
             }
         }
@@ -311,8 +322,12 @@ impl ConfigManager {
         let learned_path = self.get_user_learned_path();
         if let Ok(meta) = learned_path.metadata() {
             if let Ok(mtime) = meta.modified() {
-                if self.last_learned_mtime.is_none_or(|last| mtime > last) {
-                    changed = true;
+                if let Some(last) = self.last_learned_mtime {
+                    if mtime > last {
+                        changed = true;
+                    }
+                } else {
+                    self.last_learned_mtime = Some(mtime);
                 }
             }
         }
@@ -320,8 +335,12 @@ impl ConfigManager {
         let layout_dir = self.get_user_layout_dir();
         if let Ok(meta) = layout_dir.metadata() {
             if let Ok(mtime) = meta.modified() {
-                if self.last_layout_dir_mtime.is_none_or(|last| mtime > last) {
-                    changed = true;
+                if let Some(last) = self.last_layout_dir_mtime {
+                    if mtime > last {
+                        changed = true;
+                    }
+                } else {
+                    self.last_layout_dir_mtime = Some(mtime);
                 }
             }
         }
