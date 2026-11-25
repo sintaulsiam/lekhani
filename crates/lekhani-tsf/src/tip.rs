@@ -291,6 +291,11 @@ unsafe extern "system" fn key_sink_on_test_key_down(
             }
 
             if inner.session.is_active() {
+                let shift_down = (GetKeyState(VK_SHIFT as i32) & 0x8000u16 as i16) != 0;
+                if !shift_down && (0x31..=0x35).contains(&vk) {
+                    *pf_eaten = 1;
+                    return S_OK;
+                }
                 match vk {
                     VK_BACK | VK_RETURN | VK_SPACE | VK_ESCAPE | VK_TAB | VK_DOWN | VK_UP => {
                         *pf_eaten = 1;
@@ -312,12 +317,21 @@ unsafe extern "system" fn key_sink_on_test_key_down(
     S_OK
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum EditSessionKind {
+    SetPreedit,
+    CommitAndEnd,
+}
+
 #[repr(C)]
 struct LekhaniEditSession {
     vtbl: *const ITfEditSessionVtbl,
     ref_count: AtomicU32,
     context: *mut c_void,
+    comp_sink: *mut c_void,
+    comp_ptr: *mut *mut c_void,
     text_utf16: Vec<u16>,
+    kind: EditSessionKind,
 }
 
 static EDIT_SESSION_VTBL: ITfEditSessionVtbl = ITfEditSessionVtbl {
@@ -364,15 +378,27 @@ unsafe extern "system" fn edit_session_release(this: *mut c_void) -> u32 {
     }
 }
 
-unsafe extern "system" fn edit_session_do(this: *mut c_void, ec: TfEditCookie) -> HRESULT {
-    let es = &*(this as *mut LekhaniEditSession);
-    if es.context.is_null() || es.text_utf16.is_empty() {
-        return S_OK;
+unsafe fn collapse_and_select_end(ctx: *mut c_void, ec: TfEditCookie, range: *mut c_void) {
+    let r_vtbl = *(range as *const *const ITfRangeVtbl);
+    let _ = ((*r_vtbl).Collapse)(range, ec, TF_ANCHOR_END);
+    let sel = TF_SELECTION {
+        range,
+        style: TF_SELECTIONSTYLE {
+            ase: TF_AE_END,
+            fInterimChar: 0,
+        },
+    };
+    let ctx_vtbl = *(ctx as *const *const ITfContextVtbl);
+    let _ = ((*ctx_vtbl).SetSelection)(ctx, ec, 1, &sel);
+}
+
+unsafe fn insert_at_selection(ctx: *mut c_void, ec: TfEditCookie, utf16: &[u16]) {
+    if utf16.is_empty() {
+        return;
     }
-    let ctx_vtbl = *(es.context as *const *const IUnknownVtbl);
+    let ctx_vtbl = *(ctx as *const *const IUnknownVtbl);
     let mut insert_at_sel: *mut c_void = std::ptr::null_mut();
-    let hr =
-        ((*ctx_vtbl).QueryInterface)(es.context, &IID_ITFINSERTATSELECTION, &mut insert_at_sel);
+    let hr = ((*ctx_vtbl).QueryInterface)(ctx, &IID_ITFINSERTATSELECTION, &mut insert_at_sel);
     if hr == S_OK && !insert_at_sel.is_null() {
         let ias_vtbl = *(insert_at_sel as *const *const ITfInsertAtSelectionVtbl);
         let mut range: *mut c_void = std::ptr::null_mut();
@@ -380,8 +406,8 @@ unsafe extern "system" fn edit_session_do(this: *mut c_void, ec: TfEditCookie) -
             insert_at_sel,
             ec,
             TF_IAS_NOQUERY,
-            es.text_utf16.as_ptr(),
-            es.text_utf16.len() as i32,
+            utf16.as_ptr(),
+            utf16.len() as i32,
             &mut range,
         );
         if !range.is_null() {
@@ -390,11 +416,143 @@ unsafe extern "system" fn edit_session_do(this: *mut c_void, ec: TfEditCookie) -
         }
         ((*ias_vtbl).parent.Release)(insert_at_sel);
     }
+}
+
+unsafe extern "system" fn edit_session_do(this: *mut c_void, ec: TfEditCookie) -> HRESULT {
+    let es = &*(this as *mut LekhaniEditSession);
+    if es.context.is_null() {
+        return S_OK;
+    }
+    let comp_slot = es.comp_ptr;
+    let active_comp = if comp_slot.is_null() {
+        std::ptr::null_mut()
+    } else {
+        *comp_slot
+    };
+
+    match es.kind {
+        EditSessionKind::SetPreedit => {
+            if active_comp.is_null() {
+                // Start a new composition at current selection
+                let ctx_vtbl = *(es.context as *const *const ITfContextVtbl);
+                let mut sel = TF_SELECTION {
+                    range: std::ptr::null_mut(),
+                    style: TF_SELECTIONSTYLE {
+                        ase: 0,
+                        fInterimChar: 0,
+                    },
+                };
+                let mut fetched: u32 = 0;
+                if ((*ctx_vtbl).GetSelection)(
+                    es.context,
+                    ec,
+                    TF_DEFAULT_SELECTION,
+                    1,
+                    &mut sel,
+                    &mut fetched,
+                ) == S_OK
+                    && fetched > 0
+                    && !sel.range.is_null()
+                {
+                    let mut ctx_comp: *mut c_void = std::ptr::null_mut();
+                    let hr = ((*ctx_vtbl).parent.QueryInterface)(
+                        es.context,
+                        &IID_ITFCONTEXTCOMPOSITION,
+                        &mut ctx_comp,
+                    );
+                    if hr == S_OK && !ctx_comp.is_null() {
+                        let cc_vtbl = *(ctx_comp as *const *const ITfContextCompositionVtbl);
+                        let mut new_comp: *mut c_void = std::ptr::null_mut();
+                        let hr_start = ((*cc_vtbl).StartComposition)(
+                            ctx_comp,
+                            ec,
+                            sel.range,
+                            es.comp_sink,
+                            &mut new_comp,
+                        );
+                        if hr_start == S_OK && !new_comp.is_null() && !comp_slot.is_null() {
+                            *comp_slot = new_comp;
+                            let c_vtbl = *(new_comp as *const *const ITfCompositionVtbl);
+                            let mut comp_range: *mut c_void = std::ptr::null_mut();
+                            if ((*c_vtbl).GetRange)(new_comp, &mut comp_range) == S_OK
+                                && !comp_range.is_null()
+                            {
+                                let r_vtbl = *(comp_range as *const *const ITfRangeVtbl);
+                                let _ = ((*r_vtbl).SetText)(
+                                    comp_range,
+                                    ec,
+                                    0,
+                                    es.text_utf16.as_ptr(),
+                                    es.text_utf16.len() as i32,
+                                );
+                                collapse_and_select_end(es.context, ec, comp_range);
+                                ((*r_vtbl).parent.Release)(comp_range);
+                            }
+                        }
+                        ((*cc_vtbl).parent.Release)(ctx_comp);
+                    }
+                    let r_vtbl = *(sel.range as *const *const IUnknownVtbl);
+                    ((*r_vtbl).Release)(sel.range);
+                }
+            } else {
+                let c_vtbl = *(active_comp as *const *const ITfCompositionVtbl);
+                let mut comp_range: *mut c_void = std::ptr::null_mut();
+                if ((*c_vtbl).GetRange)(active_comp, &mut comp_range) == S_OK
+                    && !comp_range.is_null()
+                {
+                    let r_vtbl = *(comp_range as *const *const ITfRangeVtbl);
+                    let _ = ((*r_vtbl).SetText)(
+                        comp_range,
+                        ec,
+                        0,
+                        es.text_utf16.as_ptr(),
+                        es.text_utf16.len() as i32,
+                    );
+                    collapse_and_select_end(es.context, ec, comp_range);
+                    ((*r_vtbl).parent.Release)(comp_range);
+                }
+            }
+        }
+        EditSessionKind::CommitAndEnd => {
+            if !active_comp.is_null() {
+                let c_vtbl = *(active_comp as *const *const ITfCompositionVtbl);
+                let mut comp_range: *mut c_void = std::ptr::null_mut();
+                if ((*c_vtbl).GetRange)(active_comp, &mut comp_range) == S_OK
+                    && !comp_range.is_null()
+                {
+                    let r_vtbl = *(comp_range as *const *const ITfRangeVtbl);
+                    let _ = ((*r_vtbl).SetText)(
+                        comp_range,
+                        ec,
+                        0,
+                        es.text_utf16.as_ptr(),
+                        es.text_utf16.len() as i32,
+                    );
+                    collapse_and_select_end(es.context, ec, comp_range);
+                    ((*r_vtbl).parent.Release)(comp_range);
+                }
+                let _ = ((*c_vtbl).EndComposition)(active_comp, ec);
+                ((*c_vtbl).parent.Release)(active_comp);
+                if !comp_slot.is_null() {
+                    *comp_slot = std::ptr::null_mut();
+                }
+            } else {
+                insert_at_selection(es.context, ec, &es.text_utf16);
+            }
+        }
+    }
     S_OK
 }
 
-unsafe fn tsf_insert_text(pic: *mut c_void, client_id: TfClientId, text: &str) {
-    if pic.is_null() || text.is_empty() || client_id == 0 {
+unsafe fn run_edit_session(
+    pic: *mut c_void,
+    client_id: TfClientId,
+    comp_sink: *mut c_void,
+    comp_ptr: *mut *mut c_void,
+    text: &str,
+    kind: EditSessionKind,
+) {
+    if pic.is_null() || client_id == 0 {
         return;
     }
     let utf16: Vec<u16> = text.encode_utf16().collect();
@@ -402,7 +560,10 @@ unsafe fn tsf_insert_text(pic: *mut c_void, client_id: TfClientId, text: &str) {
         vtbl: &EDIT_SESSION_VTBL,
         ref_count: AtomicU32::new(1),
         context: pic,
+        comp_sink,
+        comp_ptr,
         text_utf16: utf16,
+        kind,
     }));
     let ctx_vtbl = *(pic as *const *const ITfContextVtbl);
     let mut hr_session: HRESULT = S_OK;
@@ -414,6 +575,39 @@ unsafe fn tsf_insert_text(pic: *mut c_void, client_id: TfClientId, text: &str) {
         &mut hr_session,
     );
     edit_session_release(es as *mut c_void);
+}
+
+unsafe fn tsf_set_preedit(
+    pic: *mut c_void,
+    client_id: TfClientId,
+    comp_sink: *mut c_void,
+    comp_ptr: *mut *mut c_void,
+    text: &str,
+) {
+    run_edit_session(
+        pic,
+        client_id,
+        comp_sink,
+        comp_ptr,
+        text,
+        EditSessionKind::SetPreedit,
+    );
+}
+
+unsafe fn tsf_commit_text(
+    pic: *mut c_void,
+    client_id: TfClientId,
+    comp_ptr: *mut *mut c_void,
+    text: &str,
+) {
+    run_edit_session(
+        pic,
+        client_id,
+        std::ptr::null_mut(),
+        comp_ptr,
+        text,
+        EditSessionKind::CommitAndEnd,
+    );
 }
 
 unsafe extern "system" fn key_sink_on_key_down(
@@ -441,6 +635,8 @@ unsafe extern "system" fn key_sink_on_key_down(
         return S_OK;
     }
 
+    let comp_sink = &mut (*base).lp_comp_sink_vtbl as *mut _ as *mut c_void;
+
     if let Ok(mut inner) = (*base).inner.lock() {
         if inner.bengali_active {
             let shift_down = (GetKeyState(VK_SHIFT as i32) & 0x8000u16 as i16) != 0;
@@ -451,7 +647,9 @@ unsafe extern "system" fn key_sink_on_key_down(
                 if inner.session.is_active() {
                     let sel = inner.session.get_selected_index();
                     if let Some(committed) = inner.session.commit(sel) {
-                        tsf_insert_text(pic, inner.client_id, &committed);
+                        let client_id = inner.client_id;
+                        let comp_ptr = &mut inner.active_composition as *mut *mut c_void;
+                        tsf_commit_text(pic, client_id, comp_ptr, &committed);
                     }
                 } else {
                     inner.session.clear_context();
@@ -462,16 +660,44 @@ unsafe extern "system" fn key_sink_on_key_down(
 
             // IME navigation & control keys when active
             if inner.session.is_active() {
+                if !shift_down && (0x31..=0x35).contains(&vk) {
+                    let idx = (vk - 0x31) as usize;
+                    if let Some(committed) = inner.session.commit(idx) {
+                        let client_id = inner.client_id;
+                        let comp_ptr = &mut inner.active_composition as *mut *mut c_void;
+                        tsf_commit_text(pic, client_id, comp_ptr, &committed);
+                        *pf_eaten = 1;
+                        return S_OK;
+                    }
+                }
                 match vk {
                     VK_BACK => {
                         let consumed = inner.session.process_backspace();
+                        if consumed {
+                            let client_id = inner.client_id;
+                            let comp_ptr = &mut inner.active_composition as *mut *mut c_void;
+                            if inner.session.is_active() {
+                                let sel = inner.session.get_selected_index();
+                                let preedit = inner
+                                    .session
+                                    .get_candidates()
+                                    .get(sel)
+                                    .cloned()
+                                    .unwrap_or_default();
+                                tsf_set_preedit(pic, client_id, comp_sink, comp_ptr, &preedit);
+                            } else {
+                                tsf_commit_text(pic, client_id, comp_ptr, "");
+                            }
+                        }
                         *pf_eaten = if consumed { 1 } else { 0 };
                         return S_OK;
                     }
                     VK_RETURN => {
                         let sel = inner.session.get_selected_index();
                         if let Some(committed) = inner.session.commit(sel) {
-                            tsf_insert_text(pic, inner.client_id, &committed);
+                            let client_id = inner.client_id;
+                            let comp_ptr = &mut inner.active_composition as *mut *mut c_void;
+                            tsf_commit_text(pic, client_id, comp_ptr, &committed);
                         }
                         *pf_eaten = 1;
                         return S_OK;
@@ -480,13 +706,18 @@ unsafe extern "system" fn key_sink_on_key_down(
                         let sel = inner.session.get_selected_index();
                         if let Some(mut committed) = inner.session.commit(sel) {
                             committed.push(' ');
-                            tsf_insert_text(pic, inner.client_id, &committed);
+                            let client_id = inner.client_id;
+                            let comp_ptr = &mut inner.active_composition as *mut *mut c_void;
+                            tsf_commit_text(pic, client_id, comp_ptr, &committed);
                             *pf_eaten = 1;
                             return S_OK;
                         }
                     }
                     VK_ESCAPE => {
                         inner.session.reset();
+                        let client_id = inner.client_id;
+                        let comp_ptr = &mut inner.active_composition as *mut *mut c_void;
+                        tsf_commit_text(pic, client_id, comp_ptr, "");
                         *pf_eaten = 1;
                         return S_OK;
                     }
@@ -496,16 +727,46 @@ unsafe extern "system" fn key_sink_on_key_down(
                         } else {
                             inner.session.select_next();
                         }
+                        let sel = inner.session.get_selected_index();
+                        let preedit = inner
+                            .session
+                            .get_candidates()
+                            .get(sel)
+                            .cloned()
+                            .unwrap_or_default();
+                        let client_id = inner.client_id;
+                        let comp_ptr = &mut inner.active_composition as *mut *mut c_void;
+                        tsf_set_preedit(pic, client_id, comp_sink, comp_ptr, &preedit);
                         *pf_eaten = 1;
                         return S_OK;
                     }
                     VK_DOWN => {
                         inner.session.select_next();
+                        let sel = inner.session.get_selected_index();
+                        let preedit = inner
+                            .session
+                            .get_candidates()
+                            .get(sel)
+                            .cloned()
+                            .unwrap_or_default();
+                        let client_id = inner.client_id;
+                        let comp_ptr = &mut inner.active_composition as *mut *mut c_void;
+                        tsf_set_preedit(pic, client_id, comp_sink, comp_ptr, &preedit);
                         *pf_eaten = 1;
                         return S_OK;
                     }
                     VK_UP => {
                         inner.session.select_prev();
+                        let sel = inner.session.get_selected_index();
+                        let preedit = inner
+                            .session
+                            .get_candidates()
+                            .get(sel)
+                            .cloned()
+                            .unwrap_or_default();
+                        let client_id = inner.client_id;
+                        let comp_ptr = &mut inner.active_composition as *mut *mut c_void;
+                        tsf_set_preedit(pic, client_id, comp_sink, comp_ptr, &preedit);
                         *pf_eaten = 1;
                         return S_OK;
                     }
@@ -519,6 +780,16 @@ unsafe extern "system" fn key_sink_on_key_down(
                     .session
                     .process_key(keycode, if shift_down { 1 } else { 0 });
                 if consumed {
+                    let sel = inner.session.get_selected_index();
+                    let preedit = inner
+                        .session
+                        .get_candidates()
+                        .get(sel)
+                        .cloned()
+                        .unwrap_or_default();
+                    let client_id = inner.client_id;
+                    let comp_ptr = &mut inner.active_composition as *mut *mut c_void;
+                    tsf_set_preedit(pic, client_id, comp_sink, comp_ptr, &preedit);
                     *pf_eaten = 1;
                     return S_OK;
                 }
@@ -578,7 +849,11 @@ unsafe extern "system" fn comp_sink_on_composition_terminated(
     let offset = std::mem::offset_of!(LekhaniTextInputProcessor, lp_comp_sink_vtbl);
     let base = (this as *mut u8).sub(offset) as *mut LekhaniTextInputProcessor;
     if let Ok(mut inner) = (*base).inner.lock() {
-        inner.active_composition = std::ptr::null_mut();
+        if !inner.active_composition.is_null() {
+            let c_vtbl = *(inner.active_composition as *const *const IUnknownVtbl);
+            ((*c_vtbl).Release)(inner.active_composition);
+            inner.active_composition = std::ptr::null_mut();
+        }
         inner.session.clear_context();
     }
     S_OK
