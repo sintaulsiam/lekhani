@@ -15,8 +15,8 @@ use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
 
 use crate::com::*;
 use crate::guid::guid_eq;
-use lekhani_core::{InputSession, KeycodeMapper};
-use lekhani_settings::ConfigManager;
+use lekhani_core::{ActiveLayoutType, InputSession, KeycodeMapper};
+use lekhani_settings::{ConfigManager, LayoutManager};
 
 #[repr(C)]
 pub struct LekhaniTextInputProcessor {
@@ -39,12 +39,30 @@ pub struct TipInner {
 impl LekhaniTextInputProcessor {
     pub fn new() -> *mut Self {
         let config_mgr = ConfigManager::new();
+        let mut layout_mgr = LayoutManager::new();
+        layout_mgr.discover_layouts(
+            ConfigManager::get_system_layout_dir(),
+            config_mgr.get_user_layout_dir(),
+        );
         let mut session = InputSession::new();
         let system_data = ConfigManager::get_system_data_dir();
         session.load_database(&system_data);
         session.load_user_autocorrect(config_mgr.get_user_autocorrect_path());
         session.load_user_learned(config_mgr.get_user_learned_path());
         config_mgr.config.apply_to_session(&mut session);
+        let active_name = &config_mgr.config.general.active_layout;
+        if let Some(json) = layout_mgr.load_layout_json(active_name) {
+            let layout_type = if layout_mgr
+                .get_layout(active_name)
+                .map(|i| i.layout_type.as_str())
+                == Some("fixed")
+            {
+                ActiveLayoutType::Fixed
+            } else {
+                ActiveLayoutType::Phonetic
+            };
+            session.set_layout(layout_type, &json);
+        }
 
         let inner = TipInner {
             thread_mgr: std::ptr::null_mut(),
@@ -274,7 +292,7 @@ unsafe extern "system" fn key_sink_on_test_key_down(
 
             if inner.session.is_active() {
                 match vk {
-                    VK_BACK | VK_RETURN | VK_ESCAPE | VK_TAB | VK_DOWN | VK_UP => {
+                    VK_BACK | VK_RETURN | VK_SPACE | VK_ESCAPE | VK_TAB | VK_DOWN | VK_UP => {
                         *pf_eaten = 1;
                         return S_OK;
                     }
@@ -294,9 +312,113 @@ unsafe extern "system" fn key_sink_on_test_key_down(
     S_OK
 }
 
+#[repr(C)]
+struct LekhaniEditSession {
+    vtbl: *const ITfEditSessionVtbl,
+    ref_count: AtomicU32,
+    context: *mut c_void,
+    text_utf16: Vec<u16>,
+}
+
+static EDIT_SESSION_VTBL: ITfEditSessionVtbl = ITfEditSessionVtbl {
+    parent: IUnknownVtbl {
+        QueryInterface: edit_session_qi,
+        AddRef: edit_session_add_ref,
+        Release: edit_session_release,
+    },
+    DoEditSession: edit_session_do,
+};
+
+unsafe extern "system" fn edit_session_qi(
+    this: *mut c_void,
+    riid: *const GUID,
+    ppv: *mut *mut c_void,
+) -> HRESULT {
+    if ppv.is_null() || riid.is_null() {
+        return E_POINTER;
+    }
+    let iid = &*riid;
+    if guid_eq(iid, &IID_IUNKNOWN) || guid_eq(iid, &IID_ITFEDITSESSION) {
+        *ppv = this;
+        edit_session_add_ref(this);
+        S_OK
+    } else {
+        *ppv = std::ptr::null_mut();
+        E_NOINTERFACE
+    }
+}
+
+unsafe extern "system" fn edit_session_add_ref(this: *mut c_void) -> u32 {
+    let es = this as *mut LekhaniEditSession;
+    (*es).ref_count.fetch_add(1, Ordering::SeqCst) + 1
+}
+
+unsafe extern "system" fn edit_session_release(this: *mut c_void) -> u32 {
+    let es = this as *mut LekhaniEditSession;
+    let prev = (*es).ref_count.fetch_sub(1, Ordering::SeqCst);
+    if prev == 1 {
+        let _ = Box::from_raw(es);
+        0
+    } else {
+        prev - 1
+    }
+}
+
+unsafe extern "system" fn edit_session_do(this: *mut c_void, ec: TfEditCookie) -> HRESULT {
+    let es = &*(this as *mut LekhaniEditSession);
+    if es.context.is_null() || es.text_utf16.is_empty() {
+        return S_OK;
+    }
+    let ctx_vtbl = *(es.context as *const *const IUnknownVtbl);
+    let mut insert_at_sel: *mut c_void = std::ptr::null_mut();
+    let hr =
+        ((*ctx_vtbl).QueryInterface)(es.context, &IID_ITFINSERTATSELECTION, &mut insert_at_sel);
+    if hr == S_OK && !insert_at_sel.is_null() {
+        let ias_vtbl = *(insert_at_sel as *const *const ITfInsertAtSelectionVtbl);
+        let mut range: *mut c_void = std::ptr::null_mut();
+        let _ = ((*ias_vtbl).InsertTextAtSelection)(
+            insert_at_sel,
+            ec,
+            TF_IAS_NOQUERY,
+            es.text_utf16.as_ptr(),
+            es.text_utf16.len() as i32,
+            &mut range,
+        );
+        if !range.is_null() {
+            let r_vtbl = *(range as *const *const IUnknownVtbl);
+            ((*r_vtbl).Release)(range);
+        }
+        ((*ias_vtbl).parent.Release)(insert_at_sel);
+    }
+    S_OK
+}
+
+unsafe fn tsf_insert_text(pic: *mut c_void, client_id: TfClientId, text: &str) {
+    if pic.is_null() || text.is_empty() || client_id == 0 {
+        return;
+    }
+    let utf16: Vec<u16> = text.encode_utf16().collect();
+    let es = Box::into_raw(Box::new(LekhaniEditSession {
+        vtbl: &EDIT_SESSION_VTBL,
+        ref_count: AtomicU32::new(1),
+        context: pic,
+        text_utf16: utf16,
+    }));
+    let ctx_vtbl = *(pic as *const *const ITfContextVtbl);
+    let mut hr_session: HRESULT = S_OK;
+    let _ = ((*ctx_vtbl).RequestEditSession)(
+        pic,
+        client_id,
+        es as *mut c_void,
+        TF_ES_SYNC | TF_ES_READWRITE,
+        &mut hr_session,
+    );
+    edit_session_release(es as *mut c_void);
+}
+
 unsafe extern "system" fn key_sink_on_key_down(
     this: *mut c_void,
-    _pic: *mut c_void,
+    pic: *mut c_void,
     w_param: WPARAM,
     _l_param: LPARAM,
     pf_eaten: *mut BOOL,
@@ -328,7 +450,9 @@ unsafe extern "system" fn key_sink_on_key_down(
             if vk == VK_LEFT || vk == VK_RIGHT {
                 if inner.session.is_active() {
                     let sel = inner.session.get_selected_index();
-                    let _ = inner.session.commit(sel);
+                    if let Some(committed) = inner.session.commit(sel) {
+                        tsf_insert_text(pic, inner.client_id, &committed);
+                    }
                 } else {
                     inner.session.clear_context();
                 }
@@ -346,9 +470,20 @@ unsafe extern "system" fn key_sink_on_key_down(
                     }
                     VK_RETURN => {
                         let sel = inner.session.get_selected_index();
-                        let _ = inner.session.commit(sel);
+                        if let Some(committed) = inner.session.commit(sel) {
+                            tsf_insert_text(pic, inner.client_id, &committed);
+                        }
                         *pf_eaten = 1;
                         return S_OK;
+                    }
+                    VK_SPACE => {
+                        let sel = inner.session.get_selected_index();
+                        if let Some(mut committed) = inner.session.commit(sel) {
+                            committed.push(' ');
+                            tsf_insert_text(pic, inner.client_id, &committed);
+                            *pf_eaten = 1;
+                            return S_OK;
+                        }
                     }
                     VK_ESCAPE => {
                         inner.session.reset();

@@ -127,7 +127,7 @@ impl OsdWindow {
                 return None;
             }
 
-            *OSD_HWND.lock().unwrap() = Some(hwnd as usize);
+            *OSD_HWND.lock().unwrap_or_else(|e| e.into_inner()) = Some(hwnd as usize);
             Some(Self { hwnd })
         }
     }
@@ -135,7 +135,7 @@ impl OsdWindow {
     /// Show the mode-switch OSD HUD with the given layout title and language state
     pub fn show(&self, title: &str, subtitle: &str, is_bengali: bool) {
         {
-            let mut data = OSD_DATA.lock().unwrap();
+            let mut data = OSD_DATA.lock().unwrap_or_else(|e| e.into_inner());
             *data = Some(OsdData {
                 title: title.to_string(),
                 subtitle: subtitle.to_string(),
@@ -207,7 +207,7 @@ impl OsdWindow {
     #[allow(dead_code)]
     pub fn hide(&self) {
         {
-            let mut data = OSD_DATA.lock().unwrap();
+            let mut data = OSD_DATA.lock().unwrap_or_else(|e| e.into_inner());
             *data = None;
         }
         unsafe {
@@ -257,7 +257,7 @@ unsafe extern "system" fn osd_wnd_proc(
 
 unsafe fn paint_osd(hwnd: HWND, hdc: HDC) {
     let data = {
-        let guard = OSD_DATA.lock().unwrap();
+        let guard = OSD_DATA.lock().unwrap_or_else(|e| e.into_inner());
         guard.clone()
     };
 

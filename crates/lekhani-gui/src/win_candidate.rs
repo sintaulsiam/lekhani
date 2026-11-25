@@ -130,18 +130,18 @@ impl CandidateWindow {
 
             apply_dwm_modern_styling(hwnd, is_windows_dark_mode());
 
-            *CANDIDATE_HWND.lock().unwrap() = Some(hwnd as usize);
+            *CANDIDATE_HWND.lock().unwrap_or_else(|e| e.into_inner()) = Some(hwnd as usize);
             Some(Self { hwnd })
         }
     }
 
     pub fn is_visible(&self) -> bool {
-        let guard = CANDIDATE_DATA.lock().unwrap();
+        let guard = CANDIDATE_DATA.lock().unwrap_or_else(|e| e.into_inner());
         guard.as_ref().is_some_and(|d| !d.candidates.is_empty())
     }
 
     pub fn is_point_inside(&self, screen_x: i32, screen_y: i32) -> bool {
-        let guard = CANDIDATE_DATA.lock().unwrap();
+        let guard = CANDIDATE_DATA.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(ref data) = *guard {
             let (win_x, win_y) = data.screen_pos;
             screen_x >= win_x
@@ -154,7 +154,7 @@ impl CandidateWindow {
     }
 
     pub fn hit_test(&self, screen_x: i32, screen_y: i32) -> Option<usize> {
-        let guard = CANDIDATE_DATA.lock().unwrap();
+        let guard = CANDIDATE_DATA.lock().unwrap_or_else(|e| e.into_inner());
         let data = guard.as_ref()?;
         hit_test_data(data, screen_x, screen_y)
     }
@@ -462,7 +462,7 @@ impl CandidateWindow {
             }
 
             {
-                let mut data = CANDIDATE_DATA.lock().unwrap();
+                let mut data = CANDIDATE_DATA.lock().unwrap_or_else(|e| e.into_inner());
                 *data = Some(CandidateData {
                     aux_text: badge_text,
                     aux_width,
@@ -508,7 +508,7 @@ impl CandidateWindow {
 
     pub fn hide(&self) {
         {
-            let mut data = CANDIDATE_DATA.lock().unwrap();
+            let mut data = CANDIDATE_DATA.lock().unwrap_or_else(|e| e.into_inner());
             *data = None;
         }
         unsafe {
@@ -606,7 +606,7 @@ unsafe extern "system" fn candidate_wnd_proc(
             ClientToScreen(hwnd, &mut pt);
 
             let cand_idx = {
-                let guard = CANDIDATE_DATA.lock().unwrap();
+                let guard = CANDIDATE_DATA.lock().unwrap_or_else(|e| e.into_inner());
                 guard.as_ref().and_then(|d| hit_test_data(d, pt.x, pt.y))
             };
 
@@ -696,7 +696,7 @@ unsafe fn apply_dwm_modern_styling(hwnd: HWND, dark: bool) -> bool {
 
 unsafe fn paint_candidates(hwnd: HWND, hdc: HDC) {
     let data = {
-        let guard = CANDIDATE_DATA.lock().unwrap();
+        let guard = CANDIDATE_DATA.lock().unwrap_or_else(|e| e.into_inner());
         guard.clone()
     };
 

@@ -10,6 +10,11 @@ Instructions and constraints for AI agents developing the Lekhani Bengali IME.
 - **Fidelity**: Strict Avro phonetic muscle memory compatibility, accurate conjuncts (juktoborno), and contextual homophone ranking.
 
 ## 2. Memory & Architecture Rules
+- **Thin Desktop Shell Boundary**: `lekhani` owns OS input-method integrations (Linux IBus/Fcitx5, Windows TSF/Low-Level Hook) and Desktop UI (Slint/Win32 tray, candidate popup, OSD). All transliteration, N-gram/neural scoring, and ranking belong in `lekhani-engine`—never duplicate engine pipelines or config-reload races across backends.
+- **Desktop Input Behavior**:
+  - Desktop uses **deterministic hardware keycodes** (no touch-slop spatial fuzzing), supporting modifier shortcuts (`Ctrl`, `Alt`, `Shift`, `AltGr`, `F12`), `Left`/`Right` cursor passthrough, and `Tab`/`Up`/`Down`/`1..5` candidate navigation.
+  - Windows TSF (`lekhani-tsf`) must manage native `ITfComposition` spans rather than dropping keystrokes; Windows low-level hooks (`win_hook.rs`) must reset/commit preedit on foreground window focus changes (`SetWinEventHook`) and use poison-safe mutex recovery (`unwrap_or_else(|e| e.into_inner())`) instead of `.unwrap()`.
+  - `lekhani-ffi` config auto-reload must never overwrite an explicit runtime layout switch unless `config.toml` was externally modified.
 - **Shared Singletons (`Arc` / `OnceLock`)**: Desktop IMEs create a new session per window. Dictionaries, layout maps, and language models MUST be wrapped in `Arc` — window creation must be an $O(1)$ 8-byte pointer bump.
 - **Bounded Single-Allocation Policy**: Fast-path Trie parsing in `lekhani-parser` remains strictly zero-allocation on byte slices. Candidate suggestion pipelines use bounded, pre-allocated buffers (`Vec::with_capacity(8)`) avoiding realloc churn. Shared models use `Arc` with $O(1)$ pointer bumps.
 - **Cap Collections**: Next-word continuations map capped to `MAX_CONTINUATIONS = 6`. Call `.shrink_to_fit()` on collections after loading.

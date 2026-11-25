@@ -92,3 +92,39 @@ pub struct ITfCompositionSinkVtbl {
     pub OnCompositionTerminated:
         unsafe extern "system" fn(*mut c_void, TfEditCookie, *mut c_void) -> HRESULT,
 }
+
+#[repr(C)]
+pub struct ITfContextVtbl {
+    pub parent: IUnknownVtbl,
+    pub RequestEditSession: unsafe extern "system" fn(
+        *mut c_void,
+        TfClientId,
+        *mut c_void,
+        u32,
+        *mut HRESULT,
+    ) -> HRESULT,
+}
+
+#[repr(C)]
+pub struct ITfEditSessionVtbl {
+    pub parent: IUnknownVtbl,
+    pub DoEditSession: unsafe extern "system" fn(*mut c_void, TfEditCookie) -> HRESULT,
+}
+
+#[repr(C)]
+pub struct ITfInsertAtSelectionVtbl {
+    pub parent: IUnknownVtbl,
+    pub InsertTextAtSelection: unsafe extern "system" fn(
+        *mut c_void,
+        TfEditCookie,
+        u32,
+        *const u16,
+        i32,
+        *mut *mut c_void,
+    ) -> HRESULT,
+}
+
+pub const TF_ES_ASYNCDONTCARE: u32 = 0x0;
+pub const TF_ES_SYNC: u32 = 0x1;
+pub const TF_ES_READWRITE: u32 = 0x6;
+pub const TF_IAS_NOQUERY: u32 = 0x1;

@@ -90,6 +90,7 @@ pub struct LekhaniEngineContext {
     pub mapper: KeycodeMapper,
     pub alt_gr: bool,
     pub active_layout_name: String,
+    pub manual_layout_override: bool,
     // Cached strings to return safely over FFI
     last_commit: Option<CString>,
     last_preedit: Option<CString>,
@@ -110,7 +111,9 @@ impl Default for LekhaniEngineContext {
 impl LekhaniEngineContext {
     pub fn new() -> Self {
         let (config_mgr, layout_mgr, session) = {
-            let lock = get_global_resources().read().unwrap();
+            let lock = get_global_resources()
+                .read()
+                .unwrap_or_else(|e| e.into_inner());
             (
                 lock.config_mgr.clone(),
                 lock.layout_mgr.clone(),
@@ -127,6 +130,7 @@ impl LekhaniEngineContext {
             mapper: KeycodeMapper::new(),
             alt_gr: false,
             active_layout_name,
+            manual_layout_override: false,
             last_commit: None,
             last_preedit: None,
             last_aux: None,
@@ -281,7 +285,11 @@ pub extern "C" fn lekhani_engine_set_layout(
     let engine = unsafe { &mut *ctx };
     let c_str = unsafe { CStr::from_ptr(layout_name) };
     if let Ok(name) = c_str.to_str() {
-        engine.set_layout(name)
+        let ok = engine.set_layout(name);
+        if ok {
+            engine.manual_layout_override = true;
+        }
+        ok
     } else {
         false
     }
@@ -364,7 +372,10 @@ pub extern "C" fn lekhani_engine_process_key(
         let user_dir = engine.config_mgr.get_user_layout_dir();
         engine.layout_mgr.discover_layouts(system_dir, user_dir);
         let active_name = engine.config_mgr.config.general.active_layout.clone();
-        if !engine.session.is_active() && engine.active_layout_name != active_name {
+        if !engine.manual_layout_override
+            && !engine.session.is_active()
+            && engine.active_layout_name != active_name
+        {
             engine.set_layout(&active_name);
         }
     }

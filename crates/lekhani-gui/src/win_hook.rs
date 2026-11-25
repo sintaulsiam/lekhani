@@ -6,6 +6,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use windows_sys::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
+use windows_sys::Win32::UI::Accessibility::{SetWinEventHook, UnhookWinEvent, HWINEVENTHOOK};
 use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     GetKeyState, GetKeyboardState, SendInput, ToUnicode, INPUT, INPUT_0, INPUT_KEYBOARD,
     KEYBDINPUT, KEYEVENTF_KEYUP, KEYEVENTF_UNICODE, VK_BACK, VK_CAPITAL, VK_CONTROL, VK_DOWN,
@@ -15,9 +16,10 @@ use windows_sys::Win32::UI::Input::KeyboardAndMouse::{
     VK_UP,
 };
 use windows_sys::Win32::UI::WindowsAndMessaging::{
-    CallNextHookEx, DispatchMessageW, GetMessageW, SetWindowsHookExW, UnhookWindowsHookEx, HHOOK,
-    KBDLLHOOKSTRUCT, MSG, MSLLHOOKSTRUCT, WH_KEYBOARD_LL, WH_MOUSE_LL, WM_KEYDOWN, WM_LBUTTONDOWN,
-    WM_MBUTTONDOWN, WM_RBUTTONDOWN, WM_SYSKEYDOWN,
+    CallNextHookEx, DispatchMessageW, GetMessageW, SetWindowsHookExW, UnhookWindowsHookEx,
+    EVENT_SYSTEM_FOREGROUND, HHOOK, KBDLLHOOKSTRUCT, MSG, MSLLHOOKSTRUCT, WH_KEYBOARD_LL,
+    WH_MOUSE_LL, WINEVENT_OUTOFCONTEXT, WM_KEYDOWN, WM_LBUTTONDOWN, WM_MBUTTONDOWN, WM_RBUTTONDOWN,
+    WM_SYSKEYDOWN,
 };
 
 use crate::win_candidate::CandidateWindow;
@@ -37,7 +39,7 @@ pub type ModeChangeCallback = Arc<dyn Fn(bool, &str) + Send + Sync>;
 static MODE_CALLBACK: Mutex<Option<ModeChangeCallback>> = Mutex::new(None);
 
 pub fn set_mode_change_callback(cb: ModeChangeCallback) {
-    *MODE_CALLBACK.lock().unwrap() = Some(cb);
+    *MODE_CALLBACK.lock().unwrap_or_else(|e| e.into_inner()) = Some(cb);
 }
 
 struct HookState {
@@ -318,7 +320,7 @@ pub fn spawn_windows_hook(initial_layout: String, tray: Option<Arc<WindowsTray>>
         state.tray = tray;
         state.candidate_win = cand_win;
         state.osd_win = osd_win;
-        let mut guard = HOOK_STATE.lock().unwrap();
+        let mut guard = HOOK_STATE.lock().unwrap_or_else(|e| e.into_inner());
         *guard = Some(state);
     }
 
@@ -328,24 +330,39 @@ pub fn spawn_windows_hook(initial_layout: String, tray: Option<Arc<WindowsTray>>
 
         let kbd_hook = SetWindowsHookExW(WH_KEYBOARD_LL, Some(low_level_keyboard_proc), hmod, 0);
         let mouse_hook = SetWindowsHookExW(WH_MOUSE_LL, Some(low_level_mouse_proc), hmod, 0);
+        let focus_hook = SetWinEventHook(
+            EVENT_SYSTEM_FOREGROUND,
+            EVENT_SYSTEM_FOREGROUND,
+            0 as _,
+            Some(win_event_foreground_proc),
+            0,
+            0,
+            WINEVENT_OUTOFCONTEXT,
+        );
 
         if kbd_hook != 0 as _ {
-            *HOOK_HANDLE.lock().unwrap() = Some(kbd_hook as usize);
+            *HOOK_HANDLE.lock().unwrap_or_else(|e| e.into_inner()) = Some(kbd_hook as usize);
             if mouse_hook != 0 as _ {
-                *MOUSE_HOOK_HANDLE.lock().unwrap() = Some(mouse_hook as usize);
+                *MOUSE_HOOK_HANDLE.lock().unwrap_or_else(|e| e.into_inner()) =
+                    Some(mouse_hook as usize);
             }
-            tracing::info!("Windows Low-Level Keyboard & Mouse Hooks installed successfully");
+            tracing::info!(
+                "Windows Low-Level Keyboard, Mouse & Focus Hooks installed successfully"
+            );
 
             let mut msg: MSG = std::mem::zeroed();
             while GetMessageW(&mut msg, 0 as _, 0, 0) > 0 {
                 DispatchMessageW(&msg);
             }
 
-            if let Some(h) = *HOOK_HANDLE.lock().unwrap() {
+            if let Some(h) = *HOOK_HANDLE.lock().unwrap_or_else(|e| e.into_inner()) {
                 UnhookWindowsHookEx(h as HHOOK);
             }
-            if let Some(mh) = *MOUSE_HOOK_HANDLE.lock().unwrap() {
+            if let Some(mh) = *MOUSE_HOOK_HANDLE.lock().unwrap_or_else(|e| e.into_inner()) {
                 UnhookWindowsHookEx(mh as HHOOK);
+            }
+            if focus_hook != 0 as _ {
+                UnhookWinEvent(focus_hook);
             }
         } else {
             tracing::error!(
@@ -354,6 +371,29 @@ pub fn spawn_windows_hook(initial_layout: String, tray: Option<Arc<WindowsTray>>
             );
         }
     });
+}
+
+unsafe extern "system" fn win_event_foreground_proc(
+    _h_win_event_hook: HWINEVENTHOOK,
+    _event: u32,
+    _hwnd: windows_sys::Win32::Foundation::HWND,
+    _id_object: i32,
+    _id_child: i32,
+    _id_event_thread: u32,
+    _dwms_event_time: u32,
+) {
+    if let Ok(mut guard) = HOOK_STATE.lock() {
+        if let Some(ref mut state) = *guard {
+            if state.uncommitted_units > 0 || state.session.is_prediction_mode() {
+                state.session.commit(state.session.get_selected_index());
+                state.on_commit();
+                state.uncommitted_units = 0;
+                if let Some(ref win) = state.candidate_win {
+                    win.hide();
+                }
+            }
+        }
+    }
 }
 
 unsafe extern "system" fn low_level_mouse_proc(

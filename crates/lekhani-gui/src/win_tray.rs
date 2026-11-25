@@ -81,10 +81,10 @@ impl WindowsTray {
                 hicon_en = hicon_default;
             }
 
-            *ICON_DEFAULT.lock().unwrap() = Some(hicon_default as usize);
-            *ICON_EN.lock().unwrap() = Some(hicon_en as usize);
-            *ICON_BN.lock().unwrap() = Some(hicon_bn as usize);
-            *ACTIVE_LAYOUT.lock().unwrap() = initial_layout.clone();
+            *ICON_DEFAULT.lock().unwrap_or_else(|e| e.into_inner()) = Some(hicon_default as usize);
+            *ICON_EN.lock().unwrap_or_else(|e| e.into_inner()) = Some(hicon_en as usize);
+            *ICON_BN.lock().unwrap_or_else(|e| e.into_inner()) = Some(hicon_bn as usize);
+            *ACTIVE_LAYOUT.lock().unwrap_or_else(|e| e.into_inner()) = initial_layout.clone();
 
             let taskbar_str: Vec<u16> = "TaskbarCreated\0".encode_utf16().collect();
             let tb_msg = RegisterWindowMessageW(taskbar_str.as_ptr());
@@ -196,12 +196,18 @@ impl WindowsTray {
 
     pub fn set_bengali_active(&self, active: bool, layout_name: &str) {
         IS_BENGALI.store(active, Ordering::SeqCst);
-        *ACTIVE_LAYOUT.lock().unwrap() = layout_name.to_string();
+        *ACTIVE_LAYOUT.lock().unwrap_or_else(|e| e.into_inner()) = layout_name.to_string();
 
         let icon = if active {
-            ICON_BN.lock().unwrap().unwrap_or(0) as HICON
+            ICON_BN
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .unwrap_or(0) as HICON
         } else {
-            ICON_EN.lock().unwrap().unwrap_or(0) as HICON
+            ICON_EN
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .unwrap_or(0) as HICON
         };
 
         unsafe {
@@ -263,10 +269,10 @@ impl Drop for WindowsTray {
             Shell_NotifyIconW(NIM_DELETE, &nid);
             DestroyWindow(self.hwnd);
 
-            if let Some(hicon) = *ICON_BN.lock().unwrap() {
+            if let Some(hicon) = *ICON_BN.lock().unwrap_or_else(|e| e.into_inner()) {
                 DestroyIcon(hicon as _);
             }
-            if let Some(hicon) = *ICON_EN.lock().unwrap() {
+            if let Some(hicon) = *ICON_EN.lock().unwrap_or_else(|e| e.into_inner()) {
                 DestroyIcon(hicon as _);
             }
         }
@@ -484,7 +490,7 @@ unsafe fn update_tray_tooltip(hwnd: HWND, active: bool, layout_name: &str) {
 }
 
 unsafe fn switch_layout_from_tray(hwnd: HWND, new_layout: &str) {
-    *ACTIVE_LAYOUT.lock().unwrap() = new_layout.to_string();
+    *ACTIVE_LAYOUT.lock().unwrap_or_else(|e| e.into_inner()) = new_layout.to_string();
     crate::win_hook::update_active_layout(new_layout);
     crate::win_hook::set_bengali_mode(true);
 
@@ -533,7 +539,10 @@ unsafe fn show_tray_menu(hwnd: HWND) {
 
     // Layout submenu
     let hsub_layout = CreatePopupMenu();
-    let cur_layout = ACTIVE_LAYOUT.lock().unwrap().clone();
+    let cur_layout = ACTIVE_LAYOUT
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone();
 
     let is_avro = cur_layout == "Avro Phonetic" || cur_layout.is_empty();
     let is_probaho = cur_layout.contains("Flow") || cur_layout.contains("প্রবাহ");
@@ -612,11 +621,20 @@ unsafe extern "system" fn tray_wnd_proc(
     if taskbar_msg != 0 && msg == taskbar_msg {
         // Re-register tray icon if explorer restarted
         let is_bn = IS_BENGALI.load(Ordering::SeqCst);
-        let cur_layout = ACTIVE_LAYOUT.lock().unwrap().clone();
+        let cur_layout = ACTIVE_LAYOUT
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone();
         let icon = if is_bn {
-            ICON_BN.lock().unwrap().unwrap_or(0) as HICON
+            ICON_BN
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .unwrap_or(0) as HICON
         } else {
-            ICON_EN.lock().unwrap().unwrap_or(0) as HICON
+            ICON_EN
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .unwrap_or(0) as HICON
         };
         let mut nid = NOTIFYICONDATAW {
             cbSize: std::mem::size_of::<NOTIFYICONDATAW>() as u32,
@@ -712,7 +730,7 @@ pub fn spawn_windows_tray(
     active_layout: String,
     app_weak: slint::Weak<crate::TopBarWindow>,
 ) -> Option<Arc<WindowsTray>> {
-    *APP_WEAK.lock().unwrap() = Some(app_weak);
+    *APP_WEAK.lock().unwrap_or_else(|e| e.into_inner()) = Some(app_weak);
     IS_TOPBAR_VISIBLE.store(true, Ordering::SeqCst);
 
     let (tx, rx) = std::sync::mpsc::channel();
