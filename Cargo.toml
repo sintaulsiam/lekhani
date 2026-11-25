@@ -35,9 +35,9 @@ clap = { version = "4.4", features = ["derive"] }
 quick-xml = "0.31"
 futures-util = "0.3"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
-lekhani-parser = { version = "1.2.3", git = "https://github.com/sintaulsiam/lekhani-engine", tag = "v1.2.8" }
-lekhani-ai     = { version = "1.2.3", git = "https://github.com/sintaulsiam/lekhani-engine", tag = "v1.2.8" }
-lekhani-core   = { version = "1.2.3", git = "https://github.com/sintaulsiam/lekhani-engine", tag = "v1.2.8" }
+lekhani-parser = { version = "1.2.3", git = "https://github.com/sintaulsiam/lekhani-engine", tag = "v1.2.9" }
+lekhani-ai     = { version = "1.2.3", git = "https://github.com/sintaulsiam/lekhani-engine", tag = "v1.2.9" }
+lekhani-core   = { version = "1.2.3", git = "https://github.com/sintaulsiam/lekhani-engine", tag = "v1.2.9" }
 
 # ── Local override for simultaneous engine development ───────────────────────
 # [patch."https://github.com/sintaulsiam/lekhani-engine"]
